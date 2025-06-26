@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/ch00k/oar/internal/app"
@@ -10,6 +11,18 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
+
+// handleCommandError provides consistent error handling for CLI commands
+func handleCommandError(operation string, err error, context ...any) {
+	slog.Error("Command failed", append([]any{"operation", operation, "error", err}, context...)...)
+	fmt.Fprintf(os.Stderr, "Error: %s failed: %v\n", operation, err)
+}
+
+// handleInvalidUUID provides consistent handling for invalid UUID errors
+func handleInvalidUUID(operation, input string) {
+	slog.Warn("Invalid UUID provided", "operation", operation, "input", input)
+	fmt.Fprintf(os.Stderr, "Error: Invalid project ID '%s'. Must be a valid UUID.\n", input)
+}
 
 // projectCmd represents the project command
 var projectCmd = &cobra.Command{
@@ -25,7 +38,7 @@ var projectListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		projects, err := app.GetProjectService().ListProjects()
 		if err != nil {
-			fmt.Printf("Error listing projects: %v\n", err)
+			handleCommandError("listing projects", err)
 			return
 		}
 
@@ -45,12 +58,12 @@ var projectListCmd = &cobra.Command{
 		}
 
 		if err := table.Bulk(data); err != nil {
-			fmt.Printf("Error rendering table: %v\n", err)
+			handleCommandError("rendering project table", err)
 			return
 		}
 
 		if err := table.Render(); err != nil {
-			fmt.Printf("Error rendering table: %v\n", err)
+			handleCommandError("rendering project table", err)
 			return
 		}
 	},
@@ -75,7 +88,7 @@ var projectAddCmd = &cobra.Command{
 		// Call service
 		project, err := app.GetProjectService().CreateProject(config)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			handleCommandError("creating project", err, "git_url", gitURL)
 			return
 		}
 
@@ -92,13 +105,13 @@ var projectRemoveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		projectID, err := uuid.Parse(args[0])
 		if err != nil {
-			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			handleInvalidUUID("project operation", args[0])
 			return
 		}
 		fmt.Printf("Removing project with ID: %s\n", projectID)
 
 		if err := app.GetProjectService().RemoveProject(projectID); err != nil {
-			fmt.Printf("Error removing project: %v\n", err)
+			handleCommandError("removing project", err, "project_id", projectID)
 			return
 		}
 	},
@@ -112,20 +125,20 @@ var projectShowCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			if err := cmd.Help(); err != nil {
-				fmt.Printf("Error showing project details: %v\n", err)
+				handleCommandError("showing help", err)
 			}
 			return
 		}
 
 		projectID, err := uuid.Parse(args[0])
 		if err != nil {
-			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			handleInvalidUUID("project operation", args[0])
 			return
 		}
 
 		project, err := app.GetProjectService().GetProject(projectID)
 		if err != nil {
-			fmt.Printf("Error retrieving project: %v\n", err)
+			handleCommandError("retrieving project", err, "project_id", projectID)
 			return
 		}
 
@@ -149,12 +162,12 @@ var projectShowCmd = &cobra.Command{
 		data = append(data, []string{"Status", "N/A"}) // TODO: Status not directly available in Project model
 
 		if err := table.Bulk(data); err != nil {
-			fmt.Printf("Error rendering table: %v\n", err)
+			handleCommandError("rendering project table", err)
 			return
 		}
 
 		if err := table.Render(); err != nil {
-			fmt.Printf("Error rendering table: %v\n", err)
+			handleCommandError("rendering project table", err)
 			return
 		}
 	},
@@ -169,7 +182,7 @@ var projectDeployCmd = &cobra.Command{
 		// Parse UUID
 		projectID, err := uuid.Parse(args[0])
 		if err != nil {
-			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			handleInvalidUUID("project operation", args[0])
 			return
 		}
 
@@ -185,7 +198,7 @@ var projectDeployCmd = &cobra.Command{
 			Pull:   pull,
 		})
 		if err != nil {
-			fmt.Printf("Error deploying project: %v\n", err)
+			handleCommandError("deploying project", err, "project_id", projectID)
 			return
 		}
 
@@ -209,8 +222,8 @@ func init() {
 	projectAddCmd.Flags().String("git-url", "", "Git repository URL (required)")
 	projectAddCmd.Flags().String("name", "", "Project name (default: derived from repo)")
 	if err := projectAddCmd.MarkFlagRequired("git-url"); err != nil {
-		fmt.Printf("Error marking git-url flag as required: %v\n", err)
-		return
+		slog.Error("Failed to mark git-url flag as required", "error", err)
+		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic
 	}
 
 	projectCmd.AddCommand(projectAddCmd)
