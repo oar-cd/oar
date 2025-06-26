@@ -1,3 +1,4 @@
+// Package db provides functions to initialize and manage the SQLite database for Oar.
 package db
 
 import (

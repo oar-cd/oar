@@ -44,8 +44,15 @@ var projectListCmd = &cobra.Command{
 			data = append(data, []string{project.ID.String(), project.Name})
 		}
 
-		table.Bulk(data)
-		table.Render()
+		if err := table.Bulk(data); err != nil {
+			fmt.Printf("Error rendering table: %v\n", err)
+			return
+		}
+
+		if err := table.Render(); err != nil {
+			fmt.Printf("Error rendering table: %v\n", err)
+			return
+		}
 	},
 }
 
@@ -81,9 +88,19 @@ var projectRemoveCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove a project",
 	Long:  `Remove a Docker Compose project from the discovery.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// Here you would add the logic to remove a project.
-		// This might involve prompting the user for the project name and deleting it from the discovery.
+		projectID, err := uuid.Parse(args[0])
+		if err != nil {
+			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			return
+		}
+		fmt.Printf("Removing project with ID: %s\n", projectID)
+
+		if err := app.GetProjectService().RemoveProject(projectID); err != nil {
+			fmt.Printf("Error removing project: %v\n", err)
+			return
+		}
 	},
 }
 
@@ -94,12 +111,52 @@ var projectShowCmd = &cobra.Command{
 	Long:  `Show detailed information about a specific Docker Compose project.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				fmt.Printf("Error showing project details: %v\n", err)
+			}
 			return
 		}
-		// projectName := args[0]
-		// Here you would add the logic to show details of the specified project.
-		// This might involve retrieving the project details from a discovery service.
+
+		projectID, err := uuid.Parse(args[0])
+		if err != nil {
+			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			return
+		}
+
+		project, err := app.GetProjectService().GetProject(projectID)
+		if err != nil {
+			fmt.Printf("Error retrieving project: %v\n", err)
+			return
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+
+		var data [][]string
+
+		data = append(data, []string{"ID", project.ID.String()})
+		data = append(data, []string{"Name", project.Name})
+		data = append(data, []string{"Git URL", project.GitURL})
+		data = append(data, []string{"Compose Name", project.ComposeName})
+		data = append(data, []string{"Compose File", project.ComposeFileName})
+		if project.LastCommit != nil {
+			data = append(data, []string{"Last Commit", *project.LastCommit})
+		} else {
+			data = append(data, []string{"Last Commit", "N/A"})
+		}
+		data = append(data, []string{"Created At", project.CreatedAt.String()})
+		data = append(data, []string{"Updated At", project.UpdatedAt.String()})
+		data = append(data, []string{"Deployments", fmt.Sprintf("%d", len(project.Deployments))})
+		data = append(data, []string{"Status", "N/A"}) // TODO: Status not directly available in Project model
+
+		if err := table.Bulk(data); err != nil {
+			fmt.Printf("Error rendering table: %v\n", err)
+			return
+		}
+
+		if err := table.Render(); err != nil {
+			fmt.Printf("Error rendering table: %v\n", err)
+			return
+		}
 	},
 }
 
@@ -151,7 +208,11 @@ func init() {
 
 	projectAddCmd.Flags().String("git-url", "", "Git repository URL (required)")
 	projectAddCmd.Flags().String("name", "", "Project name (default: derived from repo)")
-	projectAddCmd.MarkFlagRequired("git-url")
+	if err := projectAddCmd.MarkFlagRequired("git-url"); err != nil {
+		fmt.Printf("Error marking git-url flag as required: %v\n", err)
+		return
+	}
+
 	projectCmd.AddCommand(projectAddCmd)
 
 	projectCmd.AddCommand(projectRemoveCmd)

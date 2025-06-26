@@ -1,3 +1,4 @@
+// Package app provides the main application context for Oar, managing the database and services.
 package app
 
 import (
