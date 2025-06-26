@@ -1,0 +1,166 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/ch00k/oar/internal/app"
+	"github.com/ch00k/oar/services"
+	"github.com/google/uuid"
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
+)
+
+// projectCmd represents the project command
+var projectCmd = &cobra.Command{
+	Use:   "project",
+	Short: "Manage projects",
+}
+
+// projectListCmd represents the command to list projects
+var projectListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List projects",
+	Long:  "Display a list of all projects with their details and current status.",
+	Run: func(cmd *cobra.Command, args []string) {
+		projects, err := app.GetProjectService().ListProjects()
+		if err != nil {
+			fmt.Printf("Error listing projects: %v\n", err)
+			return
+		}
+
+		if len(projects) == 0 {
+			fmt.Println("No projects found.")
+			fmt.Println("Use 'oar project add <git-url>' to create your first project.")
+			return
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.Header([]string{"ID", "Name"})
+
+		var data [][]string
+
+		for _, project := range projects {
+			data = append(data, []string{project.ID.String(), project.Name})
+		}
+
+		table.Bulk(data)
+		table.Render()
+	},
+}
+
+// projectAddCmd represents the command to add a new project
+var projectAddCmd = &cobra.Command{
+	Use:   "add",
+	Short: "Add a new project",
+	Long:  `Add a new Docker Compose project from a Git repository to be managed by Oar.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Get flag values
+		gitURL, _ := cmd.Flags().GetString("git-url")
+		name, _ := cmd.Flags().GetString("name")
+
+		// Create config struct from CLI input
+		config := services.CreateProjectConfig{
+			GitURL: gitURL,
+			Name:   name, // Could be empty string
+		}
+
+		// Call service
+		project, err := app.GetProjectService().CreateProject(config)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Created project: %s (ID: %s)\n", project.Name, project.ID)
+	},
+}
+
+// projectRemoveCmd represents the command to remove a project
+var projectRemoveCmd = &cobra.Command{
+	Use:   "remove",
+	Short: "Remove a project",
+	Long:  `Remove a Docker Compose project from the discovery.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Here you would add the logic to remove a project.
+		// This might involve prompting the user for the project name and deleting it from the discovery.
+	},
+}
+
+// projectShowCmd represents the command to show project details
+var projectShowCmd = &cobra.Command{
+	Use:   "show [id]",
+	Short: "Show details of a Docker Compose project",
+	Long:  `Show detailed information about a specific Docker Compose project.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			cmd.Help()
+			return
+		}
+		// projectName := args[0]
+		// Here you would add the logic to show details of the specified project.
+		// This might involve retrieving the project details from a discovery service.
+	},
+}
+
+var projectDeployCmd = &cobra.Command{
+	Use:   "deploy project_id",
+	Short: "Deploy a project",
+	Long:  "Pull latest changes from Git and (re-)deploy the project using Docker Compose.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		// Parse UUID
+		projectID, err := uuid.Parse(args[0])
+		if err != nil {
+			fmt.Printf("Error: Invalid project ID '%s'. Must be a valid UUID.\n", args[0])
+			return
+		}
+
+		// Get flags
+		detach, _ := cmd.Flags().GetBool("detach")
+		build, _ := cmd.Flags().GetBool("build")
+		pull, _ := cmd.Flags().GetBool("pull")
+
+		// Deploy project
+		deployment, err := app.GetProjectService().DeployProject(projectID, services.DeploymentConfig{
+			Detach: detach,
+			Build:  build,
+			Pull:   pull,
+		})
+		if err != nil {
+			fmt.Printf("Error deploying project: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Deployment started successfully!\n")
+		fmt.Printf("Deployment ID: %s\n", deployment.ID)
+		fmt.Printf("Project: %s\n", deployment.Project.Name)
+		fmt.Printf("Status: %s\n", deployment.Status)
+
+		if !detach {
+			fmt.Printf("\nDeployment Output:\n")
+			fmt.Println(deployment.Output)
+		} else {
+			fmt.Printf("\nUse 'oar deployment logs %s' to view output\n", deployment.ID)
+		}
+	},
+}
+
+func init() {
+	projectCmd.AddCommand(projectListCmd)
+
+	projectAddCmd.Flags().String("git-url", "", "Git repository URL (required)")
+	projectAddCmd.Flags().String("name", "", "Project name (default: derived from repo)")
+	projectAddCmd.MarkFlagRequired("git-url")
+	projectCmd.AddCommand(projectAddCmd)
+
+	projectCmd.AddCommand(projectRemoveCmd)
+	projectCmd.AddCommand(projectShowCmd)
+
+	projectDeployCmd.Flags().BoolP("detach", "d", true, "Run in detached mode (default: true)")
+	projectDeployCmd.Flags().Bool("build", false, "Build images before starting containers")
+	projectDeployCmd.Flags().Bool("pull", true, "Pull latest Git changes before deploying (default: true)")
+	projectCmd.AddCommand(projectDeployCmd)
+
+	rootCmd.AddCommand(projectCmd)
+}
