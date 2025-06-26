@@ -15,13 +15,13 @@ import (
 // handleCommandError provides consistent error handling for CLI commands
 func handleCommandError(operation string, err error, context ...any) {
 	slog.Error("Command failed", append([]any{"operation", operation, "error", err}, context...)...)
-	fmt.Fprintf(os.Stderr, "Error: %s failed: %v\n", operation, err)
+	printError("Error: %s failed: %v", operation, err)
 }
 
 // handleInvalidUUID provides consistent handling for invalid UUID errors
 func handleInvalidUUID(operation, input string) {
 	slog.Warn("Invalid UUID provided", "operation", operation, "input", input)
-	fmt.Fprintf(os.Stderr, "Error: Invalid project ID '%s'. Must be a valid UUID.\n", input)
+	printError("Error: Invalid project ID '%s'. Must be a valid UUID.", input)
 }
 
 // projectCmd represents the project command
@@ -92,7 +92,7 @@ var projectAddCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("Created project: %s (ID: %s)\n", project.Name, project.ID)
+		printSuccess("Created project: %s (ID: %s)", project.Name, project.ID)
 	},
 }
 
@@ -114,6 +114,8 @@ var projectRemoveCmd = &cobra.Command{
 			handleCommandError("removing project", err, "project_id", projectID)
 			return
 		}
+
+		printSuccess("Project removed successfully")
 	},
 }
 
@@ -202,7 +204,7 @@ var projectDeployCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("Deployment started successfully!\n")
+		printSuccess("Deployment started successfully!")
 		fmt.Printf("Deployment ID: %s\n", deployment.ID)
 		fmt.Printf("Project: %s\n", deployment.Project.Name)
 		fmt.Printf("Status: %s\n", deployment.Status)

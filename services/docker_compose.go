@@ -10,6 +10,9 @@ import (
 // DockerComposeProjectService is a placeholder for Docker Compose related operations.
 type DockerComposeProjectService struct{}
 
+// Ensure DockerComposeProjectService implements DockerComposeExecutor
+var _ DockerComposeExecutor = (*DockerComposeProjectService)(nil)
+
 func (d *DockerComposeProjectService) Up(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
 	// Build docker compose command
 	args := []string{
@@ -56,6 +59,11 @@ func (d *DockerComposeProjectService) Up(name, workingDir, composeFile string, c
 	return outputStr, nil
 }
 
+// Deploy is an alias for Up to match the interface
+func (d *DockerComposeProjectService) Deploy(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
+	return d.Up(name, workingDir, composeFile, config)
+}
+
 func (d *DockerComposeProjectService) Down(name, workingDir, composeFile string) (string, error) {
 	// Build docker compose command
 	args := []string{
@@ -95,6 +103,6 @@ func (d *DockerComposeProjectService) Down(name, workingDir, composeFile string)
 }
 
 // NewDockerComposeService creates a new instance of DockerComposeService.
-func NewDockerComposeService() DockerComposeProjectService {
-	return DockerComposeProjectService{}
+func NewDockerComposeService() *DockerComposeProjectService {
+	return &DockerComposeProjectService{}
 }
