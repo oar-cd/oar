@@ -1,3 +1,4 @@
+// Package services provides interfaces and implementations for various services in Oar.
 package services
 
 import (
@@ -102,7 +103,10 @@ func (s *ProjectService) CreateProject(config CreateProjectConfig) (*models.Proj
 
 	if err := s.db.Create(project).Error; err != nil {
 		// Cleanup on failure
-		os.RemoveAll(workingDir)
+		if err := os.RemoveAll(workingDir); err != nil {
+			slog.Error("Failed to remove project directory after creation failure", "working_dir", workingDir, "error", err)
+			return nil, fmt.Errorf("failed to create project: %w", err)
+		}
 		return nil, fmt.Errorf("failed to create project: %w", err)
 	}
 
@@ -140,11 +144,25 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 	}
 
 	// Deploy using Docker Compose
-	output, err := s.deployWithDockerCompose(project, config)
+	slog.Info("Starting Docker Compose deployment",
+		"project_id", project.ID,
+		"project_name", project.Name,
+		"compose_file", project.ComposeFileName,
+		"detach", config.Detach,
+		"build", config.Build,
+		"pull", config.Pull)
+
+	output, err := s.dockerComposeService.Up(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName, config)
 	if err != nil {
+		slog.Error("Docker Compose deployment failed",
+			"project_id", project.ID,
+			"error", err,
+			"output", output)
 		s.updateDeploymentStatus(deploymentID, "failed", fmt.Sprintf("Docker Compose failed: %v\nOutput: %s", err, output))
-		return nil, fmt.Errorf("deployment failed: %w", err)
+		return nil, fmt.Errorf("docker compose command failed: %w", err)
 	}
+
+	slog.Info("Docker Compose deployment completed", "project_id", project.ID)
 
 	// Update deployment with success
 	deployment.Status = "running"
@@ -163,6 +181,57 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 	return deployment, nil
 }
 
+func (s *ProjectService) StopProject(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.GetProject(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stop Docker Compose
+	slog.Info("Stopping Docker Compose project", "project_id", project.ID, "project_name", project.Name)
+	output, err := s.dockerComposeService.Down(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName)
+	if err != nil {
+		slog.Error("Docker Compose down failed", "project_id", project.ID, "error", err, "output", output)
+		return fmt.Errorf("failed to stop project: %w", err)
+	}
+	slog.Info("Docker Compose project stopped", "project_id", project.ID, "output_length", len(output))
+
+	if err := s.db.Save(project).Error; err != nil {
+		return fmt.Errorf("failed to update project status: %w", err)
+	}
+
+	return nil
+}
+
+func (s *ProjectService) RemoveProject(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.GetProject(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stop Docker Compose project if running
+	if err := s.StopProject(projectID); err != nil {
+		slog.Warn("Failed to stop project before removal", "project_id", project.ID, "error", err)
+		return fmt.Errorf("failed to stop project before removal: %w", err)
+	}
+
+	// Remove project directory
+	workingDir := s.projectWorkingDir(project.ID)
+	if err := os.RemoveAll(workingDir); err != nil {
+		return fmt.Errorf("failed to remove project directory: %w", err)
+	}
+
+	// Delete project from database
+	if err := s.db.Delete(&models.Project{}, projectID).Error; err != nil {
+		return fmt.Errorf("failed to delete project from database: %w", err)
+	}
+
+	slog.Info("Project removed successfully", "project_id", project.ID, "working_dir", workingDir)
+	return nil
+}
+
 func (s *ProjectService) pullLatestChanges(project *models.Project) error {
 	slog.Info("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
 
@@ -174,28 +243,6 @@ func (s *ProjectService) pullLatestChanges(project *models.Project) error {
 
 	slog.Info("Git pull completed", "project_id", project.ID)
 	return nil
-}
-
-func (s *ProjectService) deployWithDockerCompose(project *models.Project, config DeploymentConfig) (string, error) {
-	slog.Info("Starting Docker Compose deployment",
-		"project_id", project.ID,
-		"project_name", project.Name,
-		"compose_file", project.ComposeFileName,
-		"detach", config.Detach,
-		"build", config.Build,
-		"pull", config.Pull)
-
-	outputStr, err := s.dockerComposeService.Deploy(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName, config)
-	if err != nil {
-		slog.Error("Docker Compose deployment failed",
-			"project_id", project.ID,
-			"error", err,
-			"output", outputStr)
-		return outputStr, fmt.Errorf("docker compose command failed: %w", err)
-	}
-
-	slog.Info("Docker Compose deployment completed", "project_id", project.ID)
-	return outputStr, nil
 }
 
 func (s *ProjectService) updateDeploymentStatus(deploymentID uuid.UUID, status, output string) {

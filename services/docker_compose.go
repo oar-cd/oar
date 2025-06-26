@@ -10,14 +10,14 @@ import (
 // DockerComposeProjectService is a placeholder for Docker Compose related operations.
 type DockerComposeProjectService struct{}
 
-func (d *DockerComposeProjectService) Deploy(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
+func (d *DockerComposeProjectService) Up(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
 	// Build docker compose command
 	args := []string{
 		"compose",
 		"--project-name", name,
 		"--file", filepath.Join(workingDir, composeFile),
 		"up",
-		"--quiet-pull", "--no-color",
+		"--quiet-pull", "--no-color", "--remove-orphans",
 	}
 
 	// Add flags based on config
@@ -51,6 +51,44 @@ func (d *DockerComposeProjectService) Deploy(name, workingDir, composeFile strin
 	}
 
 	slog.Debug("Docker Compose command completed successfully",
+		"project_name", name,
+		"output_length", len(outputStr))
+	return outputStr, nil
+}
+
+func (d *DockerComposeProjectService) Down(name, workingDir, composeFile string) (string, error) {
+	// Build docker compose command
+	args := []string{
+		"compose",
+		"--project-name", name,
+		"--file", filepath.Join(workingDir, composeFile),
+		"down",
+		"--remove-orphans",
+	}
+
+	slog.Debug("Executing Docker Compose down command",
+		"command", "docker",
+		"args", args,
+		"working_dir", workingDir)
+
+	// Execute command
+	cmd := exec.Command("docker", args...)
+	cmd.Dir = workingDir
+
+	// Capture output
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	if err != nil {
+		slog.Error("Docker Compose down command failed",
+			"command", "docker",
+			"args", args,
+			"error", err,
+			"output", outputStr)
+		return outputStr, fmt.Errorf("docker compose down command failed: %w", err)
+	}
+
+	slog.Debug("Docker Compose down command completed successfully",
 		"project_name", name,
 		"output_length", len(outputStr))
 	return outputStr, nil

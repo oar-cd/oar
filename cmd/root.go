@@ -1,3 +1,4 @@
+// Package cmd implements the command line interface for Oar.
 package cmd
 
 import (

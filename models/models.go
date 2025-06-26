@@ -1,3 +1,4 @@
+// Package models provides the database models for Oar.
 package models
 
 import (
