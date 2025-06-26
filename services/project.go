@@ -12,10 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	homeDir, _   = os.UserHomeDir()
-	workspaceDir = filepath.Join(homeDir, ".oar", "projects")
-)
+// Remove global variables - configuration will be injected
 
 type CreateProjectConfig struct {
 	GitURL string
@@ -31,12 +28,16 @@ type DeploymentConfig struct {
 // ProjectService provides methods to manage Docker Compose projects.
 type ProjectService struct {
 	db                   *gorm.DB
-	gitService           GitService
-	dockerComposeService DockerComposeProjectService
+	gitService           GitExecutor
+	dockerComposeService DockerComposeExecutor
+	config               *Config
 }
 
+// Ensure ProjectService implements ProjectManager
+var _ ProjectManager = (*ProjectService)(nil)
+
 func (s *ProjectService) projectWorkingDir(projectID uuid.UUID) string {
-	return filepath.Join(workspaceDir, projectID.String())
+	return s.config.ProjectWorkingDir(projectID.String())
 }
 
 // ListProjects returns all projects
@@ -152,7 +153,7 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 		"build", config.Build,
 		"pull", config.Pull)
 
-	output, err := s.dockerComposeService.Up(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName, config)
+	output, err := s.dockerComposeService.Deploy(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName, config)
 	if err != nil {
 		slog.Error("Docker Compose deployment failed",
 			"project_id", project.ID,
@@ -167,7 +168,7 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 	// Update deployment with success
 	deployment.Status = "running"
 	deployment.Output = output
-	deployment.CommitHash, _ = s.gitService.GetLatestCommit(fmt.Sprintf("%s/%s", workspaceDir, project.ID))
+	deployment.CommitHash, _ = s.gitService.GetLatestCommit(s.projectWorkingDir(project.ID))
 
 	if err := s.db.Save(deployment).Error; err != nil {
 		return nil, fmt.Errorf("failed to update deployment record: %w", err)
@@ -254,10 +255,27 @@ func (s *ProjectService) updateDeploymentStatus(deploymentID uuid.UUID, status, 
 		})
 }
 
-func NewProjectService(db *gorm.DB) *ProjectService {
+// NewProjectService creates a new ProjectService with dependency injection
+func NewProjectService(
+	db *gorm.DB,
+	gitService GitExecutor,
+	dockerComposeService DockerComposeExecutor,
+	config *Config,
+) *ProjectService {
 	return &ProjectService{
 		db:                   db,
-		gitService:           NewGitService(),
-		dockerComposeService: NewDockerComposeService(),
+		gitService:           gitService,
+		dockerComposeService: dockerComposeService,
+		config:               config,
 	}
+}
+
+// NewProjectServiceWithDefaults creates a ProjectService with default implementations
+func NewProjectServiceWithDefaults(db *gorm.DB, config *Config) *ProjectService {
+	return NewProjectService(
+		db,
+		&GitService{},
+		&DockerComposeProjectService{},
+		config,
+	)
 }

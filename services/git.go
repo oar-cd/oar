@@ -10,8 +10,11 @@ import (
 
 type GitService struct{}
 
-func NewGitService() GitService {
-	return GitService{}
+// Ensure GitService implements GitExecutor
+var _ GitExecutor = (*GitService)(nil)
+
+func NewGitService() *GitService {
+	return &GitService{}
 }
 
 // Clone clones a repository
