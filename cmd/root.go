@@ -2,10 +2,12 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ch00k/oar/internal/app"
 	"github.com/spf13/cobra"
@@ -15,8 +17,55 @@ import (
 var (
 	database *gorm.DB
 	dataDir  string
-	verbose  bool
 )
+
+var logLevel = newLogLevelValue("info", []string{"debug", "info", "warning", "error"})
+
+type logLevelValue struct {
+	value   string
+	allowed []string
+}
+
+func newLogLevelValue(defaultValue string, allowed []string) *logLevelValue {
+	return &logLevelValue{
+		value:   defaultValue,
+		allowed: allowed,
+	}
+}
+
+func (l *logLevelValue) Set(value string) error {
+	for _, allowed := range l.allowed {
+		if value == allowed {
+			l.value = value
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid value '%s'. Allowed values: %s",
+		value, strings.Join(l.allowed, ", "))
+}
+
+func (l *logLevelValue) String() string {
+	return l.value
+}
+
+func (l *logLevelValue) Type() string {
+	return fmt.Sprintf("one of [%s]", strings.Join(l.allowed, "|"))
+}
+
+func (l *logLevelValue) slogValue() slog.Level {
+	switch l.value {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo // Default to info if something goes wrong
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -43,15 +92,12 @@ func Execute() {
 func init() {
 	homeDir, _ := os.UserHomeDir()
 	defaultDataDir := filepath.Join(homeDir, ".oar")
-	rootCmd.PersistentFlags().StringVar(&dataDir, "data-dir", defaultDataDir, "Data directory for Oar")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
+	rootCmd.PersistentFlags().StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory for Oar")
+	rootCmd.PersistentFlags().VarP(logLevel, "log-level", "l", "Log level (debug, info, warning, error)")
 }
 
 func initLogging() {
-	level := slog.LevelInfo
-	if verbose {
-		level = slog.LevelDebug
-	}
+	level := logLevel.slogValue()
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,
