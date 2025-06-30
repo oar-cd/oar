@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/go-git/go-git/v5"
 )
@@ -84,36 +83,4 @@ func (s *GitService) GetLatestCommit(workingDir string) (string, error) {
 	}
 
 	return ref.Hash().String(), nil
-}
-
-// GetCommitInfo returns commit information
-func (s GitService) GetCommitInfo(workingDir string) (*CommitInfo, error) {
-	repo, err := git.PlainOpen(workingDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open repository: %w", err)
-	}
-
-	ref, err := repo.Head()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD: %w", err)
-	}
-
-	commit, err := repo.CommitObject(ref.Hash())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit: %w", err)
-	}
-
-	return &CommitInfo{
-		Hash:    commit.Hash.String(),
-		Message: commit.Message,
-		Author:  commit.Author.Name,
-		Date:    commit.Author.When,
-	}, nil
-}
-
-type CommitInfo struct {
-	Hash    string
-	Message string
-	Author  string
-	Date    time.Time
 }

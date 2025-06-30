@@ -6,23 +6,52 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-// Remove global variables - configuration will be injected
+type ProjectConfig struct {
+	Name             string
+	GitURL           string
+	WorkingDir       string
+	ComposeFiles     []string
+	EnvironmentFiles []string
+}
 
-type CreateProjectConfig struct {
-	GitURL string
-	Name   string
+func NewProjectConfig(name, gitURL string, composeFiles, environmentFiles []string) ProjectConfig {
+	return ProjectConfig{
+		Name:             name,
+		GitURL:           gitURL,
+		ComposeFiles:     []string{},
+		EnvironmentFiles: []string{},
+	}
+}
+
+func NewProjectConfigFromModel(project *models.Project, baseDir string) ProjectConfig {
+	return ProjectConfig{
+		Name:             project.Name,
+		GitURL:           project.GitURL,
+		WorkingDir:       filepath.Join(baseDir, project.ID.String()),
+		ComposeFiles:     strings.Split(project.ComposeFiles, "\000"),     // Split by null character
+		EnvironmentFiles: strings.Split(project.EnvironmentFiles, "\000"), // Split by null character
+	}
 }
 
 type DeploymentConfig struct {
 	Detach bool
 	Build  bool
 	Pull   bool
+}
+
+func NewDeploymentConfig(detach, build, pull bool) DeploymentConfig {
+	return DeploymentConfig{
+		Detach: detach,
+		Build:  build,
+		Pull:   pull,
+	}
 }
 
 // ProjectService provides methods to manage Docker Compose projects.
@@ -59,53 +88,40 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 }
 
 // CreateProject creates a new project
-func (s *ProjectService) CreateProject(config CreateProjectConfig) (*models.Project, error) {
+func (s *ProjectService) CreateProject(projectConfig ProjectConfig) (*models.Project, error) {
 	// Generate UUID upfront. We will later use it for clone directory name, and as project ID.
 	projectID := uuid.New()
 
-	workingDir := s.projectWorkingDir(projectID)
+	projectConfig.WorkingDir = s.projectWorkingDir(projectID)
 
 	// Clone repository first
-	if err := s.gitService.Clone(config.GitURL, workingDir); err != nil {
+	if err := s.gitService.Clone(projectConfig.GitURL, projectConfig.WorkingDir); err != nil {
 		return nil, fmt.Errorf("failed to clone repository: %w", err)
 	}
 
 	// Get commit info
-	commit, _ := s.gitService.GetLatestCommit(workingDir)
+	commit, _ := s.gitService.GetLatestCommit(projectConfig.WorkingDir)
 
 	// Determine project name
 	// TODO: Use `name` from compose.yml if available, otherwise use config.Name
-	projectName := config.Name
+	projectName := projectConfig.Name
 
-	// Determine compose file path
-	var composeFileName string
-
-	if _, err := os.Stat(filepath.Join(workingDir, "compose.yml")); err == nil {
-		composeFileName = "compose.yml"
-	} else if _, err := os.Stat(filepath.Join(workingDir, "compose.yaml")); err == nil {
-		composeFileName = "compose.yaml"
-	} else if _, err := os.Stat(filepath.Join(workingDir, "docker-compose.yml")); err == nil {
-		composeFileName = "docker-compose.yml"
-	} else if _, err := os.Stat(filepath.Join(workingDir, "docker-compose.yaml")); err == nil {
-		composeFileName = "docker-compose.yaml"
-	} else {
-		return nil, fmt.Errorf("no valid compose file found in repository")
-	}
+	composeFiles := strings.Join(projectConfig.ComposeFiles, "\000") // Use null character as separator
 
 	// Create database model from config
 	project := &models.Project{
-		ID:              projectID, // Set explicitly
-		Name:            projectName,
-		GitURL:          config.GitURL,
-		ComposeName:     projectName,
-		ComposeFileName: composeFileName,
-		LastCommit:      &commit,
+		ID:           projectID, // Set explicitly
+		Name:         projectName,
+		GitURL:       projectConfig.GitURL,
+		ComposeName:  projectName,
+		ComposeFiles: composeFiles,
+		LastCommit:   &commit,
 	}
 
 	if err := s.db.Create(project).Error; err != nil {
 		// Cleanup on failure
-		if err := os.RemoveAll(workingDir); err != nil {
-			slog.Error("Failed to remove project directory after creation failure", "working_dir", workingDir, "error", err)
+		if err := os.RemoveAll(projectConfig.WorkingDir); err != nil {
+			slog.Error("Failed to remove project directory after creation failure", "working_dir", projectConfig.WorkingDir, "error", err)
 			return nil, fmt.Errorf("failed to create project: %w", err)
 		}
 		return nil, fmt.Errorf("failed to create project: %w", err)
@@ -114,12 +130,14 @@ func (s *ProjectService) CreateProject(config CreateProjectConfig) (*models.Proj
 	return project, nil
 }
 
-func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentConfig) (*models.Deployment, error) {
+func (s *ProjectService) DeployProject(projectID uuid.UUID, deploymentConfig *DeploymentConfig) (*models.Deployment, error) {
 	// Get project
 	project, err := s.GetProject(projectID)
 	if err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
 	}
+
+	projectConfig := NewProjectConfigFromModel(project, s.projectWorkingDir(project.ID))
 
 	// Generate deployment ID upfront
 	deploymentID := uuid.New()
@@ -137,7 +155,7 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 	}
 
 	// Pull latest changes if requested
-	if config.Pull {
+	if deploymentConfig.Pull {
 		if err := s.pullLatestChanges(project); err != nil {
 			s.updateDeploymentStatus(deploymentID, "failed", fmt.Sprintf("Git pull failed: %v", err))
 			return nil, fmt.Errorf("failed to pull latest changes: %w", err)
@@ -148,12 +166,12 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, config DeploymentCon
 	slog.Info("Starting Docker Compose deployment",
 		"project_id", project.ID,
 		"project_name", project.Name,
-		"compose_file", project.ComposeFileName,
-		"detach", config.Detach,
-		"build", config.Build,
-		"pull", config.Pull)
+		"compose_files", project.ComposeFiles,
+		"detach", deploymentConfig.Detach,
+		"build", deploymentConfig.Build,
+		"pull", deploymentConfig.Pull)
 
-	output, err := s.dockerComposeService.Deploy(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName, config)
+	output, err := s.dockerComposeService.Up(&projectConfig, deploymentConfig)
 	if err != nil {
 		slog.Error("Docker Compose deployment failed",
 			"project_id", project.ID,
@@ -189,9 +207,11 @@ func (s *ProjectService) StopProject(projectID uuid.UUID) error {
 		return fmt.Errorf("project not found: %w", err)
 	}
 
+	projectConfig := NewProjectConfigFromModel(project, s.projectWorkingDir(project.ID))
+
 	// Stop Docker Compose
 	slog.Info("Stopping Docker Compose project", "project_id", project.ID, "project_name", project.Name)
-	output, err := s.dockerComposeService.Down(project.ComposeName, s.projectWorkingDir(project.ID), project.ComposeFileName)
+	output, err := s.dockerComposeService.Down(&projectConfig)
 	if err != nil {
 		slog.Error("Docker Compose down failed", "project_id", project.ID, "error", err, "output", output)
 		return fmt.Errorf("failed to stop project: %w", err)
