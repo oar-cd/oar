@@ -15,13 +15,13 @@ import (
 // handleCommandError provides consistent error handling for CLI commands
 func handleCommandError(operation string, err error, context ...any) {
 	slog.Error("Command failed", append([]any{"operation", operation, "error", err}, context...)...)
-	printError("Error: %s failed: %v", operation, err)
+	printMessage(Error, "Error: %s failed: %v", operation, err)
 }
 
 // handleInvalidUUID provides consistent handling for invalid UUID errors
 func handleInvalidUUID(operation, input string) {
 	slog.Warn("Invalid UUID provided", "operation", operation, "input", input)
-	printError("Error: Invalid project ID '%s'. Must be a valid UUID.", input)
+	printMessage(Error, "Error: Invalid project ID '%s'. Must be a valid UUID.", input)
 }
 
 // projectCmd represents the project command
@@ -43,8 +43,7 @@ var projectListCmd = &cobra.Command{
 		}
 
 		if len(projects) == 0 {
-			fmt.Println("No projects found.")
-			fmt.Println("Use 'oar project add <git-url>' to create your first project.")
+			printMessage(Plain, "No projects found.")
 			return
 		}
 
@@ -73,26 +72,25 @@ var projectListCmd = &cobra.Command{
 var projectAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a new project",
-	Long:  `Add a new Docker Compose project from a Git repository to be managed by Oar.`,
+	Long:  "Add a new Docker Compose project from a Git repository to be managed by Oar.",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Get flag values
 		gitURL, _ := cmd.Flags().GetString("git-url")
 		name, _ := cmd.Flags().GetString("name")
+		composeFiles, _ := cmd.Flags().GetStringArray("compose-file")
+		envFiles, _ := cmd.Flags().GetStringArray("env-file")
 
 		// Create config struct from CLI input
-		config := services.CreateProjectConfig{
-			GitURL: gitURL,
-			Name:   name, // Could be empty string
-		}
+		projectConfig := services.NewProjectConfig(name, gitURL, composeFiles, envFiles)
 
 		// Call service
-		project, err := app.GetProjectService().CreateProject(config)
+		project, err := app.GetProjectService().CreateProject(projectConfig)
 		if err != nil {
-			handleCommandError("creating project", err, "git_url", gitURL)
+			handleCommandError("creating project from %s", err, "Git URL", gitURL)
 			return
 		}
 
-		printSuccess("Created project: %s (ID: %s)", project.Name, project.ID)
+		printMessage(Success, "Created project: %s (ID: %s)", project.Name, project.ID)
 	},
 }
 
@@ -108,14 +106,14 @@ var projectRemoveCmd = &cobra.Command{
 			handleInvalidUUID("project operation", args[0])
 			return
 		}
-		fmt.Printf("Removing project with ID: %s\n", projectID)
+		printMessage(Warning, "Removing project with ID: %s", projectID)
 
 		if err := app.GetProjectService().RemoveProject(projectID); err != nil {
 			handleCommandError("removing project", err, "project_id", projectID)
 			return
 		}
 
-		printSuccess("Project removed successfully")
+		printMessage(Success, "Project removed successfully")
 	},
 }
 
@@ -152,7 +150,7 @@ var projectShowCmd = &cobra.Command{
 		data = append(data, []string{"Name", project.Name})
 		data = append(data, []string{"Git URL", project.GitURL})
 		data = append(data, []string{"Compose Name", project.ComposeName})
-		data = append(data, []string{"Compose File", project.ComposeFileName})
+		data = append(data, []string{"Compose Files", project.ComposeName})
 		if project.LastCommit != nil {
 			data = append(data, []string{"Last Commit", *project.LastCommit})
 		} else {
@@ -194,26 +192,23 @@ var projectDeployCmd = &cobra.Command{
 		pull, _ := cmd.Flags().GetBool("pull")
 
 		// Deploy project
-		deployment, err := app.GetProjectService().DeployProject(projectID, services.DeploymentConfig{
-			Detach: detach,
-			Build:  build,
-			Pull:   pull,
-		})
+		deploymentConfig := services.NewDeploymentConfig(detach, build, pull)
+		deployment, err := app.GetProjectService().DeployProject(projectID, &deploymentConfig)
 		if err != nil {
 			handleCommandError("deploying project", err, "project_id", projectID)
 			return
 		}
 
-		printSuccess("Deployment started successfully!")
-		fmt.Printf("Deployment ID: %s\n", deployment.ID)
-		fmt.Printf("Project: %s\n", deployment.Project.Name)
-		fmt.Printf("Status: %s\n", deployment.Status)
+		printMessage(Success, "Deployment started successfully!")
+		printMessage(Plain, "Deployment ID: %s", deployment.ID)
+		printMessage(Plain, "Project: %s", deployment.Project.Name)
+		printMessage(Plain, "Status: %s", deployment.Status)
 
 		if !detach {
-			fmt.Printf("\nDeployment Output:\n")
-			fmt.Println(deployment.Output)
+			printMessage(Plain, "Deployment Output:")
+			printMessage(Plain, "%s", deployment.Output)
 		} else {
-			fmt.Printf("\nUse 'oar deployment logs %s' to view output\n", deployment.ID)
+			printMessage(Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
 		}
 	},
 }
@@ -221,8 +216,10 @@ var projectDeployCmd = &cobra.Command{
 func init() {
 	projectCmd.AddCommand(projectListCmd)
 
-	projectAddCmd.Flags().String("git-url", "", "Git repository URL (required)")
-	projectAddCmd.Flags().String("name", "", "Project name (default: derived from repo)")
+	projectAddCmd.Flags().StringP("git-url", "u", "", "Git repository URL (required)")
+	projectAddCmd.Flags().StringP("name", "n", "", "Project name (default: derived from repo)")
+	projectAddCmd.Flags().StringArrayP("compose-file", "f", []string{"compose.yaml"}, "Path (relative to repo root) to Docker Compose file (default: compose.yaml)")
+	projectAddCmd.Flags().StringArrayP("env-file", "e", nil, "Path (absolute) to environment file (optional)")
 	if err := projectAddCmd.MarkFlagRequired("git-url"); err != nil {
 		slog.Error("Failed to mark git-url flag as required", "error", err)
 		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic

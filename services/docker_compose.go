@@ -13,32 +13,41 @@ type DockerComposeProjectService struct{}
 // Ensure DockerComposeProjectService implements DockerComposeExecutor
 var _ DockerComposeExecutor = (*DockerComposeProjectService)(nil)
 
-func (d *DockerComposeProjectService) Up(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
+func (d *DockerComposeProjectService) Up(projectConfig *ProjectConfig, deploymentConfig *DeploymentConfig) (string, error) {
 	// Build docker compose command
 	args := []string{
 		"compose",
-		"--project-name", name,
-		"--file", filepath.Join(workingDir, composeFile),
-		"up",
-		"--quiet-pull", "--no-color", "--remove-orphans",
+		"--project-name", projectConfig.Name,
 	}
 
+	// Add compose files to the command
+	for _, file := range projectConfig.ComposeFiles {
+		args = append(args, "--file", filepath.Join(projectConfig.WorkingDir, file))
+	}
+
+	// Argument and common flags
+	args = append(args,
+		"up",
+		"--quiet-pull", "--no-color", "--remove-orphans",
+	)
+
 	// Add flags based on config
-	if config.Detach {
+	if deploymentConfig.Detach {
 		args = append(args, "--detach")
 	}
-	if config.Build {
+	if deploymentConfig.Build {
 		args = append(args, "--build")
 	}
 
 	slog.Debug("Executing Docker Compose command",
 		"command", "docker",
 		"args", args,
-		"working_dir", workingDir)
+		"working_dir", projectConfig.WorkingDir)
 
 	// Execute command
 	cmd := exec.Command("docker", args...)
-	cmd.Dir = workingDir
+	cmd.Dir = projectConfig.WorkingDir
+	cmd.Env = append(cmd.Env, "COMPOSE_PROJECT_NAME="+projectConfig.Name) // TODO: Add stuff from EnvironmentFiles
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -54,34 +63,36 @@ func (d *DockerComposeProjectService) Up(name, workingDir, composeFile string, c
 	}
 
 	slog.Debug("Docker Compose command completed successfully",
-		"project_name", name,
+		"project_name", projectConfig.Name,
 		"output_length", len(outputStr))
 	return outputStr, nil
 }
 
-// Deploy is an alias for Up to match the interface
-func (d *DockerComposeProjectService) Deploy(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
-	return d.Up(name, workingDir, composeFile, config)
-}
-
-func (d *DockerComposeProjectService) Down(name, workingDir, composeFile string) (string, error) {
+func (d *DockerComposeProjectService) Down(projectConfig *ProjectConfig) (string, error) {
 	// Build docker compose command
 	args := []string{
 		"compose",
-		"--project-name", name,
-		"--file", filepath.Join(workingDir, composeFile),
+		"--project-name", projectConfig.Name,
+	}
+
+	// Add compose files to the command
+	for _, file := range projectConfig.ComposeFiles {
+		args = append(args, "--file", filepath.Join(projectConfig.WorkingDir, file))
+	}
+	// Argument and common flags
+	args = append(args,
 		"down",
 		"--remove-orphans",
-	}
+	)
 
 	slog.Debug("Executing Docker Compose down command",
 		"command", "docker",
 		"args", args,
-		"working_dir", workingDir)
+		"working_dir", projectConfig.WorkingDir)
 
 	// Execute command
 	cmd := exec.Command("docker", args...)
-	cmd.Dir = workingDir
+	cmd.Dir = projectConfig.WorkingDir
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -97,7 +108,7 @@ func (d *DockerComposeProjectService) Down(name, workingDir, composeFile string)
 	}
 
 	slog.Debug("Docker Compose down command completed successfully",
-		"project_name", name,
+		"project_name", projectConfig.Name,
 		"output_length", len(outputStr))
 	return outputStr, nil
 }

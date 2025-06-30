@@ -17,7 +17,7 @@ func NewConfig(dataDir string) *Config {
 		homeDir, _ := os.UserHomeDir()
 		dataDir = filepath.Join(homeDir, ".oar")
 	}
-	
+
 	return &Config{
 		DataDir:      dataDir,
 		WorkspaceDir: filepath.Join(dataDir, "projects"),
@@ -28,3 +28,4 @@ func NewConfig(dataDir string) *Config {
 func (c *Config) ProjectWorkingDir(projectID string) string {
 	return filepath.Join(c.WorkspaceDir, projectID)
 }
+
