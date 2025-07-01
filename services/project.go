@@ -41,16 +41,12 @@ func NewProjectConfigFromModel(project *models.Project, baseDir string) ProjectC
 }
 
 type DeploymentConfig struct {
-	Detach bool
-	Build  bool
-	Pull   bool
+	Pull bool
 }
 
-func NewDeploymentConfig(detach, build, pull bool) DeploymentConfig {
+func NewDeploymentConfig(pull bool) DeploymentConfig {
 	return DeploymentConfig{
-		Detach: detach,
-		Build:  build,
-		Pull:   pull,
+		Pull: pull,
 	}
 }
 
@@ -167,8 +163,6 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, deploymentConfig *De
 		"project_id", project.ID,
 		"project_name", project.Name,
 		"compose_files", project.ComposeFiles,
-		"detach", deploymentConfig.Detach,
-		"build", deploymentConfig.Build,
 		"pull", deploymentConfig.Pull)
 
 	output, err := s.dockerComposeService.Up(&projectConfig, deploymentConfig)

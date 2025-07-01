@@ -31,14 +31,6 @@ func (d *DockerComposeProjectService) Up(projectConfig *ProjectConfig, deploymen
 		"--quiet-pull", "--no-color", "--remove-orphans",
 	)
 
-	// Add flags based on config
-	if deploymentConfig.Detach {
-		args = append(args, "--detach")
-	}
-	if deploymentConfig.Build {
-		args = append(args, "--build")
-	}
-
 	slog.Debug("Executing Docker Compose command",
 		"command", "docker",
 		"args", args,

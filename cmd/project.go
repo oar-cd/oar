@@ -27,14 +27,14 @@ func handleInvalidUUID(operation, input string) {
 // projectCmd represents the project command
 var projectCmd = &cobra.Command{
 	Use:   "project",
-	Short: "Manage projects",
+	Short: "Manage Docker Compose projects",
 }
 
 // projectListCmd represents the command to list projects
 var projectListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List projects",
-	Long:  "Display a list of all projects with their details and current status.",
+	Short: "List all managed projects",
+	Long:  "Display all Docker Compose projects currently managed by Oar with their basic information.",
 	Run: func(cmd *cobra.Command, args []string) {
 		projects, err := app.GetProjectService().ListProjects()
 		if err != nil {
@@ -71,8 +71,9 @@ var projectListCmd = &cobra.Command{
 // projectAddCmd represents the command to add a new project
 var projectAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add a new project",
-	Long:  "Add a new Docker Compose project from a Git repository to be managed by Oar.",
+	Short: "Add a Git repository as a managed project",
+	Long: `Add a new Docker Compose project from a Git repository.
+Oar will clone the repository and detect Docker Compose files automatically.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Get flag values
 		gitURL, _ := cmd.Flags().GetString("git-url")
@@ -96,10 +97,11 @@ var projectAddCmd = &cobra.Command{
 
 // projectRemoveCmd represents the command to remove a project
 var projectRemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove a project",
-	Long:  `Remove a Docker Compose project from the discovery.`,
-	Args:  cobra.ExactArgs(1),
+	Use:   "remove <project-id>",
+	Short: "Remove a project and its data",
+	Long: `Remove a project from Oar management.
+This deletes the local repository clone and all deployment history.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		projectID, err := uuid.Parse(args[0])
 		if err != nil {
@@ -119,9 +121,9 @@ var projectRemoveCmd = &cobra.Command{
 
 // projectShowCmd represents the command to show project details
 var projectShowCmd = &cobra.Command{
-	Use:   "show [id]",
-	Short: "Show details of a Docker Compose project",
-	Long:  `Show detailed information about a specific Docker Compose project.`,
+	Use:   "show <project-id>",
+	Short: "Show detailed project information",
+	Long:  "Display comprehensive information about a project including configuration, deployment history, and current status.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			if err := cmd.Help(); err != nil {
@@ -174,10 +176,11 @@ var projectShowCmd = &cobra.Command{
 }
 
 var projectDeployCmd = &cobra.Command{
-	Use:   "deploy project_id",
-	Short: "Deploy a project",
-	Long:  "Pull latest changes from Git and (re-)deploy the project using Docker Compose.",
-	Args:  cobra.ExactArgs(1),
+	Use:   "deploy <project-id>",
+	Short: "Deploy or update a project",
+	Long: `Pull the latest changes from Git and deploy the project using Docker Compose.
+This will update running containers with the latest configuration.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Parse UUID
 		projectID, err := uuid.Parse(args[0])
@@ -187,12 +190,10 @@ var projectDeployCmd = &cobra.Command{
 		}
 
 		// Get flags
-		detach, _ := cmd.Flags().GetBool("detach")
-		build, _ := cmd.Flags().GetBool("build")
 		pull, _ := cmd.Flags().GetBool("pull")
 
 		// Deploy project
-		deploymentConfig := services.NewDeploymentConfig(detach, build, pull)
+		deploymentConfig := services.NewDeploymentConfig(pull)
 		deployment, err := app.GetProjectService().DeployProject(projectID, &deploymentConfig)
 		if err != nil {
 			handleCommandError("deploying project", err, "project_id", projectID)
@@ -203,23 +204,17 @@ var projectDeployCmd = &cobra.Command{
 		printMessage(Plain, "Deployment ID: %s", deployment.ID)
 		printMessage(Plain, "Project: %s", deployment.Project.Name)
 		printMessage(Plain, "Status: %s", deployment.Status)
-
-		if !detach {
-			printMessage(Plain, "Deployment Output:")
-			printMessage(Plain, "%s", deployment.Output)
-		} else {
-			printMessage(Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
-		}
+		printMessage(Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
 	},
 }
 
 func init() {
 	projectCmd.AddCommand(projectListCmd)
 
-	projectAddCmd.Flags().StringP("git-url", "u", "", "Git repository URL (required)")
-	projectAddCmd.Flags().StringP("name", "n", "", "Project name (default: derived from repo)")
-	projectAddCmd.Flags().StringArrayP("compose-file", "f", []string{"compose.yaml"}, "Path (relative to repo root) to Docker Compose file (default: compose.yaml)")
-	projectAddCmd.Flags().StringArrayP("env-file", "e", nil, "Path (absolute) to environment file (optional)")
+	projectAddCmd.Flags().StringP("git-url", "u", "", "Git repository URL")
+	projectAddCmd.Flags().StringP("name", "n", "", "Custom project name (auto-detected if not specified)")
+	projectAddCmd.Flags().StringArrayP("compose-file", "f", []string{"compose.yaml"}, "Docker Compose file path (relative to repository root)")
+	projectAddCmd.Flags().StringArrayP("env-file", "e", nil, "Environment file path (absolute)")
 	if err := projectAddCmd.MarkFlagRequired("git-url"); err != nil {
 		slog.Error("Failed to mark git-url flag as required", "error", err)
 		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic
@@ -230,9 +225,7 @@ func init() {
 	projectCmd.AddCommand(projectRemoveCmd)
 	projectCmd.AddCommand(projectShowCmd)
 
-	projectDeployCmd.Flags().BoolP("detach", "d", true, "Run in detached mode (default: true)")
-	projectDeployCmd.Flags().Bool("build", false, "Build images before starting containers")
-	projectDeployCmd.Flags().Bool("pull", true, "Pull latest Git changes before deploying (default: true)")
+	projectDeployCmd.Flags().Bool("pull", true, "Pull latest Git changes before deployment")
 	projectCmd.AddCommand(projectDeployCmd)
 
 	rootCmd.AddCommand(projectCmd)
