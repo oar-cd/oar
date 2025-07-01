@@ -20,7 +20,9 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "oar",
-	Short: "GitOps for Docker Compose",
+	Short: "GitOps deployment tool for Docker Compose projects",
+	Long: `Oar manages Docker Compose applications deployed from Git repositories.
+It handles cloning, updates, and deployments with full state tracking.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Set up colored output
 		initColors()
@@ -45,9 +47,9 @@ func Execute() {
 func init() {
 	homeDir, _ := os.UserHomeDir()
 	defaultDataDir := filepath.Join(homeDir, ".oar")
-	rootCmd.PersistentFlags().StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory")
-	rootCmd.PersistentFlags().VarP(logLevel, "log-level", "l", "Log level (debug, info, warning, error)")
-	rootCmd.PersistentFlags().BoolVarP(&colorDisabled, "no-color", "c", false, "Disable colored output")
+	rootCmd.PersistentFlags().StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory for Oar configuration and projects")
+	rootCmd.PersistentFlags().VarP(logLevel, "log-level", "l", "Set log verbosity level")
+	rootCmd.PersistentFlags().BoolVarP(&colorDisabled, "no-color", "c", false, "Disable colored terminal output")
 }
 
 func GetDB() *gorm.DB {
