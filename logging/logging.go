@@ -1,4 +1,5 @@
-package cmd
+// Package logging provides logging utilities for Oar, allowing configuration of log levels and output formats.
+package logging
 
 import (
 	"fmt"
@@ -8,7 +9,7 @@ import (
 	"strings"
 )
 
-var logLevel = newLogLevelValue("info", []string{"debug", "info", "warning", "error"})
+var LogLevel = newLogLevelValue("info", []string{"debug", "info", "warning", "error"})
 
 type logLevelValue struct {
 	value   string
@@ -55,8 +56,8 @@ func (l *logLevelValue) slogValue() slog.Level {
 	}
 }
 
-func initLogging() {
-	level := logLevel.slogValue()
+func InitLogging() {
+	level := LogLevel.slogValue()
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,

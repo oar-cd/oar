@@ -1,4 +1,4 @@
-package cmd
+package logging
 
 import (
 	"log/slog"

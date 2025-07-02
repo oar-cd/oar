@@ -3,6 +3,7 @@ package app
 
 import (
 	"github.com/ch00k/oar/db"
+	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,8 @@ var (
 
 func Initialize(dataDir string) error {
 	var err error
+
+	logging.InitLogging()
 
 	// Initialize configuration
 	config = services.NewConfig(dataDir)
