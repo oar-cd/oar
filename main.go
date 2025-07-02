@@ -1,7 +1,7 @@
 package main
 
-import "github.com/ch00k/oar/cmd"
+import "github.com/ch00k/oar/cmd/root"
 
 func main() {
-	cmd.Execute()
+	root.Execute()
 }

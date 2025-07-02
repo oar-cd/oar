@@ -1,4 +1,4 @@
-package cmd
+package output
 
 import (
 	"bytes"
@@ -38,7 +38,7 @@ func TestColorFunctions(t *testing.T) {
 			color.NoColor = !tt.colorsEnabled
 
 			// Re-initialize colors for this test
-			initColors()
+			InitColors(false)
 
 			// Test success color function
 			successResult := maybeColorize(Success, "test message")
@@ -95,7 +95,7 @@ func TestColorFunctionsWithFormatting(t *testing.T) {
 	// Test with colors disabled for consistent output
 	color.NoColor = true
 
-	initColors()
+	InitColors(false)
 
 	tests := []struct {
 		name     string
@@ -159,7 +159,7 @@ func TestPrintFunctions(t *testing.T) {
 	// Test with colors disabled for consistent output
 	color.NoColor = true
 
-	initColors()
+	InitColors(false)
 
 	t.Run("printSuccess", func(t *testing.T) {
 		// Capture stdout
@@ -167,7 +167,7 @@ func TestPrintFunctions(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		printMessage(Success, "test success")
+		PrintMessage(Success, "test success")
 
 		w.Close() // nolint: errcheck
 		os.Stdout = oldStdout
@@ -189,7 +189,7 @@ func TestPrintFunctions(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		printMessage(Warning, "test warning")
+		PrintMessage(Warning, "test warning")
 
 		w.Close() // nolint:errcheck
 		os.Stdout = oldStdout
@@ -211,7 +211,7 @@ func TestPrintFunctions(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		printMessage(Error, "test error")
+		PrintMessage(Error, "test error")
 
 		w.Close() // nolint: errcheck
 		os.Stdout = oldStdout
