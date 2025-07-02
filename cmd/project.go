@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/services"
@@ -81,12 +82,11 @@ Oar will clone the repository and detect Docker Compose files automatically.`,
 		composeFiles, _ := cmd.Flags().GetStringArray("compose-file")
 		envFiles, _ := cmd.Flags().GetStringArray("env-file")
 
-		// Create config struct from CLI input
-		projectConfig := services.NewProjectConfig(name, gitURL, composeFiles, envFiles)
+		// Create project struct from CLI input
+		project := services.NewProject(name, gitURL, composeFiles, envFiles)
 
 		// Call service
-		project, err := app.GetProjectService().CreateProject(projectConfig)
-		if err != nil {
+		if err := app.GetProjectService().CreateProject(project); err != nil {
 			handleCommandError("creating project from %s", err, "Git URL", gitURL)
 			return
 		}
@@ -150,18 +150,18 @@ var projectShowCmd = &cobra.Command{
 
 		data = append(data, []string{"ID", project.ID.String()})
 		data = append(data, []string{"Name", project.Name})
+		data = append(data, []string{"Working Directory", project.WorkingDir})
 		data = append(data, []string{"Git URL", project.GitURL})
-		data = append(data, []string{"Compose Name", project.ComposeName})
-		data = append(data, []string{"Compose Files", project.ComposeName})
+		data = append(data, []string{"Compose Files", strings.Join(project.ComposeFiles, ", ")})
 		if project.LastCommit != nil {
 			data = append(data, []string{"Last Commit", *project.LastCommit})
 		} else {
 			data = append(data, []string{"Last Commit", "N/A"})
 		}
-		data = append(data, []string{"Created At", project.CreatedAt.String()})
-		data = append(data, []string{"Updated At", project.UpdatedAt.String()})
-		data = append(data, []string{"Deployments", fmt.Sprintf("%d", len(project.Deployments))})
-		data = append(data, []string{"Status", "N/A"}) // TODO: Status not directly available in Project model
+		data = append(data, []string{"Created At", project.CreatedAt.Format("2006-01-02 15:04:05")})
+		data = append(data, []string{"Updated At", project.UpdatedAt.Format("2006-01-02 15:04:05")})
+		// data = append(data, []string{"Deployments", fmt.Sprintf("%d", len(project.Deployments))})
+		data = append(data, []string{"Status", project.Status.String()})
 
 		if err := table.Bulk(data); err != nil {
 			handleCommandError("rendering project table", err)
@@ -193,8 +193,7 @@ This will update running containers with the latest configuration.`,
 		pull, _ := cmd.Flags().GetBool("pull")
 
 		// Deploy project
-		deploymentConfig := services.NewDeploymentConfig(pull)
-		deployment, err := app.GetProjectService().DeployProject(projectID, &deploymentConfig)
+		deployment, err := app.GetProjectService().DeployProject(projectID, pull)
 		if err != nil {
 			handleCommandError("deploying project", err, "project_id", projectID)
 			return
@@ -202,7 +201,7 @@ This will update running containers with the latest configuration.`,
 
 		printMessage(Success, "Deployment started successfully!")
 		printMessage(Plain, "Deployment ID: %s", deployment.ID)
-		printMessage(Plain, "Project: %s", deployment.Project.Name)
+		// printMessage(Plain, "Project: %s", deployment.Project.Name)
 		printMessage(Plain, "Status: %s", deployment.Status)
 		printMessage(Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
 	},
@@ -213,7 +212,8 @@ func init() {
 
 	projectAddCmd.Flags().StringP("git-url", "u", "", "Git repository URL")
 	projectAddCmd.Flags().StringP("name", "n", "", "Custom project name (auto-detected if not specified)")
-	projectAddCmd.Flags().StringArrayP("compose-file", "f", []string{"compose.yaml"}, "Docker Compose file path (relative to repository root)")
+	projectAddCmd.Flags().
+		StringArrayP("compose-file", "f", nil, "Docker Compose file path (relative to repository root)")
 	projectAddCmd.Flags().StringArrayP("env-file", "e", nil, "Environment file path (absolute)")
 	if err := projectAddCmd.MarkFlagRequired("git-url"); err != nil {
 		slog.Error("Failed to mark git-url flag as required", "error", err)

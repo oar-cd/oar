@@ -38,11 +38,11 @@ func (m *MockGitExecutor) GetLatestCommit(workingDir string) (string, error) {
 
 // MockDockerComposeExecutor for testing
 type MockDockerComposeExecutor struct {
-	DeployFunc func(name, workingDir, composeFile string, config DeploymentConfig) (string, error)
+	DeployFunc func(name, workingDir, composeFile string, config Deployment) (string, error)
 	DownFunc   func(name, workingDir, composeFile string) (string, error)
 }
 
-func (m *MockDockerComposeExecutor) Deploy(name, workingDir, composeFile string, config DeploymentConfig) (string, error) {
+func (m *MockDockerComposeExecutor) Deploy(name, workingDir, composeFile string, config Deployment) (string, error) {
 	if m.DeployFunc != nil {
 		return m.DeployFunc(name, workingDir, composeFile, config)
 	}
@@ -58,18 +58,18 @@ func (m *MockDockerComposeExecutor) Down(name, workingDir, composeFile string) (
 
 // MockDB represents a simple in-memory database for testing
 type MockDB struct {
-	projects    map[uuid.UUID]*models.Project
-	deployments map[uuid.UUID]*models.Deployment
+	projects    map[uuid.UUID]*models.ProjectModel
+	deployments map[uuid.UUID]*models.DeploymentModel
 }
 
 func NewMockDB() *MockDB {
 	return &MockDB{
-		projects:    make(map[uuid.UUID]*models.Project),
-		deployments: make(map[uuid.UUID]*models.Deployment),
+		projects:    make(map[uuid.UUID]*models.ProjectModel),
+		deployments: make(map[uuid.UUID]*models.DeploymentModel),
 	}
 }
 
-func (db *MockDB) CreateProject(project *models.Project) error {
+func (db *MockDB) CreateProject(project *models.ProjectModel) error {
 	if project.ID == uuid.Nil {
 		project.ID = uuid.New()
 	}
@@ -87,7 +87,7 @@ func (db *MockDB) CreateProject(project *models.Project) error {
 	return nil
 }
 
-func (db *MockDB) FindProject(id uuid.UUID) (*models.Project, error) {
+func (db *MockDB) FindProject(id uuid.UUID) (*models.ProjectModel, error) {
 	project, exists := db.projects[id]
 	if !exists {
 		return nil, fmt.Errorf("project not found")
@@ -95,8 +95,8 @@ func (db *MockDB) FindProject(id uuid.UUID) (*models.Project, error) {
 	return project, nil
 }
 
-func (db *MockDB) ListProjects() ([]*models.Project, error) {
-	projects := make([]*models.Project, 0, len(db.projects))
+func (db *MockDB) ListProjects() ([]*models.ProjectModel, error) {
+	projects := make([]*models.ProjectModel, 0, len(db.projects))
 	for _, project := range db.projects {
 		projects = append(projects, project)
 	}
@@ -111,7 +111,7 @@ func (db *MockDB) DeleteProject(id uuid.UUID) error {
 	return nil
 }
 
-func (db *MockDB) UpdateProject(project *models.Project) error {
+func (db *MockDB) UpdateProject(project *models.ProjectModel) error {
 	if _, exists := db.projects[project.ID]; !exists {
 		return fmt.Errorf("project not found")
 	}
@@ -120,7 +120,7 @@ func (db *MockDB) UpdateProject(project *models.Project) error {
 	return nil
 }
 
-func (db *MockDB) CreateDeployment(deployment *models.Deployment) error {
+func (db *MockDB) CreateDeployment(deployment *models.DeploymentModel) error {
 	if deployment.ID == uuid.Nil {
 		deployment.ID = uuid.New()
 	}
@@ -129,11 +129,10 @@ func (db *MockDB) CreateDeployment(deployment *models.Deployment) error {
 	return nil
 }
 
-func (db *MockDB) UpdateDeployment(deployment *models.Deployment) error {
+func (db *MockDB) UpdateDeployment(deployment *models.DeploymentModel) error {
 	if _, exists := db.deployments[deployment.ID]; !exists {
 		return fmt.Errorf("deployment not found")
 	}
 	db.deployments[deployment.ID] = deployment
 	return nil
 }
-

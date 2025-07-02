@@ -38,7 +38,7 @@ func InitDB(dataDir string) (*gorm.DB, error) {
 
 	// Auto-migrate tables
 	slog.Debug("Running database migrations")
-	if err := db.AutoMigrate(&models.Project{}, &models.Deployment{}); err != nil {
+	if err := db.AutoMigrate(&models.ProjectModel{}, &models.DeploymentModel{}); err != nil {
 		slog.Error("Failed to migrate database", "error", err)
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
