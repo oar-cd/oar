@@ -28,12 +28,15 @@ Oar will clone the repository and detect Docker Compose files automatically.`,
 			project := services.NewProject(name, gitURL, composeFiles, envFiles)
 
 			// Call service
-			if err := app.GetProjectService().CreateProject(project); err != nil {
+			createdProject, err := app.GetProjectService().CreateProject(&project)
+			if err != nil {
 				utils.HandleCommandError("creating project from %s", err, "Git URL", gitURL)
 				return
 			}
 
-			output.PrintMessage(output.Success, "Created project: %s (ID: %s)", project.Name, project.ID)
+			if err := output.PrintProjectDetails(createdProject); err != nil {
+				utils.HandleCommandError("printing project details table", err)
+			}
 		},
 	}
 

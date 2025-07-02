@@ -1,12 +1,9 @@
 package project
 
 import (
-	"os"
-
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -27,23 +24,8 @@ func NewCmdProjectList() *cobra.Command {
 				return
 			}
 
-			table := tablewriter.NewWriter(os.Stdout)
-			table.Header([]string{"ID", "Name"})
-
-			var data [][]string
-
-			for _, project := range projects {
-				data = append(data, []string{project.ID.String(), project.Name})
-			}
-
-			if err := table.Bulk(data); err != nil {
-				utils.HandleCommandError("rendering project table", err)
-				return
-			}
-
-			if err := table.Render(); err != nil {
-				utils.HandleCommandError("rendering project table", err)
-				return
+			if err := output.PrintProjectList(projects); err != nil {
+				utils.HandleCommandError("printing project list table", err)
 			}
 		},
 	}

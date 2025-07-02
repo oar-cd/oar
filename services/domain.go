@@ -30,6 +30,13 @@ func (p *Project) GitDir() (string, error) {
 	return filepath.Join(p.WorkingDir, GitDir), nil
 }
 
+func (p *Project) LastCommitStr() string {
+	if p.LastCommit == nil {
+		return ""
+	}
+	return *p.LastCommit
+}
+
 func NewProject(name, gitURL string, composeFiles, environmentFiles []string) Project {
 	return Project{
 		ID:               uuid.New(),
