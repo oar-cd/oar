@@ -80,17 +80,17 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*Project, error) {
 }
 
 // CreateProject creates a new project
-func (s *ProjectService) CreateProject(project Project) error {
+func (s *ProjectService) CreateProject(project *Project) (*Project, error) {
 	project.WorkingDir = filepath.Join(s.config.WorkspaceDir, project.ID.String())
 
 	gitDir, err := project.GitDir()
 	if err != nil {
-		return fmt.Errorf("failed to get git directory: %w", err)
+		return nil, fmt.Errorf("failed to get git directory: %w", err)
 	}
 
 	// Clone repository first
 	if err := s.gitService.Clone(project.GitURL, gitDir); err != nil {
-		return fmt.Errorf("failed to clone repository: %w", err)
+		return nil, fmt.Errorf("failed to clone repository: %w", err)
 	}
 
 	// Get commit info
@@ -115,7 +115,8 @@ func (s *ProjectService) CreateProject(project Project) error {
 
 	project.ComposeFiles = composeFiles
 
-	if err := s.projectRepository.Save(&project); err != nil {
+	project, err = s.projectRepository.Create(project)
+	if err != nil {
 		// Cleanup on failure
 		if err := os.RemoveAll(project.WorkingDir); err != nil {
 			slog.Error(
@@ -125,12 +126,12 @@ func (s *ProjectService) CreateProject(project Project) error {
 				"error",
 				err,
 			)
-			return fmt.Errorf("failed to create project: %w", err)
+			return nil, fmt.Errorf("failed to create project: %w", err)
 		}
-		return fmt.Errorf("failed to create project: %w", err)
+		return nil, fmt.Errorf("failed to create project: %w", err)
 	}
 
-	return nil
+	return project, nil
 }
 
 func (s *ProjectService) DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error) {
@@ -186,7 +187,7 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, pull bool) (*Deploym
 		return nil, fmt.Errorf("failed to update deployment record: %w", err)
 	}
 
-	if err := s.projectRepository.Save(project); err != nil {
+	if _, err := s.projectRepository.Create(project); err != nil {
 		return nil, fmt.Errorf("failed to update project status: %w", err)
 	}
 
@@ -229,7 +230,7 @@ func (s *ProjectService) StopProject(projectID uuid.UUID) error {
 		len(output),
 	)
 
-	if err := s.projectRepository.Save(project); err != nil {
+	if _, err := s.projectRepository.Create(project); err != nil {
 		return fmt.Errorf("failed to update project status: %w", err)
 	}
 

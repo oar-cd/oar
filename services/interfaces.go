@@ -21,7 +21,7 @@ type DockerComposeExecutor interface {
 type ProjectManager interface {
 	ListProjects() ([]*Project, error)
 	GetProject(id uuid.UUID) (*Project, error)
-	CreateProject(project Project) error
+	CreateProject(project *Project) (*Project, error)
 	DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error)
 	StopProject(projectID uuid.UUID) error
 	RemoveProject(projectID uuid.UUID) error

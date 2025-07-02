@@ -10,7 +10,7 @@ import (
 
 type ProjectRepository interface {
 	FindByID(id uuid.UUID) (*Project, error)
-	Save(project *Project) error
+	Create(project *Project) (*Project, error)
 	List() ([]*Project, error)
 	Delete(id uuid.UUID) error
 }
@@ -41,9 +41,13 @@ func (r *projectRepository) FindByID(id uuid.UUID) (*Project, error) {
 	return r.mapper.ToDomain(&model), nil
 }
 
-func (r *projectRepository) Save(project *Project) error {
+func (r *projectRepository) Create(project *Project) (*Project, error) {
 	model := r.mapper.ToModel(project)
-	return r.db.Save(model).Error
+	res := r.db.Create(model)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return r.mapper.ToDomain(model), nil
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {
