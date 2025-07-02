@@ -13,33 +13,46 @@ type DockerComposeProjectService struct{}
 // Ensure DockerComposeProjectService implements DockerComposeExecutor
 var _ DockerComposeExecutor = (*DockerComposeProjectService)(nil)
 
-func (d *DockerComposeProjectService) Up(projectConfig *ProjectConfig, deploymentConfig *DeploymentConfig) (string, error) {
+func (d *DockerComposeProjectService) Up(project *Project) (*DeploymentResult, error) {
+	gitDir, err := project.GitDir()
+	if err != nil {
+		slog.Error("Failed to get Git directory for project",
+			"project_name", project.Name,
+			"error", err)
+		return nil, fmt.Errorf("failed to get git directory: %w", err)
+	}
+
 	// Build docker compose command
 	args := []string{
 		"compose",
-		"--project-name", projectConfig.Name,
+		"--project-name", project.Name,
 	}
 
 	// Add compose files to the command
-	for _, file := range projectConfig.ComposeFiles {
-		args = append(args, "--file", filepath.Join(projectConfig.WorkingDir, file))
+	for _, file := range project.ComposeFiles {
+		args = append(args, "--file", filepath.Join(gitDir, file))
 	}
 
 	// Argument and common flags
 	args = append(args,
 		"up",
-		"--quiet-pull", "--no-color", "--remove-orphans",
+		"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans",
 	)
 
 	slog.Debug("Executing Docker Compose command",
 		"command", "docker",
 		"args", args,
-		"working_dir", projectConfig.WorkingDir)
+		"git_dir", gitDir)
 
 	// Execute command
 	cmd := exec.Command("docker", args...)
-	cmd.Dir = projectConfig.WorkingDir
-	cmd.Env = append(cmd.Env, "COMPOSE_PROJECT_NAME="+projectConfig.Name) // TODO: Add stuff from EnvironmentFiles
+	cmd.Dir = gitDir
+	cmd.Env = append(cmd.Env, "COMPOSE_PROJECT_NAME="+project.Name) // TODO: Add stuff from EnvironmentFiles
+
+	result := &DeploymentResult{
+		CommandLine: cmd.String(),
+		Status:      DeploymentStatusStarted,
+	}
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -47,29 +60,38 @@ func (d *DockerComposeProjectService) Up(projectConfig *ProjectConfig, deploymen
 
 	if err != nil {
 		slog.Error("Docker Compose command failed",
-			"command", "docker",
-			"args", args,
+			"command", cmd.String(),
 			"error", err,
 			"output", outputStr)
-		return outputStr, fmt.Errorf("docker compose command failed: %w", err)
+		result.Status = DeploymentStatusFailed
+		return result, fmt.Errorf("docker compose command failed: %w", err)
 	}
 
 	slog.Debug("Docker Compose command completed successfully",
-		"project_name", projectConfig.Name,
+		"project_name", project.Name,
 		"output_length", len(outputStr))
-	return outputStr, nil
+
+	return result, nil
 }
 
-func (d *DockerComposeProjectService) Down(projectConfig *ProjectConfig) (string, error) {
+func (d *DockerComposeProjectService) Down(project *Project) (string, error) {
+	gitDir, err := project.GitDir()
+	if err != nil {
+		slog.Error("Failed to get Git directory for project",
+			"project_name", project.Name,
+			"error", err)
+		return "", fmt.Errorf("failed to get git directory: %w", err)
+	}
+
 	// Build docker compose command
 	args := []string{
 		"compose",
-		"--project-name", projectConfig.Name,
+		"--project-name", project.Name,
 	}
 
 	// Add compose files to the command
-	for _, file := range projectConfig.ComposeFiles {
-		args = append(args, "--file", filepath.Join(projectConfig.WorkingDir, file))
+	for _, file := range project.ComposeFiles {
+		args = append(args, "--file", filepath.Join(gitDir, file))
 	}
 	// Argument and common flags
 	args = append(args,
@@ -80,11 +102,11 @@ func (d *DockerComposeProjectService) Down(projectConfig *ProjectConfig) (string
 	slog.Debug("Executing Docker Compose down command",
 		"command", "docker",
 		"args", args,
-		"working_dir", projectConfig.WorkingDir)
+		"git_dir", gitDir)
 
 	// Execute command
 	cmd := exec.Command("docker", args...)
-	cmd.Dir = projectConfig.WorkingDir
+	cmd.Dir = gitDir
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -100,7 +122,7 @@ func (d *DockerComposeProjectService) Down(projectConfig *ProjectConfig) (string
 	}
 
 	slog.Debug("Docker Compose down command completed successfully",
-		"project_name", projectConfig.Name,
+		"project_name", project.Name,
 		"output_length", len(outputStr))
 	return outputStr, nil
 }

@@ -54,39 +54,3 @@ func TestNewConfig(t *testing.T) {
 		})
 	}
 }
-
-func TestConfig_ProjectWorkingDir(t *testing.T) {
-	config := NewConfig("/test/data")
-
-	tests := []struct {
-		name      string
-		projectID string
-		want      string
-	}{
-		{
-			name:      "normal UUID",
-			projectID: "123e4567-e89b-12d3-a456-426614174000",
-			want:      "/test/data/projects/123e4567-e89b-12d3-a456-426614174000",
-		},
-		{
-			name:      "simple string",
-			projectID: "test-project",
-			want:      "/test/data/projects/test-project",
-		},
-		{
-			name:      "empty string",
-			projectID: "",
-			want:      "/test/data/projects",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := config.ProjectWorkingDir(tt.projectID)
-			if got != tt.want {
-				t.Errorf("Config.ProjectWorkingDir() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-

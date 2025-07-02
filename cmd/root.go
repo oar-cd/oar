@@ -8,11 +8,9 @@ import (
 
 	"github.com/ch00k/oar/internal/app"
 	"github.com/spf13/cobra"
-	"gorm.io/gorm"
 )
 
 var (
-	database      *gorm.DB
 	dataDir       string
 	colorDisabled bool
 )
@@ -47,11 +45,9 @@ func Execute() {
 func init() {
 	homeDir, _ := os.UserHomeDir()
 	defaultDataDir := filepath.Join(homeDir, ".oar")
-	rootCmd.PersistentFlags().StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory for Oar configuration and projects")
+	rootCmd.PersistentFlags().
+		StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory for Oar configuration and projects")
 	rootCmd.PersistentFlags().VarP(logLevel, "log-level", "l", "Set log verbosity level")
-	rootCmd.PersistentFlags().BoolVarP(&colorDisabled, "no-color", "c", false, "Disable colored terminal output")
-}
-
-func GetDB() *gorm.DB {
-	return database
+	rootCmd.PersistentFlags().
+		BoolVarP(&colorDisabled, "no-color", "c", false, "Disable colored terminal output")
 }

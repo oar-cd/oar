@@ -1,7 +1,6 @@
 package services
 
 import (
-	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
 )
 
@@ -14,16 +13,16 @@ type GitExecutor interface {
 
 // DockerComposeExecutor defines the contract for Docker Compose operations
 type DockerComposeExecutor interface {
-	Up(projectConfig *ProjectConfig, config *DeploymentConfig) (string, error)
-	Down(projectConfig *ProjectConfig) (string, error)
+	Up(project *Project) (*DeploymentResult, error)
+	Down(project *Project) (string, error)
 }
 
 // ProjectManager defines the contract for project management operations
 type ProjectManager interface {
-	ListProjects() ([]*models.Project, error)
-	GetProject(id uuid.UUID) (*models.Project, error)
-	CreateProject(config ProjectConfig) (*models.Project, error)
-	DeployProject(projectID uuid.UUID, config *DeploymentConfig) (*models.Deployment, error)
+	ListProjects() ([]*Project, error)
+	GetProject(id uuid.UUID) (*Project, error)
+	CreateProject(project Project) error
+	DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error)
 	StopProject(projectID uuid.UUID) error
 	RemoveProject(projectID uuid.UUID) error
 }

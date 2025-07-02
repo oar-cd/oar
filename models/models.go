@@ -7,21 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type Project struct {
+type ProjectModel struct {
 	ID               uuid.UUID `gorm:"type:char(36);primaryKey"`
 	Name             string    `gorm:"not null;unique"`
 	GitURL           string    `gorm:"not null"`
-	ComposeName      string    `gorm:"not null;unique"`
+	WorkingDir       string    `gorm:"not null"` // directory where the project is cloned
 	ComposeFiles     string    `gorm:"not null"` // list of compose file paths separated by null character (\0)
 	EnvironmentFiles string    `gorm:"not null"` // list of environment file paths separated by null character (\0)
+	Status           string    `gorm:"not null"` // running, stopped, error
 	LastCommit       *string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 
-	Deployments []Deployment `gorm:"foreignKey:ProjectID"`
+	Deployments []DeploymentModel `gorm:"foreignKey:ProjectID"`
 }
 
-type Secret struct {
+type SecretModel struct {
 	ID        uuid.UUID `gorm:"type:char(36);primaryKey"`
 	ProjectID uuid.UUID `gorm:"not null;index"`
 	Name      string    `gorm:"not null"`
@@ -29,16 +30,17 @@ type Secret struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 
-	Project Project `gorm:"foreignKey:ProjectID"`
+	Project ProjectModel `gorm:"foreignKey:ProjectID"`
 }
 
-type Deployment struct {
-	ID         uuid.UUID `gorm:"type:char(36);primaryKey"`
-	ProjectID  uuid.UUID `gorm:"not null;index"`
-	CommitHash string    `gorm:"not null"`
-	Status     string    `gorm:"not null"`  // in_progress, success, failed
-	Output     string    `gorm:"type:text"` // Command output/logs
-	CreatedAt  time.Time
+type DeploymentModel struct {
+	ID          uuid.UUID `gorm:"type:char(36);primaryKey"`
+	ProjectID   uuid.UUID `gorm:"not null;index"`
+	CommitHash  string    `gorm:"not null"`
+	CommandLine string    `gorm:"not null"`  // Command executed for deployment
+	Status      string    `gorm:"not null"`  // in_progress, success, failed
+	Output      string    `gorm:"type:text"` // Command output/logs
+	CreatedAt   time.Time
 
-	Project Project `gorm:"foreignKey:ProjectID"`
+	Project ProjectModel `gorm:"foreignKey:ProjectID"`
 }

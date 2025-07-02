@@ -15,29 +15,25 @@ var (
 
 func Initialize(dataDir string) error {
 	var err error
-	
+
 	// Initialize configuration
 	config = services.NewConfig(dataDir)
-	
+
 	// Initialize database
 	database, err = db.InitDB(dataDir)
 	if err != nil {
 		return err
 	}
 
-	// Initialize services with dependency injection
-	projectService = services.NewProjectServiceWithDefaults(database, config)
-	return nil
-}
+	// Initialize repositories
+	projectRepo := services.NewProjectRepository(database)
+	deploymentRepo := services.NewDeploymentRepository(database)
 
-func GetDB() *gorm.DB {
-	return database
+	// Initialize services with dependency injection
+	projectService = services.NewProjectServiceWithDefaults(projectRepo, deploymentRepo, config)
+	return nil
 }
 
 func GetProjectService() services.ProjectManager {
 	return projectService
-}
-
-func GetConfig() *services.Config {
-	return config
 }
