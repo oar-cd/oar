@@ -1,0 +1,129 @@
+package pages
+
+import (
+	"github.com/ch00k/oar/services"
+	"github.com/ch00k/oar/ui/components/button"
+	"github.com/ch00k/oar/ui/components/modal"
+	"github.com/ch00k/oar/ui/components/form"
+	"github.com/ch00k/oar/ui/components/input"
+	"github.com/ch00k/oar/ui/components/tagsinput"
+	"github.com/ch00k/oar/ui/components/icon"
+)
+
+templ Home(projects []*services.Project) {
+	@Base("Oar - Home") {
+		<div class="max-w-7xl mx-auto">
+			<div class="mb-6 flex justify-between items-start">
+				<div>
+					<h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+					<p class="text-gray-600 mt-2">Welcome to your GitOps deployment dashboard</p>
+				</div>
+				@modal.Trigger(modal.TriggerProps{For: "add-project-modal"}) {
+					@button.Button(button.Props{
+						Class: "flex items-center gap-2",
+					}) {
+						@icon.Plus()
+						Add Project
+					}
+				}
+			</div>
+			<div class="bg-gray-300 rounded-lg shadow">
+				<div class="p-6" id="projects-grid">
+					@ProjectsGrid(projects)
+				</div>
+			</div>
+			@addProjectModal()
+		</div>
+	}
+}
+
+templ addProjectModal() {
+	@modal.Modal(modal.Props{ID: "add-project-modal", Class: "sm:max-w-lg bg-gray-100 shadow-lg"}) {
+		@modal.Header(modal.HeaderProps{Class: "bg-gray-200 rounded-t-lg border-b border-gray-300"}) {
+			Add New Project
+		}
+		@modal.Body(modal.BodyProps{Class: "bg-gray-100"}) {
+			<form
+				id="add-project-form"
+				class="space-y-4"
+				hx-post="/projects/create"
+				hx-target="#projects-grid"
+				hx-swap="innerHTML"
+			>
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "new-project-name"}) {
+						Project Name
+					}
+					@input.Input(input.Props{
+						ID:          "new-project-name",
+						Name:        "name",
+						Type:        input.TypeText,
+						Placeholder: "Enter project name",
+						Required:    true,
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "new-project-git-url"}) {
+						Git URL
+					}
+					@input.Input(input.Props{
+						ID:          "new-project-git-url",
+						Name:        "git_url",
+						Type:        input.TypeURL,
+						Placeholder: "https://github.com/user/repo.git",
+						Required:    true,
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
+						Compose Files
+					}
+					@form.Description() {
+						Docker Compose file paths (e.g., docker-compose.yml, compose.yaml)
+					}
+					@tagsinput.TagsInput(tagsinput.Props{
+						ID:          "new-project-compose-files",
+						Name:        "compose_files",
+						Placeholder: "Add compose file...",
+						Value:       []string{},
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "new-project-env-files"}) {
+						Environment Files
+					}
+					@form.Description() {
+						Environment file paths (optional)
+					}
+					@tagsinput.TagsInput(tagsinput.Props{
+						ID:          "new-project-env-files",
+						Name:        "environment_files",
+						Placeholder: "Add environment file...",
+						Value:       []string{},
+						Class:       "bg-gray-50",
+					})
+				}
+			</form>
+		}
+		@modal.Footer(modal.FooterProps{Class: "bg-gray-100 rounded-b-lg"}) {
+			<div class="flex justify-end space-x-3">
+				@modal.Close() {
+					@button.Button(button.Props{
+						Variant: button.VariantOutline,
+					}) {
+						Cancel
+					}
+				}
+				@button.Button(button.Props{
+					Type:       button.TypeSubmit,
+					Attributes: templ.Attributes{"form": "add-project-form"},
+				}) {
+					Create Project
+				}
+			</div>
+		}
+	}
+}

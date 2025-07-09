@@ -2,6 +2,7 @@ package services
 
 import (
 	"strings"
+	"time"
 
 	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 type ProjectRepository interface {
 	FindByID(id uuid.UUID) (*Project, error)
 	Create(project *Project) (*Project, error)
+	Update(project *Project) (*Project, error)
 	List() ([]*Project, error)
 	Delete(id uuid.UUID) error
 }
@@ -48,6 +50,21 @@ func (r *projectRepository) Create(project *Project) (*Project, error) {
 		return nil, res.Error
 	}
 	return r.mapper.ToDomain(model), nil
+}
+
+func (r *projectRepository) Update(project *Project) (*Project, error) {
+	// Update timestamp
+	project.UpdatedAt = time.Now()
+
+	// Save to database
+	model := r.mapper.ToModel(project)
+	res := r.db.Model(&models.ProjectModel{}).Where("id = ?", project.ID).Updates(model)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	// Return the updated project
+	return project, nil
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {
