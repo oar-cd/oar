@@ -134,6 +134,8 @@ func (s *ProjectService) DeployStreaming(
 	pull bool,
 	outputChan chan<- string,
 ) error {
+	defer close(outputChan)
+
 	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -147,9 +149,12 @@ func (s *ProjectService) DeployStreaming(
 
 	// Pull latest changes if requested
 	if pull {
+		outputChan <- "Pulling latest changes from Git..."
 		if err := s.pullLatestChanges(project); err != nil {
+			outputChan <- fmt.Sprintf("ERROR: Failed to pull latest changes: %v", err)
 			return fmt.Errorf("failed to pull latest changes: %w", err)
 		}
+		outputChan <- "Git pull completed successfully"
 	}
 
 	commitHash, err := s.gitService.GetLatestCommit(gitDir)
@@ -332,6 +337,8 @@ func (s *ProjectService) Stop(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	defer close(outputChan)
+
 	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -404,6 +411,8 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	defer close(outputChan)
+
 	// Get projectID
 	project, err := s.Get(projectID)
 	if err != nil {
