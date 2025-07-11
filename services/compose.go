@@ -168,8 +168,6 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
-	defer close(outputChan)
-
 	// Start the command
 	err = cmd.Start()
 	if err != nil {
