@@ -29,7 +29,7 @@ func NewCmdProjectShow() *cobra.Command {
 				return
 			}
 
-			project, err := app.GetProjectService().GetProject(projectID)
+			project, err := app.GetProjectService().Get(projectID)
 			if err != nil {
 				utils.HandleCommandError("retrieving project", err, "project_id", projectID)
 				return

@@ -11,20 +11,28 @@ type GitExecutor interface {
 	GetLatestCommit(workingDir string) (string, error)
 }
 
-// DockerComposeExecutor defines the contract for Docker Compose operations
-type DockerComposeExecutor interface {
-	Up(project *Project) (*DeploymentResult, error)
-	Down(project *Project) (string, error)
+// ComposeProjectInterface defines the contract for Docker Compose operations
+type ComposeProjectInterface interface {
+	Up() (string, error)
+	Down() (string, error)
+	Logs() (string, error)
+	UpStreaming(outputChan chan<- string) error
+	DownStreaming(outputChan chan<- string) error
+	LogsStreaming(outputChan chan<- string) error
 }
 
 // ProjectManager defines the contract for project management operations
 type ProjectManager interface {
-	ListProjects() ([]*Project, error)
-	GetProject(id uuid.UUID) (*Project, error)
-	GetProjectByName(name string) (*Project, error)
-	CreateProject(project *Project) (*Project, error)
-	UpdateProject(project *Project) (*Project, error)
-	DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error)
-	StopProject(projectID uuid.UUID) error
-	RemoveProject(projectID uuid.UUID) error
+	List() ([]*Project, error)
+	Get(id uuid.UUID) (*Project, error)
+	GetByName(name string) (*Project, error)
+	Create(project *Project) (*Project, error)
+	Update(project *Project) error
+	Remove(projectID uuid.UUID) error
+	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	Start(projectID uuid.UUID) error
+	StartStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	Stop(projectID uuid.UUID) error
+	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error
 }

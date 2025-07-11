@@ -23,7 +23,7 @@ This deletes the local repository clone and all deployment history.`,
 			}
 			output.PrintMessage(output.Warning, "Removing project with ID: %s", projectID)
 
-			if err := app.GetProjectService().RemoveProject(projectID); err != nil {
+			if err := app.GetProjectService().Remove(projectID); err != nil {
 				utils.HandleCommandError("removing project", err, "project_id", projectID)
 				return
 			}

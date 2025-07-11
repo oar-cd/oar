@@ -15,7 +15,7 @@ func NewCmdProjectList() *cobra.Command {
 		Short: "List all managed projects",
 		Long:  "Display all Docker Compose projects currently managed by Oar with their basic information.",
 		Run: func(cmd *cobra.Command, args []string) {
-			projects, err := app.GetProjectService().ListProjects()
+			projects, err := app.GetProjectService().List()
 			if err != nil {
 				utils.HandleCommandError("listing projects", err)
 				return

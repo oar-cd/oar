@@ -93,7 +93,7 @@ func TestProjectAddHappy(t *testing.T) {
 				t.FailNow()
 			}
 
-			createdProject, err := app.GetProjectService().GetProjectByName(tt.options.name)
+			createdProject, err := app.GetProjectService().GetByName(tt.options.name)
 
 			// Verify results
 			assert.NoError(t, err, "Expected command to succeed")

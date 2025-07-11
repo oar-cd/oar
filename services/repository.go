@@ -2,7 +2,6 @@ package services
 
 import (
 	"strings"
-	"time"
 
 	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
@@ -13,7 +12,7 @@ type ProjectRepository interface {
 	FindByID(id uuid.UUID) (*Project, error)
 	FindByName(name string) (*Project, error)
 	Create(project *Project) (*Project, error)
-	Update(project *Project) (*Project, error)
+	Update(project *Project) error
 	List() ([]*Project, error)
 	Delete(id uuid.UUID) error
 }
@@ -61,19 +60,11 @@ func (r *projectRepository) Create(project *Project) (*Project, error) {
 	return r.mapper.ToDomain(model), nil
 }
 
-func (r *projectRepository) Update(project *Project) (*Project, error) {
-	// Update timestamp
-	project.UpdatedAt = time.Now()
-
-	// Save to database
+func (r *projectRepository) Update(project *Project) error {
 	model := r.mapper.ToModel(project)
-	res := r.db.Model(&models.ProjectModel{}).Where("id = ?", project.ID).Updates(model)
-	if res.Error != nil {
-		return nil, res.Error
-	}
 
-	// Return the updated project
-	return project, nil
+	// TODO: This is inefficient because it update all fields, including those that haven't changed.
+	return r.db.Model(&model).Updates(model).Error
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {
@@ -89,7 +80,7 @@ func NewProjectRepository(db *gorm.DB) ProjectRepository {
 
 type DeploymentRepository interface {
 	FindByID(id uuid.UUID) (*Deployment, error)
-	Save(deployment *Deployment) error
+	Create(deployment *Deployment) error
 	ListByProjectID(projectID uuid.UUID) ([]*Deployment, error)
 }
 
@@ -106,9 +97,9 @@ func (r *deploymentRepository) FindByID(id uuid.UUID) (*Deployment, error) {
 	return r.mapper.ToDomain(&model), nil
 }
 
-func (r *deploymentRepository) Save(deployment *Deployment) error {
+func (r *deploymentRepository) Create(deployment *Deployment) error {
 	model := r.mapper.ToModel(deployment)
-	return r.db.Save(model).Error
+	return r.db.Create(model).Error
 }
 
 func (r *deploymentRepository) ListByProjectID(projectID uuid.UUID) ([]*Deployment, error) {

@@ -27,13 +27,16 @@ func Initialize(dataDir string) error {
 	if err != nil {
 		return err
 	}
+	database = database.Debug() // Enable debug mode
+
+	gitService := services.NewGitService()
 
 	// Initialize repositories
 	projectRepo := services.NewProjectRepository(database)
 	deploymentRepo := services.NewDeploymentRepository(database)
 
 	// Initialize services with dependency injection
-	projectService = services.NewProjectServiceWithDefaults(projectRepo, deploymentRepo, config)
+	projectService = services.NewProjectService(projectRepo, deploymentRepo, gitService, config)
 	return nil
 }
 
