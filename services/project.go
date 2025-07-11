@@ -142,6 +142,15 @@ func (s *ProjectService) CreateProject(project *Project) (*Project, error) {
 	return project, nil
 }
 
+func (s *ProjectService) UpdateProject(project *Project) (*Project, error) {
+	updatedProject, err := s.projectRepository.Update(project)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update project: %w", err)
+	}
+
+	return updatedProject, nil
+}
+
 func (s *ProjectService) DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error) {
 	// Get project
 	project, err := s.GetProject(projectID)
@@ -238,7 +247,8 @@ func (s *ProjectService) StopProject(projectID uuid.UUID) error {
 		len(output),
 	)
 
-	if _, err := s.projectRepository.Create(project); err != nil {
+	project.Status = ProjectStatusStopped
+	if _, err := s.UpdateProject(project); err != nil {
 		return fmt.Errorf("failed to update project status: %w", err)
 	}
 

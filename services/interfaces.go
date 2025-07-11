@@ -23,6 +23,7 @@ type ProjectManager interface {
 	GetProject(id uuid.UUID) (*Project, error)
 	GetProjectByName(name string) (*Project, error)
 	CreateProject(project *Project) (*Project, error)
+	UpdateProject(project *Project) (*Project, error)
 	DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error)
 	StopProject(projectID uuid.UUID) error
 	RemoveProject(projectID uuid.UUID) error

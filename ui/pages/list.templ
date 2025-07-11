@@ -1,0 +1,335 @@
+package pages
+
+import (
+	"github.com/ch00k/oar/ui/components/card"
+	"github.com/ch00k/oar/ui/components/icon"
+	"github.com/ch00k/oar/ui/components/modal"
+	"github.com/ch00k/oar/ui/components/form"
+	"github.com/ch00k/oar/ui/components/input"
+	"github.com/ch00k/oar/ui/components/button"
+	"github.com/ch00k/oar/ui/components/tagsinput"
+	"github.com/ch00k/oar/ui/components/toast"
+	"github.com/ch00k/oar/services"
+	"fmt"
+)
+
+templ ProjectsGrid(projects []*services.Project) {
+	if len(projects) == 0 {
+		<div class="text-center py-12">
+			<div class="text-gray-500 text-lg mb-2">No projects found</div>
+			<div class="text-gray-400 text-sm">Add your first project to get started</div>
+		</div>
+	} else {
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+			for _, project := range projects {
+				@ProjectCard(project)
+			}
+		</div>
+		<div class="mt-6 text-sm text-muted-foreground text-center">
+			{ fmt.Sprintf("%d projects", len(projects)) }
+		</div>
+		<!-- Edit modals for each project -->
+		for _, project := range projects {
+			@editProjectModal(project)
+		}
+		<!-- Delete confirmation modals for each project -->
+		for _, project := range projects {
+			@deleteProjectModal(project)
+		}
+	}
+}
+
+templ ProjectCard(project *services.Project) {
+	@card.Card(card.Props{ID: fmt.Sprintf("project-card-%s", project.ID.String()), Class: "bg-gray-100 shadow-md hover:shadow-lg transition-shadow duration-200"}) {
+		@card.Header(card.HeaderProps{Class: "bg-gray-200 border-b border-gray-200 pb-4 rounded-t-lg"}) {
+			<div class="flex items-center justify-between">
+				@card.Title(card.TitleProps{Class: "text-xl font-bold text-gray-900"}) {
+					{ project.Name }
+				}
+				<a href={ templ.URL(project.GitURL) } target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 transition-colors">
+					@icon.Link()
+				</a>
+			</div>
+		}
+		@card.Content(card.ContentProps{Class: "pt-4 bg-gray-100"}) {
+			<div class="space-y-3">
+				<div class="flex items-center justify-between">
+					<span class="text-sm font-medium text-muted-foreground">Status</span>
+					@statusBadge(project.Status)
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-sm font-medium text-muted-foreground">Last Commit</span>
+					if project.LastCommit != nil {
+						<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+							{ (*project.LastCommit)[:8] }
+						</span>
+					} else {
+						<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+							No commits
+						</span>
+					}
+				</div>
+			</div>
+		}
+		@card.Footer(card.FooterProps{Class: "justify-end"}) {
+			<div class="flex space-x-2">
+				<div class="relative group">
+					<button class="flex items-center justify-center p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-md transition-colors">
+						@icon.Rocket()
+					</button>
+					<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+						Deploy Project
+					</div>
+				</div>
+				<div class="relative group">
+					@modal.Trigger(modal.TriggerProps{For: fmt.Sprintf("edit-project-modal-%s", project.ID.String())}) {
+						<button class="flex items-center justify-center p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md transition-colors">
+							@icon.SquarePen()
+						</button>
+					}
+					<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+						Edit Project
+					</div>
+				</div>
+				<div class="relative group">
+					<button class="flex items-center justify-center p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md transition-colors">
+						@icon.ListChecks()
+					</button>
+					<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+						View Deployments
+					</div>
+				</div>
+				<div class="relative group">
+					<button class="flex items-center justify-center p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-md transition-colors">
+						@icon.ScrollText()
+					</button>
+					<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+						View Logs
+					</div>
+				</div>
+				<div class="relative group">
+					@modal.Trigger(modal.TriggerProps{For: fmt.Sprintf("delete-project-modal-%s", project.ID.String())}) {
+						<button class="flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-md transition-colors">
+							@icon.Trash2()
+						</button>
+					}
+					<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+						Delete Project
+					</div>
+				</div>
+			</div>
+		}
+	}
+}
+
+templ statusBadge(status services.ProjectStatus) {
+	<span
+		class={
+			"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+			templ.KV("bg-green-100 text-green-800", status == services.ProjectStatusRunning),
+			templ.KV("bg-gray-100 text-gray-800", status == services.ProjectStatusStopped),
+			templ.KV("bg-red-100 text-red-800", status == services.ProjectStatusError),
+			templ.KV("bg-yellow-100 text-yellow-800", status == services.ProjectStatusUnknown),
+		}
+	>
+		{ status.String() }
+	</span>
+}
+
+templ editProjectModal(project *services.Project) {
+	@modal.Modal(modal.Props{ID: fmt.Sprintf("edit-project-modal-%s", project.ID.String()), Class: "sm:max-w-lg bg-gray-100 shadow-lg", DisableESC: true, DisableClickAway: true}) {
+		@modal.Header(modal.HeaderProps{Class: "bg-gray-200 rounded-t-lg border-b border-gray-300"}) {
+			Edit Project
+		}
+		@modal.Body(modal.BodyProps{Class: "bg-gray-100"}) {
+			<form
+				id={ fmt.Sprintf("edit-project-form-%s", project.ID.String()) }
+				class="space-y-4"
+				hx-post={ fmt.Sprintf("/projects/%s/edit", project.ID.String()) }
+				hx-target={ fmt.Sprintf("#project-card-%s", project.ID.String()) }
+				hx-swap="outerHTML"
+			>
+				<!-- Hidden fields for current project data -->
+				<input type="hidden" name="working_dir" value={ project.WorkingDir }/>
+				<input type="hidden" name="status" value={ project.Status.String() }/>
+				if project.LastCommit != nil {
+					<input type="hidden" name="last_commit" value={ *project.LastCommit }/>
+				}
+				<input type="hidden" name="created_at" value={ project.CreatedAt.Format("2006-01-02T15:04:05Z07:00") }/>
+				<input type="hidden" name="updated_at" value={ project.UpdatedAt.Format("2006-01-02T15:04:05Z07:00") }/>
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "project-name"}) {
+						Project Name
+					}
+					@input.Input(input.Props{
+						ID:          fmt.Sprintf("project-name-%s", project.ID.String()),
+						Name:        "name",
+						Type:        input.TypeText,
+						Placeholder: "Enter project name",
+						Value:       project.Name,
+						Required:    true,
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: "project-git-url"}) {
+						Git URL
+					}
+					@input.Input(input.Props{
+						ID:          fmt.Sprintf("project-git-url-%s", project.ID.String()),
+						Name:        "git_url",
+						Type:        input.TypeURL,
+						Placeholder: "https://github.com/user/repo.git",
+						Value:       project.GitURL,
+						Required:    true,
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: fmt.Sprintf("project-compose-files-%s", project.ID.String())}) {
+						Compose Files
+					}
+					@form.Description() {
+						Docker Compose file paths (e.g., docker-compose.yml, compose.yaml)
+					}
+					@tagsinput.TagsInput(tagsinput.Props{
+						ID:          fmt.Sprintf("project-compose-files-%s", project.ID.String()),
+						Name:        "compose_files",
+						Placeholder: "Add compose file...",
+						Value:       project.ComposeFiles,
+						Class:       "bg-gray-50",
+					})
+				}
+				@form.Item() {
+					@form.Label(form.LabelProps{For: fmt.Sprintf("project-env-files-%s", project.ID.String())}) {
+						Environment Files
+					}
+					@form.Description() {
+						Environment file paths (optional)
+					}
+					@tagsinput.TagsInput(tagsinput.Props{
+						ID:          fmt.Sprintf("project-env-files-%s", project.ID.String()),
+						Name:        "environment_files",
+						Placeholder: "Add environment file...",
+						Value:       project.EnvironmentFiles,
+						Class:       "bg-gray-50",
+					})
+				}
+			</form>
+		}
+		@modal.Footer(modal.FooterProps{Class: "bg-gray-100 rounded-b-lg"}) {
+			<div class="flex justify-end space-x-3">
+				@modal.Close() {
+					@button.Button(button.Props{
+						Variant: button.VariantOutline,
+					}) {
+						Cancel
+					}
+				}
+				@button.Button(button.Props{
+					Type:       button.TypeSubmit,
+					Attributes: templ.Attributes{"form": fmt.Sprintf("edit-project-form-%s", project.ID.String())},
+				}) {
+					Save Changes
+				}
+			</div>
+		}
+	}
+}
+
+templ deleteProjectModal(project *services.Project) {
+	@modal.Modal(modal.Props{ID: fmt.Sprintf("delete-project-modal-%s", project.ID.String()), Class: "sm:max-w-md bg-gray-100 shadow-lg",
+		DisableESC: true, DisableClickAway: true}) {
+		@modal.Header(modal.HeaderProps{Class: "bg-gray-200 rounded-t-lg border-b border-gray-300"}) {
+			Delete Project
+		}
+		@modal.Body(modal.BodyProps{Class: "bg-gray-100"}) {
+			<div class="space-y-4">
+				<div class="flex items-center space-x-3">
+					<div>
+						<p class="text-sm text-gray-500 mt-1">
+							This action cannot be undone. This will permanently delete the project
+							<strong>{ project.Name }</strong> and remove all associated data.
+						</p>
+					</div>
+				</div>
+				<form
+					id={ fmt.Sprintf("delete-project-form-%s", project.ID.String()) }
+					hx-delete={ fmt.Sprintf("/projects/%s", project.ID.String()) }
+					hx-target="#projects-grid"
+					hx-swap="innerHTML"
+				></form>
+			</div>
+		}
+		@modal.Footer(modal.FooterProps{Class: "bg-gray-100 rounded-b-lg"}) {
+			<div class="flex justify-end space-x-3">
+				@modal.Close() {
+					@button.Button(button.Props{
+						Variant: button.VariantOutline,
+					}) {
+						Cancel
+					}
+				}
+				@button.Button(button.Props{
+					Type:       button.TypeSubmit,
+					Variant:    button.VariantDestructive,
+					Attributes: templ.Attributes{"form": fmt.Sprintf("delete-project-form-%s", project.ID.String())},
+				}) {
+					Delete Project
+				}
+			</div>
+		}
+	}
+}
+
+// Helper functions for toast notifications
+templ SuccessToast(title, description string) {
+	<div hx-swap-oob="afterbegin:#toast-container">
+		@toast.Toast(toast.Props{
+			Title:         title,
+			Description:   description,
+			Variant:       toast.VariantSuccess,
+			Position:      toast.PositionBottomRight,
+			Duration:      5000,
+			Dismissible:   true,
+			ShowIndicator: true,
+			Icon:          true,
+		})
+	</div>
+}
+
+templ ErrorToast(title, description string) {
+	<div hx-swap-oob="afterbegin:#toast-container">
+		@toast.Toast(toast.Props{
+			Title:         title,
+			Description:   description,
+			Variant:       toast.VariantError,
+			Position:      toast.PositionBottomRight,
+			Duration:      5000,
+			Dismissible:   true,
+			ShowIndicator: true,
+			Icon:          true,
+		})
+	</div>
+}
+
+// Wrapper components for project operations with toasts
+templ ProjectCardWithSuccessToast(project *services.Project, title, description string) {
+	@ProjectCard(project)
+	@SuccessToast(title, description)
+}
+
+templ ProjectCardWithErrorToast(project *services.Project, title, description string) {
+	@ProjectCard(project)
+	@ErrorToast(title, description)
+}
+
+templ ProjectsGridWithSuccessToast(projects []*services.Project, title, description string) {
+	@ProjectsGrid(projects)
+	@SuccessToast(title, description)
+}
+
+templ ProjectsGridWithErrorToast(projects []*services.Project, title, description string) {
+	@ProjectsGrid(projects)
+	@ErrorToast(title, description)
+}

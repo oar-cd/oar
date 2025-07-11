@@ -1,0 +1,8 @@
+{
+  "componentsDir": "ui/components",
+  "utilsDir": "ui/utils",
+  "moduleName": "github.com/ch00k/oar",
+  "jsDir": "ui/assets/js",
+  "jsPublicPath": "/assets/js"
+}
+
