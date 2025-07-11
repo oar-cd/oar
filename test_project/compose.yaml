@@ -1,0 +1,29 @@
+services:
+  postgresql:
+    restart: always
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: foobar
+      PGDATA: /var/lib/postgresql/data/mydb
+    ports:
+      - 127.0.0.1:5432:5432
+
+  rabbitmq:
+    restart: always
+    image: rabbitmq:latest
+    ports:
+      - 127.0.0.1:5672:5672
+
+  redis:
+    restart: always
+    image: redis:latest
+    volumes:
+      - ./rddata:/data
+    ports:
+      - 127.0.0.1:6379:6739
+
+  nginx:
+    restart: always
+    image: nginx:latest
+    ports:
+      - 127.0.0.1:8912:80
