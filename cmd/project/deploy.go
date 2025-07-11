@@ -1,10 +1,6 @@
 package project
 
 import (
-	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
-	"github.com/ch00k/oar/internal/app"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -16,28 +12,28 @@ func NewCmdProjectDeploy() *cobra.Command {
 This will update running containers with the latest configuration.`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			// Parse UUID
-			projectID, err := uuid.Parse(args[0])
-			if err != nil {
-				utils.HandleInvalidUUID("project operation", args[0])
-				return
-			}
+			//// Parse UUID
+			//projectID, err := uuid.Parse(args[0])
+			//if err != nil {
+			//    utils.HandleInvalidUUID("project operation", args[0])
+			//    return
+			//}
 
-			// Get flags
-			pull, _ := cmd.Flags().GetBool("pull")
+			//// Get flags
+			//pull, _ := cmd.Flags().GetBool("pull")
 
-			// Deploy project
-			deployment, err := app.GetProjectService().DeployProject(projectID, pull)
-			if err != nil {
-				utils.HandleCommandError("deploying project", err, "project_id", projectID)
-				return
-			}
+			//// Deploy project
+			//deployment, err := app.GetProjectService().DeployProject(projectID, pull)
+			//if err != nil {
+			//    utils.HandleCommandError("deploying project", err, "project_id", projectID)
+			//    return
+			//}
 
-			output.PrintMessage(output.Success, "Deployment started successfully!")
-			output.PrintMessage(output.Plain, "Deployment ID: %s", deployment.ID)
-			// printMessage(Plain, "Project: %s", deployment.Project.Name)
-			output.PrintMessage(output.Plain, "Status: %s", deployment.Status)
-			output.PrintMessage(output.Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
+			//output.PrintMessage(output.Success, "Deployment started successfully!")
+			//output.PrintMessage(output.Plain, "Deployment ID: %s", deployment.ID)
+			//// printMessage(Plain, "Project: %s", deployment.Project.Name)
+			//output.PrintMessage(output.Plain, "Status: %s", deployment.Status)
+			//output.PrintMessage(output.Plain, "Use 'oar deployment logs %s' to view output", deployment.ID)
 		},
 	}
 

@@ -3,10 +3,8 @@ package services
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
 )
 
@@ -45,32 +43,6 @@ func NewProject(name, gitURL string, composeFiles, environmentFiles []string) Pr
 		ComposeFiles:     composeFiles,
 		EnvironmentFiles: environmentFiles,
 		Status:           ProjectStatusStopped,
-	}
-}
-
-func NewProjectFromModel(project *models.ProjectModel, baseDir string) Project {
-	status, err := ParseProjectStatus(project.Status)
-	if err != nil {
-		status = ProjectStatusUnknown
-	}
-
-	return Project{
-		ID:         project.ID,
-		Name:       project.Name,
-		GitURL:     project.GitURL,
-		WorkingDir: project.WorkingDir,
-		ComposeFiles: strings.Split(
-			project.ComposeFiles,
-			"\000",
-		), // Split by null character
-		EnvironmentFiles: strings.Split(
-			project.EnvironmentFiles,
-			"\000",
-		), // Split by null character
-		Status:     status,
-		LastCommit: project.LastCommit,
-		CreatedAt:  project.CreatedAt,
-		UpdatedAt:  project.UpdatedAt,
 	}
 }
 

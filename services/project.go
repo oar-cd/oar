@@ -54,15 +54,14 @@ type ProjectService struct {
 	projectRepository    ProjectRepository
 	deploymentRepository DeploymentRepository
 	gitService           GitExecutor
-	dockerComposeService DockerComposeExecutor
 	config               *Config
 }
 
 // Ensure ProjectService implements ProjectManager
 var _ ProjectManager = (*ProjectService)(nil)
 
-// ListProjects returns all projects
-func (s *ProjectService) ListProjects() ([]*Project, error) {
+// List returns all projects
+func (s *ProjectService) List() ([]*Project, error) {
 	projects, err := s.projectRepository.List()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)
@@ -70,8 +69,8 @@ func (s *ProjectService) ListProjects() ([]*Project, error) {
 	return projects, nil
 }
 
-// GetProject retrieves a project by ID
-func (s *ProjectService) GetProject(id uuid.UUID) (*Project, error) {
+// Get retrieves a project by ID
+func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 	project, err := s.projectRepository.FindByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project with ID %s: %w", id, err)
@@ -79,7 +78,7 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*Project, error) {
 	return project, nil
 }
 
-func (s *ProjectService) GetProjectByName(name string) (*Project, error) {
+func (s *ProjectService) GetByName(name string) (*Project, error) {
 	project, err := s.projectRepository.FindByName(name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project with name %s: %w", name, err)
@@ -87,8 +86,8 @@ func (s *ProjectService) GetProjectByName(name string) (*Project, error) {
 	return project, nil
 }
 
-// CreateProject creates a new project
-func (s *ProjectService) CreateProject(project *Project) (*Project, error) {
+// Create creates a new project
+func (s *ProjectService) Create(project *Project) (*Project, error) {
 	project.WorkingDir = filepath.Join(s.config.WorkspaceDir, project.ID.String())
 
 	gitDir, err := project.GitDir()
@@ -105,23 +104,7 @@ func (s *ProjectService) CreateProject(project *Project) (*Project, error) {
 	commit, _ := s.gitService.GetLatestCommit(gitDir)
 	project.LastCommit = &commit
 
-	// Discover Docker Compose files
-	var composeFiles []string
-
-	if _, err := os.Stat(filepath.Join(gitDir, "compose.yaml")); err == nil {
-		composeFiles = []string{"compose.yaml"}
-	} else if _, err := os.Stat(filepath.Join(gitDir, "compose.yml")); err == nil {
-		composeFiles = []string{"compose.yml"}
-	} else if _, err := os.Stat(filepath.Join(gitDir, "docker-compose.yaml")); err == nil {
-		composeFiles = []string{"docker-compose.yaml"}
-	} else if _, err := os.Stat(filepath.Join(gitDir, "docker-compose.yml")); err == nil {
-		composeFiles = []string{"docker-compose.yml"}
-	} else {
-		// TODO: Communicate to user that no Docker Compose files were found
-		slog.Warn("No Docker Compose files found in repository", "git_url", project.GitURL, "repo_dir", gitDir)
-	}
-
-	project.ComposeFiles = composeFiles
+	// TODO: Discover compose files is none are provided
 
 	project, err = s.projectRepository.Create(project)
 	if err != nil {
@@ -142,33 +125,37 @@ func (s *ProjectService) CreateProject(project *Project) (*Project, error) {
 	return project, nil
 }
 
-func (s *ProjectService) UpdateProject(project *Project) (*Project, error) {
-	updatedProject, err := s.projectRepository.Update(project)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update project: %w", err)
-	}
-
-	return updatedProject, nil
+func (s *ProjectService) Update(project *Project) error {
+	return s.projectRepository.Update(project)
 }
 
-func (s *ProjectService) DeployProject(projectID uuid.UUID, pull bool) (*Deployment, error) {
+func (s *ProjectService) DeployStreaming(
+	projectID uuid.UUID,
+	pull bool,
+	outputChan chan<- string,
+) error {
 	// Get project
-	project, err := s.GetProject(projectID)
+	project, err := s.Get(projectID)
 	if err != nil {
-		return nil, fmt.Errorf("project not found: %w", err)
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	gitDir, err := project.GitDir()
+	if err != nil {
+		return fmt.Errorf("failed to get git directory: %w", err)
 	}
 
 	// Pull latest changes if requested
 	if pull {
 		if err := s.pullLatestChanges(project); err != nil {
-			return nil, fmt.Errorf("failed to pull latest changes: %w", err)
+			return fmt.Errorf("failed to pull latest changes: %w", err)
 		}
 	}
 
-	commitHash, err := s.gitService.GetLatestCommit(project.WorkingDir)
+	commitHash, err := s.gitService.GetLatestCommit(gitDir)
 	if err != nil {
 		slog.Error("Failed to get latest commit", "project_id", project.ID, "error", err)
-		return nil, fmt.Errorf("failed to get latest commit: %w", err)
+		return fmt.Errorf("failed to get latest commit: %w", err)
 	}
 
 	deployment := NewDeployment(projectID, commitHash)
@@ -180,40 +167,130 @@ func (s *ProjectService) DeployProject(projectID uuid.UUID, pull bool) (*Deploym
 		"compose_files", project.ComposeFiles,
 		"pull", pull)
 
-	result, err := s.dockerComposeService.Up(project)
-	if err != nil {
-		slog.Error("Docker Compose deployment failed",
-			"project_id", project.ID,
-			"error", err,
-			"result", result)
-		return nil, fmt.Errorf("docker compose command failed: %w", err)
-	}
+	composeProject := NewComposeProject(project)
 
-	slog.Info("Docker Compose deployment completed", "project_id", project.ID)
+	err = composeProject.UpStreaming(outputChan)
+	if err != nil {
+		slog.Error(
+			"Docker Compose up failed",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to start project: %w", err)
+	}
+	slog.Info(
+		"Docker Compose project started",
+		"project_id",
+		project.ID,
+	)
 
 	// Update deployment
 	deployment.Status = DeploymentStatusCompleted
-	deployment.Output = result.Output
+	// deployment.Output = result.Output
 
 	// Update project
 	project.Status = ProjectStatusRunning
 	project.LastCommit = &commitHash
 
 	// TODO: Transaction
-	if err := s.deploymentRepository.Save(&deployment); err != nil {
-		return nil, fmt.Errorf("failed to update deployment record: %w", err)
+	if err := s.deploymentRepository.Create(&deployment); err != nil {
+		return fmt.Errorf("failed to update deployment record: %w", err)
 	}
 
-	if _, err := s.projectRepository.Create(project); err != nil {
-		return nil, fmt.Errorf("failed to update project status: %w", err)
+	if err := s.projectRepository.Update(project); err != nil {
+		return fmt.Errorf("failed to update project status: %w", err)
 	}
 
-	return &deployment, nil
+	return nil
 }
 
-func (s *ProjectService) StopProject(projectID uuid.UUID) error {
+func (s *ProjectService) Start(projectID uuid.UUID) error {
 	// Get project
-	project, err := s.GetProject(projectID)
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Start Docker Compose
+	slog.Info(
+		"Starting Docker Compose project",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project)
+
+	output, err := composeProject.Up()
+	if err != nil {
+		slog.Error(
+			"Docker Compose up failed",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+			"output",
+			output,
+		)
+		return fmt.Errorf("failed to start project: %w", err)
+	}
+	slog.Info(
+		"Docker Compose project started",
+		"project_id",
+		project.ID,
+		"output_length",
+		len(output),
+	)
+
+	project.Status = ProjectStatusRunning
+	return s.Update(project)
+}
+
+func (s *ProjectService) StartStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Start Docker Compose
+	slog.Info(
+		"Starting Docker Compose project",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project)
+
+	err = composeProject.UpStreaming(outputChan)
+	if err != nil {
+		slog.Error(
+			"Docker Compose up failed",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to start project: %w", err)
+	}
+	slog.Info(
+		"Docker Compose project started",
+		"project_id",
+		project.ID,
+	)
+
+	project.Status = ProjectStatusRunning
+	return s.Update(project)
+}
+
+func (s *ProjectService) Stop(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.Get(projectID)
 	if err != nil {
 		return fmt.Errorf("project not found: %w", err)
 	}
@@ -226,7 +303,10 @@ func (s *ProjectService) StopProject(projectID uuid.UUID) error {
 		"project_name",
 		project.Name,
 	)
-	output, err := s.dockerComposeService.Down(project)
+
+	composeProject := NewComposeProject(project)
+
+	output, err := composeProject.Down()
 	if err != nil {
 		slog.Error(
 			"Docker Compose down failed",
@@ -248,22 +328,57 @@ func (s *ProjectService) StopProject(projectID uuid.UUID) error {
 	)
 
 	project.Status = ProjectStatusStopped
-	if _, err := s.UpdateProject(project); err != nil {
-		return fmt.Errorf("failed to update project status: %w", err)
-	}
-
-	return nil
+	return s.Update(project)
 }
 
-func (s *ProjectService) RemoveProject(projectID uuid.UUID) error {
+func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
 	// Get project
-	project, err := s.GetProject(projectID)
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stop Docker Compose
+	slog.Info(
+		"Stopping Docker Compose project with streaming",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project)
+
+	err = composeProject.DownStreaming(outputChan)
+	if err != nil {
+		slog.Error(
+			"Docker Compose down failed",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to stop project: %w", err)
+	}
+	slog.Info(
+		"Docker Compose project stopped",
+		"project_id",
+		project.ID,
+	)
+
+	project.Status = ProjectStatusStopped
+	return s.Update(project)
+}
+
+func (s *ProjectService) Remove(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.Get(projectID)
 	if err != nil {
 		return fmt.Errorf("project not found: %w", err)
 	}
 
 	// Stop Docker Compose project if running
-	if err := s.StopProject(projectID); err != nil {
+	if err := s.Stop(projectID); err != nil {
 		slog.Warn("Failed to stop project before removal", "project_id", project.ID, "error", err)
 		return fmt.Errorf("failed to stop project before removal: %w", err)
 	}
@@ -288,11 +403,54 @@ func (s *ProjectService) RemoveProject(projectID uuid.UUID) error {
 	return nil
 }
 
+func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	// Get projectID
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stream logs using Docker Compose
+	slog.Info(
+		"Streaming logs for Docker Compose project",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project)
+
+	err = composeProject.LogsStreaming(outputChan)
+	if err != nil {
+		slog.Error(
+			"Failed to stream logs",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to stream logs: %w", err)
+	}
+	slog.Info(
+		"Logs streaming completed",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+	return nil
+}
+
 func (s *ProjectService) pullLatestChanges(project *Project) error {
 	slog.Info("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
 
-	err := s.gitService.Pull(project.WorkingDir)
+	gitDir, err := project.GitDir()
 	if err != nil {
+		return fmt.Errorf("failed to get git directory: %w", err)
+	}
+
+	if err = s.gitService.Pull(gitDir); err != nil {
 		slog.Error("Failed to pull changes", "project_id", project.ID, "error", err)
 		return fmt.Errorf("failed to pull changes: %w", err)
 	}
@@ -306,29 +464,12 @@ func NewProjectService(
 	projectRepository ProjectRepository,
 	deploymentRepository DeploymentRepository,
 	gitService GitExecutor,
-	dockerComposeService DockerComposeExecutor,
 	config *Config,
 ) *ProjectService {
 	return &ProjectService{
 		projectRepository:    projectRepository,
 		deploymentRepository: deploymentRepository,
 		gitService:           gitService,
-		dockerComposeService: dockerComposeService,
 		config:               config,
 	}
-}
-
-// NewProjectServiceWithDefaults creates a ProjectService with default implementations
-func NewProjectServiceWithDefaults(
-	projectRepository ProjectRepository,
-	deploymentRepository DeploymentRepository,
-	config *Config,
-) *ProjectService {
-	return NewProjectService(
-		projectRepository,
-		deploymentRepository,
-		&GitService{},
-		&DockerComposeProjectService{},
-		config,
-	)
 }

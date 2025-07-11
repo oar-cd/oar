@@ -39,6 +39,7 @@ templ Base(title string) {
 			@input.Script()
 			@tagsinput.Script()
 			@toast.Script()
+			<script src="/assets/js/streaming.js"></script>
 			<script>
 				// Handle successful project update - close modal
 				document.body.addEventListener('htmx:afterRequest', function(e) {
@@ -73,6 +74,24 @@ templ Base(title string) {
 						} else if (hxTrigger === 'project-deleted') {
 							// Close any open delete confirmation modals
 							const modals = document.querySelectorAll('[id^="delete-project-modal-"]');
+							modals.forEach(modal => {
+								const closeButton = modal.querySelector('[data-modal-close]');
+								if (closeButton) {
+									closeButton.click();
+								}
+							});
+						} else if (hxTrigger === 'project-started') {
+							// Close any open start confirmation modals
+							const modals = document.querySelectorAll('[id^="start-project-modal-"]');
+							modals.forEach(modal => {
+								const closeButton = modal.querySelector('[data-modal-close]');
+								if (closeButton) {
+									closeButton.click();
+								}
+							});
+						} else if (hxTrigger === 'project-stopped') {
+							// Close any open stop confirmation modals
+							const modals = document.querySelectorAll('[id^="stop-project-modal-"]');
 							modals.forEach(modal => {
 								const closeButton = modal.querySelector('[data-modal-close]');
 								if (closeButton) {

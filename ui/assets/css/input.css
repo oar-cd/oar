@@ -140,3 +140,17 @@
       "calt" 1;
   }
 }
+
+/* Custom styles for distinguishing our text from streaming output */
+.oar-text {
+  font-style: italic;
+  color: #6b7280; /* text-gray-500 */
+}
+
+.oar-text.success {
+  color: #059669; /* text-green-600 */
+}
+
+.oar-text.error {
+  color: #dc2626; /* text-red-600 */
+}
