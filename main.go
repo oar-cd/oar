@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -40,7 +41,10 @@ func main() {
 		projectService := app.GetProjectService()
 		projects, err := projectService.List()
 		if err != nil {
-			log.Printf("Failed to list projects: %v", err)
+			slog.Error("Application operation failed",
+				"layer", "main",
+				"operation", "list_projects",
+				"error", err)
 			projects = []*services.Project{} // Empty slice on error
 		}
 
@@ -50,7 +54,7 @@ func main() {
 		}
 	})
 
-	log.Printf("Server starting on http://127.0.0.1:3333")
+	slog.Info("Server starting", "address", "http://127.0.0.1:3333")
 	if err := http.ListenAndServe("127.0.0.1:3333", r); err != nil {
 		panic(err)
 	}

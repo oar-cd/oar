@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/go-git/go-git/v5"
@@ -27,8 +26,13 @@ func (s *GitService) Clone(gitURL, workingDir string) error {
 
 	_, err := git.PlainClone(workingDir, false, cloneOptions)
 	if err != nil {
-		slog.Error("Failed to clone repository", "git_url", gitURL, "error", err)
-		return fmt.Errorf("failed to clone repository: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_clone",
+			"git_url", gitURL,
+			"working_dir", workingDir,
+			"error", err)
+		return err
 	}
 
 	slog.Info("Repository cloned successfully", "git_url", gitURL, "working_dir", workingDir)
@@ -41,14 +45,22 @@ func (s *GitService) Pull(workingDir string) error {
 
 	repo, err := git.PlainOpen(workingDir)
 	if err != nil {
-		slog.Error("Failed to open repository", "working_dir", workingDir, "error", err)
-		return fmt.Errorf("failed to open repository: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull",
+			"working_dir", workingDir,
+			"error", err)
+		return err
 	}
 
 	worktree, err := repo.Worktree()
 	if err != nil {
-		slog.Error("Failed to get worktree", "working_dir", workingDir, "error", err)
-		return fmt.Errorf("failed to get worktree: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull",
+			"working_dir", workingDir,
+			"error", err)
+		return err
 	}
 
 	pullOptions := &git.PullOptions{
@@ -57,8 +69,12 @@ func (s *GitService) Pull(workingDir string) error {
 
 	err = worktree.Pull(pullOptions)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		slog.Error("Failed to pull changes", "working_dir", workingDir, "error", err)
-		return fmt.Errorf("failed to pull: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull",
+			"working_dir", workingDir,
+			"error", err)
+		return err
 	}
 
 	if err == git.NoErrAlreadyUpToDate {
@@ -74,12 +90,22 @@ func (s *GitService) Pull(workingDir string) error {
 func (s *GitService) GetLatestCommit(workingDir string) (string, error) {
 	repo, err := git.PlainOpen(workingDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to open repository: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_get_commit",
+			"working_dir", workingDir,
+			"error", err)
+		return "", err
 	}
 
 	ref, err := repo.Head()
 	if err != nil {
-		return "", fmt.Errorf("failed to get HEAD: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_get_commit",
+			"working_dir", workingDir,
+			"error", err)
+		return "", err
 	}
 
 	return ref.Hash().String(), nil
