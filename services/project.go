@@ -64,7 +64,11 @@ var _ ProjectManager = (*ProjectService)(nil)
 func (s *ProjectService) List() ([]*Project, error) {
 	projects, err := s.projectRepository.List()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "list_projects",
+			"error", err)
+		return nil, err
 	}
 	return projects, nil
 }
@@ -73,7 +77,12 @@ func (s *ProjectService) List() ([]*Project, error) {
 func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 	project, err := s.projectRepository.FindByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get project with ID %s: %w", id, err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "get_project",
+			"project_id", id,
+			"error", err)
+		return nil, err // Pass through as-is
 	}
 	return project, nil
 }
@@ -81,7 +90,12 @@ func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 func (s *ProjectService) GetByName(name string) (*Project, error) {
 	project, err := s.projectRepository.FindByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project with name %s: %w", name, err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "get_project",
+			"project_name", name,
+			"error", err)
+		return nil, err // Pass through as-is
 	}
 	return project, nil
 }
@@ -92,12 +106,25 @@ func (s *ProjectService) Create(project *Project) (*Project, error) {
 
 	gitDir, err := project.GitDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get git directory: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"error", err)
+		return nil, err
 	}
 
 	// Clone repository first
 	if err := s.gitService.Clone(project.GitURL, gitDir); err != nil {
-		return nil, fmt.Errorf("failed to clone repository: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"git_url", project.GitURL,
+			"error", err)
+		return nil, err
 	}
 
 	// Get commit info
@@ -106,23 +133,32 @@ func (s *ProjectService) Create(project *Project) (*Project, error) {
 
 	// TODO: Discover compose files is none are provided
 
-	project, err = s.projectRepository.Create(project)
+	// Save working directory for cleanup before repository call
+	workingDir := project.WorkingDir
+
+	createdProject, err := s.projectRepository.Create(project)
 	if err != nil {
-		// Cleanup on failure
-		if err := os.RemoveAll(project.WorkingDir); err != nil {
+		// Cleanup on failure using saved working directory
+		if cleanupErr := os.RemoveAll(workingDir); cleanupErr != nil {
 			slog.Error(
 				"Failed to remove project directory after creation failure",
 				"working_dir",
-				project.WorkingDir,
+				workingDir,
 				"error",
-				err,
+				cleanupErr,
 			)
-			return nil, fmt.Errorf("failed to create project: %w", err)
 		}
-		return nil, fmt.Errorf("failed to create project: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"git_url", project.GitURL,
+			"error", err)
+		return nil, err // Pass through as-is
 	}
 
-	return project, nil
+	return createdProject, nil
 }
 
 func (s *ProjectService) Update(project *Project) error {
@@ -152,15 +188,19 @@ func (s *ProjectService) DeployStreaming(
 		outputChan <- "OAR_MSG:default:Pulling latest changes from Git..."
 		if err := s.pullLatestChanges(project); err != nil {
 			outputChan <- fmt.Sprintf("OAR_MSG:error:Failed to pull latest changes: %v", err)
-			return fmt.Errorf("failed to pull latest changes: %w", err)
+			return err
 		}
 		outputChan <- "OAR_MSG:success:Git pull completed successfully"
 	}
 
 	commitHash, err := s.gitService.GetLatestCommit(gitDir)
 	if err != nil {
-		slog.Error("Failed to get latest commit", "project_id", project.ID, "error", err)
-		return fmt.Errorf("failed to get latest commit: %w", err)
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "deploy_project",
+			"project_id", project.ID,
+			"error", err)
+		return err
 	}
 
 	deployment := NewDeployment(projectID, commitHash)

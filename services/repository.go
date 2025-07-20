@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/ch00k/oar/models"
@@ -38,7 +39,12 @@ func (r *projectRepository) List() ([]*Project, error) {
 func (r *projectRepository) FindByID(id uuid.UUID) (*Project, error) {
 	var model models.ProjectModel
 	if err := r.db.First(&model, id).Error; err != nil {
-		return nil, err
+		slog.Error("Database operation failed",
+			"layer", "repository",
+			"operation", "find_project",
+			"project_id", id,
+			"error", err)
+		return nil, err // Pass through as-is
 	}
 	return r.mapper.ToDomain(&model), nil
 }
@@ -55,7 +61,13 @@ func (r *projectRepository) Create(project *Project) (*Project, error) {
 	model := r.mapper.ToModel(project)
 	res := r.db.Create(model)
 	if res.Error != nil {
-		return nil, res.Error
+		slog.Error("Database operation failed",
+			"layer", "repository",
+			"operation", "create_project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"error", res.Error)
+		return nil, res.Error // Pass through as-is
 	}
 	return r.mapper.ToDomain(model), nil
 }
@@ -68,7 +80,15 @@ func (r *projectRepository) Update(project *Project) error {
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&models.ProjectModel{}, id).Error
+	err := r.db.Delete(&models.ProjectModel{}, id).Error
+	if err != nil {
+		slog.Error("Database operation failed",
+			"layer", "repository",
+			"operation", "delete_project",
+			"project_id", id,
+			"error", err)
+	}
+	return err // Pass through as-is
 }
 
 func NewProjectRepository(db *gorm.DB) ProjectRepository {

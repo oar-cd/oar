@@ -3,7 +3,7 @@ package handlers
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/a-h/templ"
@@ -38,7 +38,10 @@ func setupSSEHeaders(w http.ResponseWriter) {
 
 func renderComponentWithError(w http.ResponseWriter, r *http.Request, component templ.Component, errorMsg string) {
 	if err := component.Render(r.Context(), w); err != nil {
-		log.Printf("Failed to render component: %v", err)
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "render_component",
+			"error", err)
 		http.Error(w, errorMsg, http.StatusInternalServerError)
 	}
 }
@@ -60,13 +63,19 @@ func (h *ProjectHandlers) handleProjectGridResponse(
 
 	projects, listErr := h.projectManager.List()
 	if listErr != nil {
-		log.Printf("Failed to list projects: %v", listErr)
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "list_projects",
+			"error", listErr)
 		projects = []*services.Project{} // Empty list on error
 	}
 
 	var component templ.Component
 	if err != nil {
-		log.Printf("Operation failed: %v", err)
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "project_grid_response",
+			"error", err)
 		component = pages.ProjectsGridWithErrorToast(projects, errorTitle, errorDesc)
 	} else {
 		component = pages.ProjectsGridWithSuccessToast(projects, successTitle, successDesc)
@@ -87,7 +96,10 @@ func (h *ProjectHandlers) handleProjectCardResponse(
 
 	var component templ.Component
 	if err != nil {
-		log.Printf("Operation failed: %v", err)
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "project_grid_response",
+			"error", err)
 		component = pages.ProjectCardWithErrorToast(project, errorTitle, errorDesc)
 	} else {
 		component = pages.ProjectCardWithSuccessToast(project, successTitle, successDesc)
@@ -122,7 +134,10 @@ func (h *ProjectHandlers) handleStreaming(w http.ResponseWriter, r *http.Request
 	// Stream output to client
 	for line := range outputChan {
 		if _, err := fmt.Fprintf(w, "data: %s\n\n", line); err != nil {
-			log.Printf("Failed to write to stream: %v", err)
+			slog.Error("Handler operation failed",
+				"layer", "handler",
+				"operation", "stream_write",
+				"error", err)
 			break
 		}
 		flushResponse(w)
@@ -131,13 +146,22 @@ func (h *ProjectHandlers) handleStreaming(w http.ResponseWriter, r *http.Request
 	// Handle completion
 	serviceErr := <-done
 	if serviceErr != nil {
-		log.Printf("Streaming operation failed: %v", serviceErr)
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "streaming",
+			"error", serviceErr)
 		if _, err := fmt.Fprintf(w, "event: complete-error\ndata: %s: %v\n\n", errorMsgPrefix, serviceErr); err != nil {
-			log.Printf("Failed to write completion event: %v", err)
+			slog.Error("Handler operation failed",
+				"layer", "handler",
+				"operation", "stream_completion",
+				"error", err)
 		}
 	} else {
 		if _, err := fmt.Fprintf(w, "event: complete-success\ndata: %s\n\n", successMsg); err != nil {
-			log.Printf("Failed to write completion event: %v", err)
+			slog.Error("Handler operation failed",
+				"layer", "handler",
+				"operation", "stream_completion",
+				"error", err)
 		}
 	}
 	flushResponse(w)
@@ -163,9 +187,23 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	project := services.NewProject(name, gitURL, composeFiles, environmentFiles)
 	_, err := h.projectManager.Create(&project)
 
+	var errorDesc string
+	if err != nil {
+		// Log at handler level with request context
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "create_project",
+			"project_name", project.Name,
+			"git_url", project.GitURL,
+			"error", err)
+
+		// Format user-friendly message
+		errorDesc = services.FormatErrorForUser(err)
+	}
+
 	h.handleProjectGridResponse(w, r, err, "project-created",
 		"Project created successfully", "New project has been added and cloned.",
-		"Failed to create project", "There was an error creating the project. Please check your inputs and try again.")
+		"Failed to create project", errorDesc)
 }
 
 func (h *ProjectHandlers) Edit(w http.ResponseWriter, r *http.Request) {
@@ -201,9 +239,22 @@ func (h *ProjectHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.projectManager.Remove(projectID)
 
+	var errorDesc string
+	if err != nil {
+		// Log at handler level with request context
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "delete_project",
+			"project_id", projectID,
+			"error", err)
+
+		// Format user-friendly message
+		errorDesc = services.FormatErrorForUser(err)
+	}
+
 	h.handleProjectGridResponse(w, r, err, "project-deleted",
 		"Project deleted successfully", "Project has been removed and all data cleaned up.",
-		"Failed to delete project", "There was an error deleting the project. Please try again.")
+		"Failed to delete project", errorDesc)
 }
 
 func (h *ProjectHandlers) Stop(w http.ResponseWriter, r *http.Request) {

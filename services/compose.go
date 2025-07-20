@@ -2,7 +2,6 @@ package services
 
 import (
 	"bufio"
-	"fmt"
 	"log/slog"
 	"os/exec"
 	"path/filepath"
@@ -25,7 +24,9 @@ var _ ComposeProjectInterface = (*ComposeProject)(nil)
 func NewComposeProject(p *Project) *ComposeProject {
 	gitDir, err := p.GitDir()
 	if err != nil {
-		slog.Error("Failed to get Git directory for project",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "create_compose_project",
 			"project_name", p.Name,
 			"error", err)
 		return nil
@@ -42,10 +43,12 @@ func NewComposeProject(p *Project) *ComposeProject {
 func (p *ComposeProject) Up() (string, error) {
 	cmd, err := p.commandUp()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose up command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_up",
 			"project_name", p.Name,
 			"error", err)
-		return "", fmt.Errorf("failed to prepare docker compose up command: %w", err)
+		return "", err
 	}
 
 	return p.executeCommand(cmd)
@@ -54,10 +57,12 @@ func (p *ComposeProject) Up() (string, error) {
 func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
 	cmd, err := p.commandUp()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose up command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_up",
 			"project_name", p.Name,
 			"error", err)
-		return fmt.Errorf("failed to prepare docker compose up command: %w", err)
+		return err
 	}
 	return p.executeCommandStreaming(cmd, outputChan)
 }
@@ -65,10 +70,12 @@ func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
 func (p *ComposeProject) Down() (string, error) {
 	cmd, err := p.commandDown()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose down command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_down",
 			"project_name", p.Name,
 			"error", err)
-		return "", fmt.Errorf("failed to prepare docker compose down command: %w", err)
+		return "", err
 	}
 
 	return p.executeCommand(cmd)
@@ -77,10 +84,12 @@ func (p *ComposeProject) Down() (string, error) {
 func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
 	cmd, err := p.commandDown()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose down command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_down",
 			"project_name", p.Name,
 			"error", err)
-		return fmt.Errorf("failed to prepare docker compose down command: %w", err)
+		return err
 	}
 
 	return p.executeCommandStreaming(cmd, outputChan)
@@ -89,10 +98,12 @@ func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
 func (p *ComposeProject) Logs() (string, error) {
 	cmd, err := p.commandLogs()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose up command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_logs",
 			"project_name", p.Name,
 			"error", err)
-		return "", fmt.Errorf("failed to prepare docker compose up command: %w", err)
+		return "", err
 	}
 
 	return p.executeCommand(cmd)
@@ -101,10 +112,12 @@ func (p *ComposeProject) Logs() (string, error) {
 func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
 	cmd, err := p.commandLogs()
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose logs command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_logs",
 			"project_name", p.Name,
 			"error", err)
-		return fmt.Errorf("failed to prepare docker compose logs command: %w", err)
+		return err
 	}
 
 	return p.executeCommandStreaming(cmd, outputChan)
@@ -142,11 +155,13 @@ func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (string, error) {
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	if err != nil {
-		slog.Error("Docker Compose up command failed",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_execute",
 			"project_name", p.Name,
 			"error", err,
 			"output", output)
-		return "", fmt.Errorf("docker compose up command failed: %w", err)
+		return "", err
 	}
 	return output, nil
 }
@@ -154,27 +169,33 @@ func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (string, error) {
 func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<- string) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		slog.Error("Failed to get stdout pipe for Docker Compose command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_stream",
 			"command", cmd.String(),
 			"error", err)
-		return fmt.Errorf("failed to get stdout pipe: %w", err)
+		return err
 	}
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		slog.Error("Failed to get stderr pipe for Docker Compose command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_stream",
 			"command", cmd.String(),
 			"error", err)
-		return fmt.Errorf("failed to get stderr pipe: %w", err)
+		return err
 	}
 
 	// Start the command
 	err = cmd.Start()
 	if err != nil {
-		slog.Error("Failed to start Docker Compose command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_stream",
 			"command", cmd.String(),
 			"error", err)
-		return fmt.Errorf("failed to start docker compose command: %w", err)
+		return err
 	}
 
 	// Stream stdout
@@ -195,10 +216,12 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 
 	err = cmd.Wait()
 	if err != nil {
-		slog.Error("Docker Compose command failed",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_stream",
 			"command", cmd.String(),
 			"error", err)
-		return fmt.Errorf("docker compose command failed: %w", err)
+		return err
 	}
 
 	slog.Debug("Docker Compose command completed successfully")
@@ -209,10 +232,12 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 func (p *ComposeProject) commandUp() (*exec.Cmd, error) {
 	cmd, err := p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans"})
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose up command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_up",
 			"project_name", p.Name,
 			"error", err)
-		return nil, fmt.Errorf("failed to prepare docker compose up command: %w", err)
+		return nil, err
 	}
 
 	return cmd, nil
@@ -221,10 +246,12 @@ func (p *ComposeProject) commandUp() (*exec.Cmd, error) {
 func (p *ComposeProject) commandDown() (*exec.Cmd, error) {
 	cmd, err := p.prepareCommand("down", []string{"--remove-orphans"})
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose down command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_down",
 			"project_name", p.Name,
 			"error", err)
-		return nil, fmt.Errorf("failed to prepare docker compose down command: %w", err)
+		return nil, err
 	}
 
 	return cmd, nil
@@ -233,10 +260,12 @@ func (p *ComposeProject) commandDown() (*exec.Cmd, error) {
 func (p *ComposeProject) commandLogs() (*exec.Cmd, error) {
 	cmd, err := p.prepareCommand("logs", []string{"--follow"})
 	if err != nil {
-		slog.Error("Failed to prepare Docker Compose logs command",
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_logs",
 			"project_name", p.Name,
 			"error", err)
-		return nil, fmt.Errorf("failed to prepare docker compose logs command: %w", err)
+		return nil, err
 	}
 
 	return cmd, nil
