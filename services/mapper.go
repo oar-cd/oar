@@ -26,7 +26,9 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 
 func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
 	return &models.ProjectModel{
-		ID:               p.ID,
+		BaseModel: models.BaseModel{
+			ID: p.ID,
+		},
 		Name:             p.Name,
 		GitURL:           p.GitURL,
 		WorkingDir:       p.WorkingDir,
@@ -57,7 +59,9 @@ func (m *DeploymentMapper) ToDomain(d *models.DeploymentModel) *Deployment {
 
 func (m *DeploymentMapper) ToModel(d *Deployment) *models.DeploymentModel {
 	return &models.DeploymentModel{
-		ID:          d.ID,
+		BaseModel: models.BaseModel{
+			ID: d.ID,
+		},
 		ProjectID:   d.ProjectID,
 		CommitHash:  d.CommitHash,
 		CommandLine: d.CommandLine,

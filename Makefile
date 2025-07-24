@@ -1,13 +1,20 @@
+.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dev
+
+lint:
+	golangci-lint run --fix
+
 test:
-	gotestsum
+	gotestsum ./...
 
 test_ci:
-	go run gotest.tools/gotestsum@latest
+	go run gotest.tools/gotestsum@latest -- -coverprofile=coverage.txt ./...
 
 templ:
+	templ generate
+
+templ_watch:
 	templ generate --watch
 
-# Run air for Go hot reload
 server:
 	air \
 	--build.cmd "go build -o tmp/bin/main ./main.go" \
@@ -18,10 +25,13 @@ server:
 	--build.stop_on_error "false" \
 	--misc.clean_on_exit true
 
-# Watch Tailwind CSS changes
 tailwind:
+	tailwindcss -i ./ui/assets/css/input.css -o ./ui/assets/css/output.css
+
+tailwind_watch:
 	tailwindcss -i ./ui/assets/css/input.css -o ./ui/assets/css/output.css --watch
 
-# Start development server with all watchers
+generate: tailwind templ
+
 dev:
-	make -j3 tailwind templ server
+	make -j3 tailwind_watch templ_watch server
