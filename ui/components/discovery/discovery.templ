@@ -1,0 +1,84 @@
+package discovery
+
+import (
+	"github.com/ch00k/oar/services"
+	"github.com/ch00k/oar/ui/components/form"
+	"github.com/ch00k/oar/ui/components/tagsinput"
+)
+
+type DiscoveredFilesProps struct {
+	ComposeFiles  []services.ComposeFile
+	EnvFiles      []services.EnvFile
+	TempClonePath string
+	GitURL        string
+}
+
+templ DiscoveredFiles(props DiscoveredFilesProps) {
+	<!-- Replace the compose files section with discovered files -->
+	@form.Item() {
+		@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
+			Compose Files
+		}
+		@form.Description() {
+			Docker Compose file paths (discovered files are pre-selected)
+		}
+		@tagsinput.TagsInput(tagsinput.Props{
+			ID:          "new-project-compose-files",
+			Name:        "compose_files",
+			Placeholder: "Add compose file...",
+			Value:       composeFilePaths(props.ComposeFiles),
+			Class:       "bg-gray-50",
+		})
+	}
+	@form.Item() {
+		@form.Label(form.LabelProps{For: "new-project-env-files"}) {
+			Environment Files
+		}
+		@form.Description() {
+			Environment file paths (optional)
+		}
+		@tagsinput.TagsInput(tagsinput.Props{
+			ID:          "new-project-env-files",
+			Name:        "environment_files",
+			Placeholder: "Add environment file...",
+			Value:       []string{}, // Don't pre-populate env files, let user add them manually
+			Class:       "bg-gray-50",
+		})
+	}
+
+	if len(props.ComposeFiles) == 0 && len(props.EnvFiles) == 0 {
+		@form.Item() {
+			@form.Message(form.MessageProps{Variant: form.MessageVariantInfo}) {
+				No Docker Compose or environment files found in this repository.
+			}
+		}
+	}
+
+	<!-- Hidden field to pass temp clone path -->
+	<input type="hidden" name="temp_clone_path" value={ props.TempClonePath }/>
+}
+
+templ DiscoveryError(gitURL string, errorMessage string) {
+	@form.Item() {
+		@form.Message(form.MessageProps{Variant: form.MessageVariantError}) {
+			Failed to discover files in repository: { errorMessage }
+		}
+	}
+}
+
+// Helper functions to convert file structs to string slices
+func composeFilePaths(files []services.ComposeFile) []string {
+	paths := make([]string, len(files))
+	for i, file := range files {
+		paths[i] = file.Path
+	}
+	return paths
+}
+
+func envFilePaths(files []services.EnvFile) []string {
+	paths := make([]string, len(files))
+	for i, file := range files {
+		paths[i] = file.Path
+	}
+	return paths
+}

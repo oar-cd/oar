@@ -33,9 +33,11 @@ func main() {
 
 	// Initialize handlers
 	projectHandlers := handlers.NewProjectHandlers(app.GetProjectService())
+	discoveryHandlers := handlers.NewDiscoveryHandlers(app.GetDiscoveryService())
 
-	// Register project routes
+	// Register routes
 	projectHandlers.RegisterRoutes(r)
+	discoveryHandlers.RegisterRoutes(r)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		projectService := app.GetProjectService()
