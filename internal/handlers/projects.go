@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/a-h/templ"
 	"github.com/ch00k/oar/services"
@@ -182,10 +183,33 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	gitURL := r.FormValue("git_url")
 	composeFiles := r.Form["compose_files"]
 	environmentFiles := r.Form["environment_files"]
+	tempClonePath := r.FormValue("temp_clone_path")
 
 	// Create and save project
 	project := services.NewProject(name, gitURL, composeFiles, environmentFiles)
-	_, err := h.projectManager.Create(&project)
+
+	var err error
+	if tempClonePath == "" {
+		_, err = h.projectManager.Create(&project)
+	} else {
+		// Use temp clone approach if temp clone path is provided
+		if projectService, ok := h.projectManager.(*services.ProjectService); ok {
+			_, err = projectService.CreateFromTempClone(&project, tempClonePath)
+		} else {
+			_, err = h.projectManager.Create(&project)
+		}
+
+		// Cleanup temp clone on any error (as fallback if service doesn't clean up)
+		if err != nil {
+			if cleanupErr := os.RemoveAll(tempClonePath); cleanupErr != nil {
+				slog.Error("Failed to cleanup temp clone directory",
+					"layer", "handler",
+					"operation", "create_project_cleanup",
+					"temp_path", tempClonePath,
+					"error", cleanupErr)
+			}
+		}
+	}
 
 	var errorDesc string
 	if err != nil {

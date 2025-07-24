@@ -2,12 +2,15 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/google/uuid"
 )
 
 // ComposeFile represents a discovered Docker Compose file
@@ -15,16 +18,94 @@ type ComposeFile struct {
 	Path string // Relative path from git root
 }
 
-// DiscoveryService handles discovery of project files
-type DiscoveryService struct{}
+// EnvFile represents a discovered env file
+type EnvFile struct {
+	Path string // Relative path from git root
+}
 
-// NewDiscoveryService creates a new discovery service
-func NewDiscoveryService() *DiscoveryService {
-	return &DiscoveryService{}
+// DiscoveryResponse represents the result of file discovery
+type DiscoveryResponse struct {
+	ComposeFiles  []ComposeFile // Discovered compose files
+	EnvFiles      []EnvFile     // Optional env files
+	TempClonePath string        // Full filesystem path to temp clone
+}
+
+// ProjectDiscoveryService handles on-demand file discovery for project creation
+type ProjectDiscoveryService struct {
+	gitService GitExecutor
+	config     *Config
+}
+
+// NewProjectDiscoveryService creates a new project discovery service
+func NewProjectDiscoveryService(
+	gitService GitExecutor,
+	config *Config,
+) *ProjectDiscoveryService {
+	return &ProjectDiscoveryService{
+		gitService: gitService,
+		config:     config,
+	}
+}
+
+// DiscoverFiles clones repository to temp location and discovers compose files
+func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string) (*DiscoveryResponse, error) {
+	if gitURL == "" {
+		return nil, fmt.Errorf("git URL is required")
+	}
+
+	slog.Info("Starting file discovery",
+		"git_url", gitURL)
+
+	// Create temporary directory for discovery
+	tempID := uuid.New().String()
+	tempDir := filepath.Join(s.config.TmpDir, "discovery-"+tempID)
+
+	// Clone repository to temp location
+	if err := s.gitService.Clone(gitURL, tempDir); err != nil {
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "discover_files",
+			"git_url", gitURL,
+			"error", err)
+		return nil, fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	// Discover compose files in temp location
+	composeFiles, err := s.DiscoverComposeFiles(tempDir)
+	if err != nil {
+		// Clean up temp directory on error
+		if err := os.RemoveAll(tempDir); err != nil {
+			slog.Error("Failed to clean up temp directory",
+				"layer", "service",
+				"operation", "discover_files_cleanup",
+				"git_url", gitURL,
+				"temp_dir", tempDir,
+				"error", err)
+		}
+
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "discover_files",
+			"git_url", gitURL,
+			"temp_dir", tempDir,
+			"error", err)
+		return nil, fmt.Errorf("failed to discover files: %w", err)
+	}
+
+	slog.Info("File discovery completed",
+		"git_url", gitURL,
+		"temp_id", tempID,
+		"files_found", len(composeFiles))
+
+	return &DiscoveryResponse{
+		ComposeFiles:  composeFiles,
+		EnvFiles:      []EnvFile{}, // TODO: Add env file discovery
+		TempClonePath: tempDir,
+	}, nil
 }
 
 // DiscoverComposeFiles finds and validates Docker Compose files in the given directory
-func (s *DiscoveryService) DiscoverComposeFiles(rootDir string) ([]ComposeFile, error) {
+func (s *ProjectDiscoveryService) DiscoverComposeFiles(rootDir string) ([]ComposeFile, error) {
 	var discoveries []ComposeFile
 
 	slog.Debug("Starting compose file discovery", "root_dir", rootDir)
@@ -94,19 +175,19 @@ func (s *DiscoveryService) DiscoverComposeFiles(rootDir string) ([]ComposeFile, 
 }
 
 // shouldSkipDir returns true if the directory should be skipped during traversal
-func (s *DiscoveryService) shouldSkipDir(dirName string) bool {
+func (s *ProjectDiscoveryService) shouldSkipDir(dirName string) bool {
 	// Skip hidden directories (including .git, .github, .vscode, etc.)
 	return strings.HasPrefix(dirName, ".")
 }
 
 // isYAMLFile returns true if the file has a YAML extension
-func (s *DiscoveryService) isYAMLFile(path string) bool {
+func (s *ProjectDiscoveryService) isYAMLFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yml" || ext == ".yaml"
 }
 
 // isValidComposeFile validates if a YAML file is a valid Docker Compose file using compose-go v2
-func (s *DiscoveryService) isValidComposeFile(path string) bool {
+func (s *ProjectDiscoveryService) isValidComposeFile(path string) bool {
 	slog.Debug("Validating compose file", "path", path)
 
 	ctx := context.Background()
@@ -128,3 +209,8 @@ func (s *DiscoveryService) isValidComposeFile(path string) bool {
 	slog.Debug("File is a valid compose file", "path", path)
 	return true
 }
+
+// Future: Add DiscoverEnvFiles method here
+// func (s *ProjectDiscoveryService) DiscoverEnvFiles(rootDir string) ([]EnvFile, error) {
+//     // Implementation for env file discovery
+// }

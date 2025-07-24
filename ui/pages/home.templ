@@ -67,45 +67,68 @@ templ addProjectModal() {
 					@form.Label(form.LabelProps{For: "new-project-git-url"}) {
 						Git URL
 					}
-					@input.Input(input.Props{
-						ID:          "new-project-git-url",
-						Name:        "git_url",
-						Type:        input.TypeURL,
-						Placeholder: "https://github.com/user/repo.git",
-						Required:    true,
-						Class:       "bg-gray-50",
-					})
+					<div class="flex gap-2">
+						@input.Input(input.Props{
+							ID:          "new-project-git-url",
+							Name:        "git_url",
+							Type:        input.TypeURL,
+							Placeholder: "https://github.com/user/repo.git",
+							Required:    true,
+							Class:       "bg-gray-50 flex-1",
+						})
+						@button.Button(button.Props{
+							ID:       "discover-button",
+							Type:     button.TypeButton,
+							Size:     button.SizeIcon,
+							Variant:  button.VariantOutline,
+							Class:    "shrink-0 relative",
+							Attributes: templ.Attributes{
+								"onclick": "validateAndDiscover()",
+							},
+						}) {
+							<span class="htmx-indicator absolute inset-0 flex items-center justify-center">
+								@icon.LoaderCircle(icon.Props{
+									Class: "animate-spin",
+								})
+							</span>
+							<span class="htmx-request-hide">
+								@icon.Radar()
+							</span>
+						}
+					</div>
 				}
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
-						Compose Files
+				<div id="compose-files-section">
+					@form.Item() {
+						@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
+							Compose Files
+						}
+						@form.Description() {
+							Docker Compose file paths (e.g., docker-compose.yml, compose.yaml)
+						}
+						@tagsinput.TagsInput(tagsinput.Props{
+							ID:          "new-project-compose-files",
+							Name:        "compose_files",
+							Placeholder: "Add compose file...",
+							Value:       []string{},
+							Class:       "bg-gray-50",
+						})
 					}
-					@form.Description() {
-						Docker Compose file paths (e.g., docker-compose.yml, compose.yaml)
+					@form.Item() {
+						@form.Label(form.LabelProps{For: "new-project-env-files"}) {
+							Environment Files
+						}
+						@form.Description() {
+							Environment file paths (optional)
+						}
+						@tagsinput.TagsInput(tagsinput.Props{
+							ID:          "new-project-env-files",
+							Name:        "environment_files",
+							Placeholder: "Add environment file...",
+							Value:       []string{},
+							Class:       "bg-gray-50",
+						})
 					}
-					@tagsinput.TagsInput(tagsinput.Props{
-						ID:          "new-project-compose-files",
-						Name:        "compose_files",
-						Placeholder: "Add compose file...",
-						Value:       []string{},
-						Class:       "bg-gray-50",
-					})
-				}
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-env-files"}) {
-						Environment Files
-					}
-					@form.Description() {
-						Environment file paths (optional)
-					}
-					@tagsinput.TagsInput(tagsinput.Props{
-						ID:          "new-project-env-files",
-						Name:        "environment_files",
-						Placeholder: "Add environment file...",
-						Value:       []string{},
-						Class:       "bg-gray-50",
-					})
-				}
+				</div>
 			</form>
 		}
 		@modal.Footer(modal.FooterProps{Class: "bg-gray-100 rounded-b-lg"}) {

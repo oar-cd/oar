@@ -66,7 +66,7 @@ version: 1.0
 	}
 
 	// Test the discovery
-	discovery := NewDiscoveryService()
+	discovery := NewProjectDiscoveryService(nil, &Config{})
 	results, err := discovery.DiscoverComposeFiles(tempDir)
 	if err != nil {
 		t.Fatalf("DiscoverComposeFiles failed: %v", err)
@@ -97,7 +97,7 @@ version: 1.0
 }
 
 func TestDiscovery_shouldSkipDir(t *testing.T) {
-	discovery := NewDiscoveryService()
+	discovery := NewProjectDiscoveryService(nil, &Config{})
 
 	testCases := []struct {
 		dir      string

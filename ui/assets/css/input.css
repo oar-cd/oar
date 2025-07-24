@@ -154,3 +154,8 @@
 .oar-text.error {
   color: #dc2626; /* text-red-600 */
 }
+
+/* HTMX request indicators */
+.htmx-request .htmx-request-hide {
+  display: none;
+}

@@ -5087,6 +5087,9 @@
 .oar-text.error {
   color: #dc2626;
 }
+.htmx-request .htmx-request-hide {
+  display: none;
+}
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;

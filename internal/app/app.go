@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	database       *gorm.DB
-	projectService services.ProjectManager
-	config         *services.Config
+	database         *gorm.DB
+	projectService   services.ProjectManager
+	discoveryService *services.ProjectDiscoveryService
+	config           *services.Config
 )
 
 func Initialize(dataDir string) error {
@@ -37,9 +38,14 @@ func Initialize(dataDir string) error {
 
 	// Initialize services with dependency injection
 	projectService = services.NewProjectService(projectRepo, deploymentRepo, gitService, config)
+	discoveryService = services.NewProjectDiscoveryService(gitService, config)
 	return nil
 }
 
 func GetProjectService() services.ProjectManager {
 	return projectService
+}
+
+func GetDiscoveryService() *services.ProjectDiscoveryService {
+	return discoveryService
 }
