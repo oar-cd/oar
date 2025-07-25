@@ -28,7 +28,6 @@ func Initialize(dataDir string) error {
 	if err != nil {
 		return err
 	}
-	database = database.Debug() // Enable debug mode
 
 	gitService := services.NewGitService()
 

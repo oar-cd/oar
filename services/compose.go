@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"path/filepath"
+	"sync"
 )
 
 type ComposeProject struct {
@@ -198,8 +199,13 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		return err
 	}
 
+	// Use a WaitGroup to ensure all goroutines complete before returning
+	var wg sync.WaitGroup
+
 	// Stream stdout
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			outputChan <- scanner.Text()
@@ -207,21 +213,29 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 	}()
 
 	// Stream stderr
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			outputChan <- scanner.Text()
 		}
 	}()
 
-	err = cmd.Wait()
-	if err != nil {
+	// Wait for command to finish
+	cmdErr := cmd.Wait()
+
+	// Wait for all goroutines to finish reading output before checking for errors
+	// This ensures all output is processed even if the command failed
+	wg.Wait()
+
+	if cmdErr != nil {
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",
 			"operation", "docker_compose_stream",
 			"command", cmd.String(),
-			"error", err)
-		return err
+			"error", cmdErr)
+		return cmdErr
 	}
 
 	slog.Debug("Docker Compose command completed successfully")

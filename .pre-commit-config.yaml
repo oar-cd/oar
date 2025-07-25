@@ -3,3 +3,12 @@ repos:
     rev: v2.1.6
     hooks:
       - id: golangci-lint-full
+
+  - repo: local
+    hooks:
+      - id: generate
+        name: generate
+        entry: make generate
+        verbose: true
+        language: system
+        types: [go, css]
