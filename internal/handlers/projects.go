@@ -144,27 +144,23 @@ func (h *ProjectHandlers) handleStreaming(w http.ResponseWriter, r *http.Request
 		flushResponse(w)
 	}
 
-	// Handle completion
+	// Handle completion - services already send completion messages as JSON
 	serviceErr := <-done
 	if serviceErr != nil {
 		slog.Error("Handler operation failed",
 			"layer", "handler",
 			"operation", "streaming",
 			"error", serviceErr)
-		if _, err := fmt.Fprintf(w, "event: complete-error\ndata: %s: %v\n\n", errorMsgPrefix, serviceErr); err != nil {
-			slog.Error("Handler operation failed",
-				"layer", "handler",
-				"operation", "stream_completion",
-				"error", err)
-		}
-	} else {
-		if _, err := fmt.Fprintf(w, "event: complete-success\ndata: %s\n\n", successMsg); err != nil {
+		// Send error completion as JSON message
+		errorMsg := fmt.Sprintf(`{"type":"error","message":"%s: %v"}`, errorMsgPrefix, serviceErr)
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", errorMsg); err != nil {
 			slog.Error("Handler operation failed",
 				"layer", "handler",
 				"operation", "stream_completion",
 				"error", err)
 		}
 	}
+	// Success completion is already sent by the service as JSON with project state
 	flushResponse(w)
 }
 
@@ -281,20 +277,6 @@ func (h *ProjectHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 		"Failed to delete project", errorDesc)
 }
 
-func (h *ProjectHandlers) Stop(w http.ResponseWriter, r *http.Request) {
-	projectID, err := parseProjectID(r)
-	if err != nil {
-		http.Error(w, "Invalid project ID", http.StatusBadRequest)
-		return
-	}
-
-	err = h.projectManager.Stop(projectID)
-
-	h.handleProjectGridResponse(w, r, err, "project-stopped",
-		"Project stopped successfully", "Project has been stopped and containers have been shut down.",
-		"Failed to stop project", "There was an error stopping the project. Please try again.")
-}
-
 // Streaming Handlers
 
 // DeployStream deploys a project and streams the output
@@ -354,7 +336,6 @@ func (h *ProjectHandlers) RegisterRoutes(r chi.Router) {
 	r.Post("/projects/create", h.Create)
 	r.Post("/projects/{projectID}/edit", h.Edit)
 	r.Delete("/projects/{projectID}", h.Delete)
-	r.Post("/projects/{projectID}/stop", h.Stop)
 	r.Get("/projects/{projectID}/deploy/stream", h.DeployStream)
 	r.Get("/projects/{projectID}/stop/stream", h.StopStream)
 	r.Get("/projects/{projectID}/logs/stream", h.LogsStream)
