@@ -1,4 +1,4 @@
-.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dev
+.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dockerimage dev
 
 lint:
 	golangci-lint run --fix
@@ -32,6 +32,15 @@ tailwind_watch:
 	tailwindcss -i ./ui/assets/css/input.css -o ./ui/assets/css/output.css --watch
 
 generate: tailwind templ
+
+dockerimage:
+	docker build -t oar .
+
+up:
+	docker compose up
+
+down:
+	docker compose down
 
 dev:
 	make -j3 tailwind_watch templ_watch server

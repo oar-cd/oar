@@ -1,0 +1,30 @@
+# Git
+.git/
+.gitignore
+
+# Documentation and development files
+*.md
+LICENSE
+
+# Build artifacts and binaries
+oar
+coverage.*
+
+# Test files and test data
+*_test.go
+testdata/
+test_project/
+**/*.golden
+cmd/test/
+
+# CSS source files (only need compiled output.css)
+ui/assets/css/input.css
+
+# Docker files (not needed inside image)
+Dockerfile
+.dockerignore
+compose.yaml
+
+# Build and data files
+oar
+data/

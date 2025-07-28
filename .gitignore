@@ -1,4 +1,5 @@
-oar
 CLAUDE.md
 TESTING_ANALYSIS.md
 coverage.*
+oar
+data/
