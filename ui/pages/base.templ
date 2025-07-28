@@ -31,14 +31,20 @@ templ Base(title string) {
 					</div>
 				</main>
 			</div>
-			
+
 			<!-- Toast Container -->
 			<div id="toast-container"></div>
-			
+
 			@modal.Script()
 			@input.Script()
 			@tagsinput.Script()
 			@toast.Script()
+			<!-- Streaming system modules -->
+			<script src="/assets/js/streaming/ui-utils.js"></script>
+			<script src="/assets/js/streaming/state-manager.js"></script>
+			<script src="/assets/js/streaming/modal-manager.js"></script>
+			<script src="/assets/js/streaming/core.js"></script>
+			<script src="/assets/js/streaming/operations.js"></script>
 			<script src="/assets/js/streaming.js"></script>
 			<script src="/assets/js/discovery.js"></script>
 			<script>
@@ -46,7 +52,7 @@ templ Base(title string) {
 				document.body.addEventListener('htmx:afterRequest', function(e) {
 					// Check if this was a successful project edit request
 					const hxTrigger = e.detail.xhr.getResponseHeader('HX-Trigger');
-					
+
 					if (e.detail.xhr.status === 200) {
 						if (hxTrigger && hxTrigger.startsWith('project-updated-')) {
 							const projectId = hxTrigger.replace('project-updated-', '');

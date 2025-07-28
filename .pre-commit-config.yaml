@@ -12,3 +12,9 @@ repos:
         verbose: true
         language: system
         types: [go, css]
+
+  #- repo: https://github.com/pre-commit/mirrors-eslint
+  #  rev: v9.32.0
+  #  hooks:
+  #    - id: eslint
+  #      exclude: ^.*\.min.js$
