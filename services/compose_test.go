@@ -42,8 +42,18 @@ func TestNewComposeProject_Success(t *testing.T) {
 	err := os.MkdirAll(gitDir, 0o755)
 	require.NoError(t, err)
 
+	// Create test config
+	config := &Config{
+		DataDir:       tempDir,
+		LogLevel:      "info",
+		ColorEnabled:  false,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+		GitTimeout:    5 * time.Minute,
+	}
+
 	// Test
-	composeProject := NewComposeProject(testProject)
+	composeProject := NewComposeProject(testProject, config)
 
 	// Assertions
 	assert.NotNil(t, composeProject)
@@ -63,8 +73,19 @@ func TestNewComposeProject_InvalidProject(t *testing.T) {
 	})
 	testProject.WorkingDir = "" // Invalid working directory
 
+	// Create test config
+	tempDir := t.TempDir()
+	config := &Config{
+		DataDir:       tempDir,
+		LogLevel:      "info",
+		ColorEnabled:  false,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+		GitTimeout:    5 * time.Minute,
+	}
+
 	// Test
-	composeProject := NewComposeProject(testProject)
+	composeProject := NewComposeProject(testProject, config)
 
 	// Assertions
 	assert.Nil(t, composeProject)
@@ -88,6 +109,7 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	// Verify command arguments
 	expectedArgs := []string{
 		"docker", // cmd.Args[0] is always the command name
+		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--project-name", "test-project",
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
@@ -117,6 +139,7 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 	// Verify all compose files are included
 	expectedArgs := []string{
 		"docker",
+		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--project-name", "test-project",
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
@@ -144,6 +167,7 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 	// Should still work with no files (docker compose will use defaults)
 	expectedArgs := []string{
 		"docker",
+		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--project-name", "test-project",
 		"ps",

@@ -3,7 +3,6 @@ package app
 
 import (
 	"github.com/ch00k/oar/db"
-	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
 	"gorm.io/gorm"
 )
@@ -15,21 +14,20 @@ var (
 	config           *services.Config
 )
 
-func Initialize(dataDir string) error {
+// InitializeWithConfig initializes the app with a pre-configured Config
+func InitializeWithConfig(cfg *services.Config) error {
 	var err error
 
-	logging.InitLogging()
+	// Store the provided config
+	config = cfg
 
-	// Initialize configuration
-	config = services.NewConfig(dataDir)
-
-	// Initialize database
-	database, err = db.InitDB(dataDir)
+	// Initialize database using config
+	database, err = db.InitDB(config.DataDir)
 	if err != nil {
 		return err
 	}
 
-	gitService := services.NewGitService()
+	gitService := services.NewGitService(config)
 
 	// Initialize repositories
 	projectRepo := services.NewProjectRepository(database)

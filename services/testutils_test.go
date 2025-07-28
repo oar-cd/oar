@@ -100,12 +100,30 @@ func createTestDeployment(projectID uuid.UUID) *Deployment {
 
 // createTestComposeProject creates a compose project for compose service testing
 func createTestComposeProject() *ComposeProject {
-	return &ComposeProject{
+	// Create a test project
+	testProject := &Project{
+		ID:               uuid.New(),
 		Name:             "test-project",
+		GitURL:           "https://github.com/test/repo.git",
 		WorkingDir:       "/tmp/test-compose-project",
 		ComposeFiles:     []string{"docker-compose.yml"},
 		EnvironmentFiles: []string{".env"},
+		Status:           ProjectStatusStopped,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
 	}
+
+	// Create test config
+	config := &Config{
+		DataDir:       "/tmp",
+		LogLevel:      "info",
+		ColorEnabled:  false,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+		GitTimeout:    5 * time.Minute,
+	}
+
+	return NewComposeProject(testProject, config)
 }
 
 // setupProjectService creates a project service with mock dependencies for testing

@@ -18,12 +18,14 @@ type ComposeProject struct {
 	ComposeFiles []string
 	// EnvironmentFiles is a list of environment files for the project.
 	EnvironmentFiles []string
+	// Config holds configuration for docker commands and timeouts
+	Config *Config
 }
 
 // Ensure ComposeProject implements ComposeProjectInterface
 var _ ComposeProjectInterface = (*ComposeProject)(nil)
 
-func NewComposeProject(p *Project) *ComposeProject {
+func NewComposeProject(p *Project, config *Config) *ComposeProject {
 	gitDir, err := p.GitDir()
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -39,6 +41,7 @@ func NewComposeProject(p *Project) *ComposeProject {
 		WorkingDir:       gitDir,
 		ComposeFiles:     p.ComposeFiles,
 		EnvironmentFiles: p.EnvironmentFiles,
+		Config:           config,
 	}
 }
 
@@ -128,6 +131,7 @@ func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
 func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cmd, error) {
 	// Build docker compose command
 	commandArgs := []string{
+		"--host", p.Config.DockerHost,
 		"compose",
 		"--project-name", p.Name,
 	}
@@ -142,12 +146,12 @@ func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cm
 	commandArgs = append(commandArgs, args...)
 
 	slog.Debug("Executing Docker Compose command",
-		"command", "docker",
+		"command", p.Config.DockerCommand,
 		"args", commandArgs,
 		"working_dir", p.WorkingDir)
 
 	// Create command
-	cmd := exec.Command("docker", commandArgs...)
+	cmd := exec.Command(p.Config.DockerCommand, commandArgs...)
 	cmd.Dir = p.WorkingDir
 
 	return cmd, nil

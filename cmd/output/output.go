@@ -175,3 +175,39 @@ func PrintProjectList(projects []*services.Project) (string, error) {
 
 	return table, nil
 }
+
+// CLI flag for disabling color output
+
+// NoColor is a flag that can be used to disable colored output in the CLI.
+var NoColor = &noColorFlag{set: false}
+
+type noColorFlag struct {
+	set bool
+}
+
+func (f *noColorFlag) Set(value string) error {
+	// This is a boolean flag, so we ignore the value and just mark it as set
+	f.set = true
+	return nil
+}
+
+func (f *noColorFlag) String() string {
+	if f.set {
+		return "true"
+	}
+	return "false"
+}
+
+func (f *noColorFlag) Type() string {
+	return "bool"
+}
+
+// IsSet returns true if the --no-color flag was explicitly set
+func (f *noColorFlag) IsSet() bool {
+	return f.set
+}
+
+// IsBoolFlag tells pflag this is a boolean flag (no argument required)
+func (f *noColorFlag) IsBoolFlag() bool {
+	return true
+}

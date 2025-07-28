@@ -1,30 +1,39 @@
 package services
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/go-git/go-git/v5"
 )
 
-type GitService struct{}
+type GitService struct {
+	config *Config
+}
 
 // Ensure GitService implements GitExecutor
 var _ GitExecutor = (*GitService)(nil)
 
-func NewGitService() *GitService {
-	return &GitService{}
+func NewGitService(config *Config) *GitService {
+	return &GitService{
+		config: config,
+	}
 }
 
 // Clone clones a repository
 func (s *GitService) Clone(gitURL, workingDir string) error {
 	slog.Info("Cloning repository", "git_url", gitURL, "working_dir", workingDir)
 
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
+	defer cancel()
+
 	cloneOptions := &git.CloneOptions{
 		URL:          gitURL,
 		SingleBranch: true,
 	}
 
-	_, err := git.PlainClone(workingDir, false, cloneOptions)
+	_, err := git.PlainCloneContext(ctx, workingDir, false, cloneOptions)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
@@ -63,11 +72,15 @@ func (s *GitService) Pull(workingDir string) error {
 		return err
 	}
 
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
+	defer cancel()
+
 	pullOptions := &git.PullOptions{
 		SingleBranch: true,
 	}
 
-	err = worktree.Pull(pullOptions)
+	err = worktree.PullContext(ctx, pullOptions)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		slog.Error("Service operation failed",
 			"layer", "git",

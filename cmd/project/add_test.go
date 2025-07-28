@@ -66,7 +66,9 @@ func TestProjectAddHappy(t *testing.T) {
 			assert.NoError(t, err, "Failed to initialize git repository")
 
 			// Initialize the app with test data directory
-			err = app.Initialize(tempDir)
+			config, err := services.NewConfigForCLI(tempDir)
+			require.NoError(t, err)
+			err = app.InitializeWithConfig(config)
 			require.NoError(t, err)
 
 			// Build args
