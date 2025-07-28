@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
-	"os"
 
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/internal/handlers"
+	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
 	"github.com/ch00k/oar/ui/pages"
 	"github.com/go-chi/chi/v5"
@@ -15,13 +16,17 @@ import (
 )
 
 func main() {
-	// Initialize application
-	dataDir := os.Getenv("OAR_DATA_DIR")
-	if dataDir == "" {
-		dataDir = "./data"
+	// Initialize configuration for web app
+	config, err := services.NewConfigForWebApp()
+	if err != nil {
+		log.Fatalf("Failed to initialize configuration: %v", err)
 	}
 
-	if err := app.Initialize(dataDir); err != nil {
+	// Initialize logging with config
+	logging.InitLogging(config.LogLevel)
+
+	// Initialize application with config
+	if err := app.InitializeWithConfig(config); err != nil {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
 
@@ -56,8 +61,9 @@ func main() {
 		}
 	})
 
-	slog.Info("Server starting", "address", "http://127.0.0.1:3333")
-	if err := http.ListenAndServe("127.0.0.1:3333", r); err != nil {
+	address := fmt.Sprintf("%s:%d", config.HTTPHost, config.HTTPPort)
+	slog.Info("Server starting", "address", fmt.Sprintf("http://%s", address))
+	if err := http.ListenAndServe(address, r); err != nil {
 		panic(err)
 	}
 }

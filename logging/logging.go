@@ -1,4 +1,4 @@
-// Package logging provides logging utilities for Oar, allowing configuration of log levels and output formats.
+// Package logging provides logging utilities for Oar.
 package logging
 
 import (
@@ -9,40 +9,9 @@ import (
 	"strings"
 )
 
-var LogLevel = newLogLevelValue("info", []string{"debug", "info", "warning", "error"})
-
-type logLevelValue struct {
-	value   string
-	allowed []string
-}
-
-func newLogLevelValue(defaultValue string, allowed []string) *logLevelValue {
-	return &logLevelValue{
-		value:   defaultValue,
-		allowed: allowed,
-	}
-}
-
-func (l *logLevelValue) Set(value string) error {
-	if slices.Contains(l.allowed, value) {
-		l.value = value
-		return nil
-	}
-
-	return fmt.Errorf("invalid value '%s'. Allowed values: %s",
-		value, strings.Join(l.allowed, ", "))
-}
-
-func (l *logLevelValue) String() string {
-	return l.value
-}
-
-func (l *logLevelValue) Type() string {
-	return fmt.Sprintf("one of [%s]", strings.Join(l.allowed, "|"))
-}
-
-func (l *logLevelValue) slogValue() slog.Level {
-	switch l.value {
+// ParseLogLevel converts a string log level to slog.Level
+func ParseLogLevel(level string) slog.Level {
+	switch level {
 	case "debug":
 		return slog.LevelDebug
 	case "info":
@@ -52,12 +21,18 @@ func (l *logLevelValue) slogValue() slog.Level {
 	case "error":
 		return slog.LevelError
 	default:
-		return slog.LevelInfo // Default to info if something goes wrong
+		return slog.LevelInfo
 	}
 }
 
-func InitLogging() {
-	level := LogLevel.slogValue()
+// ValidLogLevels returns the list of valid log levels
+func ValidLogLevels() []string {
+	return []string{"debug", "info", "warning", "error"}
+}
+
+// InitLogging initializes logging with the specified log level
+func InitLogging(logLevel string) {
+	level := ParseLogLevel(logLevel)
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,
@@ -65,4 +40,37 @@ func InitLogging() {
 
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
+}
+
+// CLI flag for setting the log level
+
+// LogLevel is a flag for setting the log level
+var LogLevel = &logLevelFlag{value: "info", set: false}
+
+type logLevelFlag struct {
+	value string
+	set   bool
+}
+
+func (l *logLevelFlag) Set(value string) error {
+	if !slices.Contains(ValidLogLevels(), value) {
+		return fmt.Errorf("invalid value '%s'. Allowed values: %s",
+			value, strings.Join(ValidLogLevels(), ", "))
+	}
+	l.value = value
+	l.set = true
+	return nil
+}
+
+func (l *logLevelFlag) String() string {
+	return l.value
+}
+
+func (l *logLevelFlag) Type() string {
+	return fmt.Sprintf("one of [%s]", strings.Join(ValidLogLevels(), "|"))
+}
+
+// IsSet returns true if the flag was explicitly set via command line
+func (l *logLevelFlag) IsSet() bool {
+	return l.set
 }

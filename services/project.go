@@ -269,7 +269,7 @@ func (s *ProjectService) DeployStreaming(
 		"compose_files", project.ComposeFiles,
 		"pull", pull)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	outputChan <- `{"type":"info","message":"Starting Docker Compose deployment...","source":"oar"}`
 	err = composeProject.UpStreaming(outputChan)
@@ -328,7 +328,7 @@ func (s *ProjectService) Start(projectID uuid.UUID) error {
 		project.Name,
 	)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	output, err := composeProject.Up()
 	if err != nil {
@@ -371,7 +371,7 @@ func (s *ProjectService) StartStreaming(projectID uuid.UUID, outputChan chan<- s
 		project.Name,
 	)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	err = composeProject.UpStreaming(outputChan)
 	if err != nil {
@@ -410,7 +410,7 @@ func (s *ProjectService) Stop(projectID uuid.UUID) error {
 		project.Name,
 	)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	output, err := composeProject.Down()
 	if err != nil {
@@ -455,7 +455,7 @@ func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- st
 		project.Name,
 	)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	outputChan <- `{"type":"info","message":"Starting Docker Compose shutdown...","source":"oar"}`
 	err = composeProject.DownStreaming(outputChan)
@@ -538,7 +538,7 @@ func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<-
 		project.Name,
 	)
 
-	composeProject := NewComposeProject(project)
+	composeProject := NewComposeProject(project, s.config)
 
 	err = composeProject.LogsStreaming(outputChan)
 	if err != nil {
