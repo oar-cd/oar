@@ -1,58 +1,23 @@
-name: Release and Build
+name: Build and Push Docker Image
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - VERSION
+    tags:
+      - 'v*'
 
 env:
-  GIT_COMMITTER_NAME: github-actions[bot]
-  GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Read version
-        id: version
-        run: |
-          VERSION=$(cat VERSION)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Release version: $VERSION"
-
-      - name: Configure Git
-        run: |
-          git config --local user.name "$GIT_COMMITTER_NAME"
-          git config --local user.email "$GIT_COMMITTER_EMAIL"
-
-      - name: Update compose.yaml with version
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          sed -i "s|image: ghcr.io/ch00k/oar:.*|image: ghcr.io/ch00k/oar:$VERSION|" compose.yaml
-
-      - name: Commit updated compose.yaml
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          git add compose.yaml
-          git commit -m "Release $VERSION"
-          git push
-
-      - name: Create and push tag
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          git tag -a $VERSION -m "Release $VERSION"
-          git push origin $VERSION
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -67,7 +32,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
+            type=ref,event=tag
             type=raw,value=latest
 
       - name: Build and push Docker image
