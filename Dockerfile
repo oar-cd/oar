@@ -30,8 +30,4 @@ COPY --from=builder /build/oar .
 # Copy UI assets
 COPY --from=builder /build/ui ./ui
 
-# Copy and set up entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 CMD ["./oar"]
