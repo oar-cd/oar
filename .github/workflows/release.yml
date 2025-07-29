@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    #permissions:
+    #  contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat VERSION)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Update compose.yaml with version
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          sed -i "s|image: ghcr.io/ch00k/oar:.*|image: ghcr.io/ch00k/oar:$VERSION|" compose.yaml
+
+      - name: Commit updated compose.yaml
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add compose.yaml
+          git commit -m "Update compose.yaml to version ${{ steps.version.outputs.version }}"
+          git push
+
+      - name: Create and push tag
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          git tag $VERSION
+          git push origin $VERSION
