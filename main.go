@@ -44,6 +44,19 @@ func main() {
 	projectHandlers.RegisterRoutes(r)
 	discoveryHandlers.RegisterRoutes(r)
 
+	// Health check endpoint
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte("OK")); err != nil {
+			slog.Error("Failed to write health check response",
+				"layer", "main",
+				"operation", "health_check",
+				"error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	})
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		projectService := app.GetProjectService()
 		projects, err := projectService.List()
