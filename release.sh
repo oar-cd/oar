@@ -48,8 +48,7 @@ if ! git diff-index --quiet HEAD --; then
     exit 1
 fi
 
-read -p "Create release $NEW_VERSION? [y/N] " -n 1 -r
-echo
+read -p "Create release $NEW_VERSION? [y/N] " -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Updating compose.yaml..."
     # Remove 'v' prefix for compose.yaml image tag

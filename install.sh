@@ -13,7 +13,8 @@ curl -sSL https://raw.githubusercontent.com/ch00k/oar/main/compose.yaml -o "$OAR
 
 # Start Oar
 echo "Starting Oar with Docker Compose..."
-docker compose -f "$OAR_DIR/compose.yaml" up -d
+cd "$OAR_DIR"
+docker compose up -d
 
 # Wait for Oar to be ready
 echo "Waiting for Oar to start..."
