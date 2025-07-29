@@ -13,7 +13,7 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    name: lint
+    name: Lint
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -23,7 +23,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    name: test
+    name: Test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
