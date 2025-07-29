@@ -24,10 +24,18 @@ done
 
 # Bootstrap Oar as a self-managed project
 echo "Bootstrapping Oar as a self-managed project..."
-curl -X POST http://localhost:8080/projects/create \
+if curl -s -X POST http://localhost:8080/bootstrap \
     -d "name=oar" \
     -d "git_url=https://github.com/ch00k/oar.git" \
-    -d "compose_files=compose.yaml"
+    -d "compose_files=compose.yaml" >/dev/null; then
+    echo "Self-managed project created and deployed successfully"
+
+    # Remove the downloaded compose.yaml since we now use the one from the cloned repo
+    echo "Cleaning up temporary files..."
+    rm -f "$OAR_DIR/compose.yaml"
+else
+    echo "Warning: Failed to bootstrap self-managed project"
+fi
 
 echo ""
 echo "Oar installed successfully!"
