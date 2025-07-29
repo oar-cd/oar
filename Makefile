@@ -1,4 +1,4 @@
-.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dockerimage dev
+.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dockerimage dev release release-patch release-minor release-major
 
 lint:
 	golangci-lint run --fix
@@ -44,3 +44,18 @@ down:
 
 dev:
 	make -j3 tailwind_watch templ_watch server
+
+release:
+	@echo "Available release types:"
+	@echo "  make release-patch  # Patch version (x.y.Z)"
+	@echo "  make release-minor  # Minor version (x.Y.0)"
+	@echo "  make release-major  # Major version (X.0.0)"
+
+release-patch:
+	./release.sh patch
+
+release-minor:
+	./release.sh minor
+
+release-major:
+	./release.sh major
