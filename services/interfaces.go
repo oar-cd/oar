@@ -29,7 +29,6 @@ type ProjectManager interface {
 	Create(project *Project) (*Project, error)
 	Update(project *Project) error
 	Remove(projectID uuid.UUID) error
-	Deploy(projectID uuid.UUID, pull bool) error
 	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	Start(projectID uuid.UUID) error
 	StartStreaming(projectID uuid.UUID, outputChan chan<- string) error
