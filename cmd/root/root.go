@@ -4,7 +4,6 @@ package root
 import (
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
@@ -15,21 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	config *services.Config
-)
+var config *services.Config
 
 func Execute() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Failed to get home directory: %s", err)
-		os.Exit(1)
-	}
+	defaultDataDir := services.GetDefaultDataDir()
 
-	defaultDataDir := filepath.Join(homeDir, ".oar")
-
-	err = NewCmdRoot(defaultDataDir).Execute()
-	if err != nil {
+	if err := NewCmdRoot(defaultDataDir).Execute(); err != nil {
 		os.Exit(1)
 	}
 }
