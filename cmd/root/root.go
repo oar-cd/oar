@@ -8,6 +8,7 @@ import (
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
 	"github.com/ch00k/oar/cmd/update"
+	"github.com/ch00k/oar/cmd/version"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
@@ -32,7 +33,15 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		Short: "GitOps deployment tool for Docker Compose projects",
 		Long: `Oar manages Docker Compose applications deployed from Git repositories.
 	It handles cloning, updates, and deployments with full state tracking.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Skip initialization for commands that don't need full app context
+			if cmd.Name() == "version" || cmd.Name() == "update" {
+				return
+			}
+
 			// Initialize configuration for CLI with data directory override
 			var err error
 			config, err = services.NewConfigForCLI(dataDir)
@@ -70,5 +79,6 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 
 	cmd.AddCommand(project.NewCmdProject())
 	cmd.AddCommand(update.NewCmdUpdate())
+	cmd.AddCommand(version.NewCmdVersion())
 	return cmd
 }

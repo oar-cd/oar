@@ -1,4 +1,4 @@
-.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dockerimage dev release release-patch release-minor release-major
+.PHONY: lint test test_ci templ templ_watch server tailwind tailwind_watch generate dockerimage dev build build-dev release release-patch release-minor release-major
 
 lint:
 	golangci-lint run --fix
@@ -41,6 +41,16 @@ up:
 
 down:
 	docker compose down
+
+build:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION must be set. Usage: make build VERSION=1.2.3"; \
+		exit 1; \
+	fi
+	CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/ch00k/oar/cmd/version.CLIVersion=$(VERSION)" -o oar ./cmd
+
+build-dev:
+	CGO_ENABLED=1 go build -ldflags="-X github.com/ch00k/oar/cmd/version.CLIVersion=dev-$(shell git rev-parse --short HEAD)" -o oar ./cmd
 
 dev:
 	make -j3 tailwind_watch templ_watch server

@@ -2,39 +2,36 @@
 set -e
 
 # Get latest tag from git
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
 echo "Latest tag: $LATEST_TAG"
 
-# Extract version numbers (remove 'v' prefix if present)
-VERSION=${LATEST_TAG#v}
-IFS='.' read -r MAJOR MINOR PATCH <<<"$VERSION"
+# Extract version numbers
+IFS='.' read -r MAJOR MINOR PATCH <<<"$LATEST_TAG"
 
 # Default to patch release
 RELEASE_TYPE=${1:-patch}
 
 case $RELEASE_TYPE in
 major)
-    NEW_VERSION="v$((MAJOR + 1)).0.0"
+    NEW_VERSION="$((MAJOR + 1)).0.0"
     ;;
 minor)
-    NEW_VERSION="v$MAJOR.$((MINOR + 1)).0"
+    NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
     ;;
 patch)
-    NEW_VERSION="v$MAJOR.$MINOR.$((PATCH + 1))"
+    NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
     ;;
 *)
     # Custom version provided
-    if [[ $1 =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         NEW_VERSION="$1"
-        # Add 'v' prefix if not present
-        [[ $NEW_VERSION =~ ^v ]] || NEW_VERSION="v$NEW_VERSION"
     else
-        echo "Usage: $0 [major|minor|patch|v1.2.3]"
+        echo "Usage: $0 [major|minor|patch|1.2.3]"
         echo "Examples:"
-        echo "  $0 patch    # v1.0.0 -> v1.0.1"
-        echo "  $0 minor    # v1.0.0 -> v1.1.0"
-        echo "  $0 major    # v1.0.0 -> v2.0.0"
-        echo "  $0 v2.1.0   # specific version"
+        echo "  $0 patch    # 1.0.0 -> 1.0.1"
+        echo "  $0 minor    # 1.0.0 -> 1.1.0"
+        echo "  $0 major    # 1.0.0 -> 2.0.0"
+        echo "  $0 2.1.0   # specific version"
         exit 1
     fi
     ;;
@@ -51,9 +48,7 @@ fi
 read -p "Create release $NEW_VERSION? [y/N] " -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Updating compose.yaml..."
-    # Remove 'v' prefix for compose.yaml image tag
-    IMAGE_VERSION=${NEW_VERSION#v}
-    sed -i "s|image: ghcr.io/ch00k/oar:.*|image: ghcr.io/ch00k/oar:$IMAGE_VERSION|" compose.yaml
+    sed -i "s|image: ghcr.io/ch00k/oar:.*|image: ghcr.io/ch00k/oar:$NEW_VERSION|" compose.yaml
 
     echo "Committing changes..."
     git add compose.yaml

@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 env:
   REGISTRY: ghcr.io
@@ -23,7 +23,7 @@ jobs:
       - name: Get image tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Extract metadata
@@ -61,8 +61,8 @@ jobs:
 
       - name: Build CLI binary
         run: |
-          CGO_ENABLED=1 go build -ldflags="-s -w" -o oar-linux-amd64 ./cmd
-          chmod +x oar-linux-amd64
+          VERSION=${GITHUB_REF#refs/tags/}
+          CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/ch00k/oar/cmd/version.CLIVersion=$VERSION" -o oar-linux-amd64 ./cmd
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
