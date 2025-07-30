@@ -8,6 +8,7 @@ import (
 
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
+	"github.com/ch00k/oar/cmd/update"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
@@ -78,5 +79,6 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 	cmd.PersistentFlags().VarP(output.NoColor, "no-color", "c", "Disable colored terminal output")
 
 	cmd.AddCommand(project.NewCmdProject())
+	cmd.AddCommand(update.NewCmdUpdate())
 	return cmd
 }
