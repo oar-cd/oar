@@ -490,6 +490,9 @@
   .table {
     display: table;
   }
+  .table-row {
+    display: table-row;
+  }
   .size-1 {
     width: calc(var(--spacing) * 1);
     height: calc(var(--spacing) * 1);
@@ -1763,6 +1766,9 @@
   }
   .\[dateof\:3\.6\.0\] {
     dateof: 3.6.0;
+  }
+  .\[filename\:line\] {
+    filename: line;
   }
   .\[paint-order\:markers\] {
     paint-order: markers;
