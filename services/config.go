@@ -15,6 +15,40 @@ const (
 	TmpDir      = "tmp"
 )
 
+// EnvProvider abstracts environment variable access for testing
+type EnvProvider interface {
+	Getenv(key string) string
+	UserHomeDir() (string, error)
+}
+
+// DefaultEnvProvider implements EnvProvider using real OS functions
+type DefaultEnvProvider struct{}
+
+func (p *DefaultEnvProvider) Getenv(key string) string {
+	return os.Getenv(key)
+}
+
+func (p *DefaultEnvProvider) UserHomeDir() (string, error) {
+	return os.UserHomeDir()
+}
+
+// GetDefaultDataDir returns the default Oar data directory following XDG Base Directory specification
+func GetDefaultDataDir() string {
+	return getDefaultDataDirWithEnv(&DefaultEnvProvider{})
+}
+
+// getDefaultDataDirWithEnv allows dependency injection for testing
+func getDefaultDataDirWithEnv(env EnvProvider) string {
+	// Use XDG_DATA_HOME if set, otherwise fallback to ~/.local/share
+	xdgDataHome := env.Getenv("XDG_DATA_HOME")
+	if xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "oar")
+	}
+
+	homeDir, _ := env.UserHomeDir()
+	return filepath.Join(homeDir, ".local", "share", "oar")
+}
+
 // Config holds configuration for all services
 type Config struct {
 	// Core paths
@@ -37,11 +71,23 @@ type Config struct {
 
 	// Git
 	GitTimeout time.Duration
+
+	// Environment provider for testing
+	env EnvProvider
 }
 
 // NewConfigForCLI creates a new configuration for CLI usage with optional data directory override
 func NewConfigForCLI(cliDataDir string) (*Config, error) {
-	c := &Config{}
+	return newConfigWithEnv(&DefaultEnvProvider{}, cliDataDir)
+}
+
+// NewConfigForCLIWithEnv creates a new configuration with custom environment provider (for testing)
+func NewConfigForCLIWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
+	return newConfigWithEnv(env, cliDataDir)
+}
+
+func newConfigWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
+	c := &Config{env: env}
 
 	// Set defaults first
 	c.setDefaults()
@@ -68,7 +114,12 @@ func NewConfigForCLI(cliDataDir string) (*Config, error) {
 // NewConfigForWebApp creates a new configuration for web application usage
 // This version only uses environment variables and defaults, no CLI overrides
 func NewConfigForWebApp() (*Config, error) {
-	c := &Config{}
+	return NewConfigForWebAppWithEnv(&DefaultEnvProvider{})
+}
+
+// NewConfigForWebAppWithEnv creates a new configuration with custom environment provider (for testing)
+func NewConfigForWebAppWithEnv(env EnvProvider) (*Config, error) {
+	c := &Config{env: env}
 
 	// Set defaults first
 	c.setDefaults()
@@ -89,10 +140,7 @@ func NewConfigForWebApp() (*Config, error) {
 
 // setDefaults sets sensible default values
 func (c *Config) setDefaults() {
-	homeDir, _ := os.UserHomeDir()
-	defaultDataDir := filepath.Join(homeDir, DataDir)
-
-	c.DataDir = defaultDataDir
+	c.DataDir = getDefaultDataDirWithEnv(c.env)
 	c.LogLevel = "info"
 	c.ColorEnabled = true
 	c.DockerHost = "unix:///var/run/docker.sock"
@@ -104,35 +152,35 @@ func (c *Config) setDefaults() {
 
 // loadFromEnv loads configuration from environment variables
 func (c *Config) loadFromEnv() {
-	if v := os.Getenv("OAR_DATA_DIR"); v != "" {
+	if v := c.env.Getenv("OAR_DATA_DIR"); v != "" {
 		c.DataDir = v
 	}
-	if v := os.Getenv("OAR_DATABASE_PATH"); v != "" {
+	if v := c.env.Getenv("OAR_DATABASE_PATH"); v != "" {
 		c.DatabasePath = v
 	}
-	if v := os.Getenv("OAR_LOG_LEVEL"); v != "" {
+	if v := c.env.Getenv("OAR_LOG_LEVEL"); v != "" {
 		c.LogLevel = v
 	}
-	if v := os.Getenv("OAR_COLOR_ENABLED"); v != "" {
+	if v := c.env.Getenv("OAR_COLOR_ENABLED"); v != "" {
 		if enabled, err := strconv.ParseBool(v); err == nil {
 			c.ColorEnabled = enabled
 		}
 	}
-	if v := os.Getenv("OAR_DOCKER_HOST"); v != "" {
+	if v := c.env.Getenv("OAR_DOCKER_HOST"); v != "" {
 		c.DockerHost = v
 	}
-	if v := os.Getenv("OAR_DOCKER_COMMAND"); v != "" {
+	if v := c.env.Getenv("OAR_DOCKER_COMMAND"); v != "" {
 		c.DockerCommand = v
 	}
-	if v := os.Getenv("OAR_HTTP_HOST"); v != "" {
+	if v := c.env.Getenv("OAR_HTTP_HOST"); v != "" {
 		c.HTTPHost = v
 	}
-	if v := os.Getenv("OAR_HTTP_PORT"); v != "" {
+	if v := c.env.Getenv("OAR_HTTP_PORT"); v != "" {
 		if port, err := strconv.Atoi(v); err == nil {
 			c.HTTPPort = port
 		}
 	}
-	if v := os.Getenv("OAR_GIT_TIMEOUT"); v != "" {
+	if v := c.env.Getenv("OAR_GIT_TIMEOUT"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.GitTimeout = d
 		}
