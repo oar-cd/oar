@@ -25,7 +25,7 @@ func TestGitService_Pull_InvalidRepo(t *testing.T) {
 	service := NewGitService(config)
 
 	// Test with non-existent directory
-	err := service.Pull("/non/existent/path")
+	err := service.Pull("/non/existent/path", nil)
 	if err == nil {
 		t.Errorf("Pull() expected error for non-existent repository")
 	}
@@ -40,7 +40,7 @@ func TestGitService_Clone_InvalidURL(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test with invalid URL
-	err := service.Clone("invalid-url", tempDir)
+	err := service.Clone("invalid-url", tempDir, nil)
 	if err == nil {
 		t.Errorf("Clone() expected error for invalid URL")
 	}

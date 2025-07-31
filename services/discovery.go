@@ -60,8 +60,9 @@ func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string) (*DiscoveryRespon
 	tempID := uuid.New().String()
 	tempDir := filepath.Join(s.config.TmpDir, "discovery-"+tempID)
 
-	// Clone repository to temp location
-	if err := s.gitService.Clone(gitURL, tempDir); err != nil {
+	// Clone repository to temp location (using no auth for discovery)
+	// TODO: Support authentication during discovery phase for private repositories
+	if err := s.gitService.Clone(gitURL, tempDir, nil); err != nil {
 		slog.Error("Service operation failed",
 			"layer", "service",
 			"operation", "discover_files",
