@@ -171,8 +171,8 @@ func (s *ProjectService) CreateFromTempClone(
 			"project_id", project.ID,
 			"git_dir", gitDir)
 	} else {
-		// Clone repository first (fallback for cases without discovery)
-		if err := s.gitService.Clone(project.GitURL, gitDir); err != nil {
+		// Clone repository first (fallback for cases without discovery) - using no auth for now
+		if err := s.gitService.Clone(project.GitURL, gitDir, nil); err != nil {
 			slog.Error("Service operation failed",
 				"layer", "service",
 				"operation", "create_project",
@@ -569,7 +569,7 @@ func (s *ProjectService) pullLatestChanges(project *Project) error {
 		return fmt.Errorf("failed to get git directory: %w", err)
 	}
 
-	if err = s.gitService.Pull(gitDir); err != nil {
+	if err = s.gitService.Pull(gitDir, nil); err != nil {
 		slog.Error("Failed to pull changes", "project_id", project.ID, "error", err)
 		return fmt.Errorf("failed to pull changes: %w", err)
 	}
