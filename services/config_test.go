@@ -2,6 +2,7 @@ package services
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,7 +54,9 @@ func TestNewConfigForCLI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Use mock environment for testing
-			mockEnv := NewMockEnvProvider("/home/testuser", nil)
+			mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+				"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
+			})
 			config, err := NewConfigForCLIWithEnv(mockEnv, tt.dataDir)
 			if err != nil {
 				t.Fatalf("NewConfigForCLI() error = %v", err)
@@ -83,8 +86,10 @@ func TestNewConfigForCLI(t *testing.T) {
 }
 
 func TestNewConfigForWebApp(t *testing.T) {
-	// Use mock environment for testing (no environment variables set)
-	mockEnv := NewMockEnvProvider("/home/testuser", nil)
+	// Use mock environment for testing
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
+	})
 	config, err := NewConfigForWebAppWithEnv(mockEnv)
 	if err != nil {
 		t.Fatalf("NewConfigForWebApp() error = %v", err)
@@ -111,9 +116,10 @@ func TestNewConfigForWebApp(t *testing.T) {
 func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
 	// Use mock environment with custom values
 	envVars := map[string]string{
-		"OAR_HTTP_PORT": "3000",
-		"OAR_HTTP_HOST": "0.0.0.0",
-		"XDG_DATA_HOME": "/custom/data",
+		"OAR_HTTP_PORT":      "3000",
+		"OAR_HTTP_HOST":      "0.0.0.0",
+		"XDG_DATA_HOME":      "/custom/data",
+		"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
 	}
 	mockEnv := NewMockEnvProvider("/home/testuser", envVars)
 	config, err := NewConfigForWebAppWithEnv(mockEnv)
@@ -130,5 +136,39 @@ func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
 	}
 	if config.DataDir != "/custom/data/oar" {
 		t.Errorf("NewConfigForWebApp() DataDir = %v, want /custom/data/oar", config.DataDir)
+	}
+}
+
+func TestConfig_RequiresEncryptionKey(t *testing.T) {
+	// Test that config creation fails when encryption key is not provided via environment variable
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		// Deliberately omit OAR_ENCRYPTION_KEY to test failure
+	})
+
+	_, err := NewConfigForWebAppWithEnv(mockEnv)
+	if err == nil {
+		t.Fatal("Expected config creation to fail when encryption key is missing, but got nil error")
+	}
+
+	expectedErrorMsg := "encryption key is required - set OAR_ENCRYPTION_KEY environment variable"
+	if !strings.Contains(err.Error(), expectedErrorMsg) {
+		t.Errorf("Expected error message to contain %q, got %q", expectedErrorMsg, err.Error())
+	}
+}
+
+func TestConfig_EncryptionKeyFromEnvironment(t *testing.T) {
+	// Test that environment variable is used when set
+	envKey := generateTestKey()
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		"OAR_ENCRYPTION_KEY": envKey,
+	})
+
+	config, err := NewConfigForWebAppWithEnv(mockEnv)
+	if err != nil {
+		t.Fatalf("Expected config creation to succeed with env key, but got error: %v", err)
+	}
+
+	if config.EncryptionKey != envKey {
+		t.Error("Expected encryption key from environment variable to be used")
 	}
 }

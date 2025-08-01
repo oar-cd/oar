@@ -1,12 +1,15 @@
 package services
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/fernet/fernet-go"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -33,6 +36,24 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	}
 
 	return database
+}
+
+// generateTestKey generates a new Fernet key for testing
+func generateTestKey() string {
+	var key fernet.Key
+	if _, err := rand.Read(key[:]); err != nil {
+		panic(fmt.Sprintf("failed to generate test encryption key: %v", err))
+	}
+	return key.Encode()
+}
+
+// setupTestEncryption creates a test encryption service
+func setupTestEncryption(t *testing.T) *EncryptionService {
+	encryption, err := NewEncryptionService(generateTestKey())
+	if err != nil {
+		t.Fatalf("Failed to create test encryption service: %v", err)
+	}
+	return encryption
 }
 
 // createTestProject creates a standard test project for domain layer testing

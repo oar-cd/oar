@@ -28,6 +28,22 @@ curl -sSL "$COMPOSE_URL" -o compose.yaml
 curl -sSL "$CLI_URL" -o "$BIN_DIR/oar"
 chmod +x "$BIN_DIR/oar"
 
+# Generate encryption key and create .env file
+echo "Generating encryption key..."
+if [ -r /dev/urandom ]; then
+    ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
+else
+    echo "Error: Cannot generate encryption key. /dev/urandom is not available."
+    exit 1
+fi
+
+cat >.env <<EOF
+# Oar encryption key - keep this secure and do not commit to version control
+OAR_ENCRYPTION_KEY=$ENCRYPTION_KEY
+EOF
+
+echo "Created .env file with encryption key"
+
 # Start Oar
 echo "Starting Oar with Docker Compose..."
 docker compose --project-name oar up -d

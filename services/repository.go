@@ -91,10 +91,10 @@ func (r *projectRepository) Delete(id uuid.UUID) error {
 	return err // Pass through as-is
 }
 
-func NewProjectRepository(db *gorm.DB) ProjectRepository {
+func NewProjectRepository(db *gorm.DB, encryption *EncryptionService) ProjectRepository {
 	return &projectRepository{
 		db:     db,
-		mapper: &ProjectMapper{},
+		mapper: NewProjectMapper(encryption),
 	}
 }
 

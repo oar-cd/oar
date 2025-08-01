@@ -105,7 +105,7 @@ func TestProjectService_Create_Success(t *testing.T) {
 	service, _, _, gitService, _ := setupProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL, workingDir string, auth *AuthConfig) error {
+	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 		// Create a mock git repository
 		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
 	}
@@ -135,7 +135,7 @@ func TestProjectService_Create_GitCloneFails(t *testing.T) {
 	service, _, _, gitService, _ := setupProjectService(t)
 
 	// Setup git service to fail
-	gitService.CloneFunc = func(gitURL, workingDir string, auth *AuthConfig) error {
+	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 		return fmt.Errorf("git clone failed: repository not found")
 	}
 
@@ -155,7 +155,7 @@ func TestProjectService_Create_DuplicateName(t *testing.T) {
 	service, repo, _, gitService, _ := setupProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL, workingDir string, auth *AuthConfig) error {
+	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
 	}
 	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
@@ -333,7 +333,7 @@ func TestProjectService_ProjectDirectoryStructure(t *testing.T) {
 	service, _, _, gitService, tempDir := setupProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL, workingDir string, auth *AuthConfig) error {
+	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 		// Create realistic git repository structure
 		gitDir := filepath.Join(workingDir, ".git")
 		err := os.MkdirAll(gitDir, 0o755)

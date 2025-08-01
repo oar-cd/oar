@@ -65,6 +65,9 @@ func TestProjectAddHappy(t *testing.T) {
 			_, err = test.InitGitRepo(repoDir, repoFiles)
 			assert.NoError(t, err, "Failed to initialize git repository")
 
+			// Set encryption key for testing
+			t.Setenv("OAR_ENCRYPTION_KEY", "cw_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4=") // Test key
+
 			// Initialize the app with test data directory
 			config, err := services.NewConfigForCLI(tempDir)
 			require.NoError(t, err)

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthConfig_createAuthMethod(t *testing.T) {
+func TestGitAuthConfig_createAuthMethod(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
@@ -20,7 +20,7 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		auth     *AuthConfig
+		auth     *GitAuthConfig
 		wantType interface{}
 		wantErr  bool
 	}{
@@ -32,14 +32,14 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 		},
 		{
 			name:     "empty auth config should return nil",
-			auth:     &AuthConfig{},
+			auth:     &GitAuthConfig{},
 			wantType: nil,
 			wantErr:  false,
 		},
 		{
 			name: "HTTP auth should return BasicAuth",
-			auth: &AuthConfig{
-				HTTPAuth: &HTTPAuthConfig{
+			auth: &GitAuthConfig{
+				HTTPAuth: &GitHTTPAuthConfig{
 					Username: "token",
 					Password: "ghp_test_token",
 				},
@@ -49,8 +49,8 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 		},
 		{
 			name: "SSH auth should return PublicKeys",
-			auth: &AuthConfig{
-				SSHAuth: &SSHAuthConfig{
+			auth: &GitAuthConfig{
+				SSHAuth: &GitSSHAuthConfig{
 					PrivateKey: loadTestSSHKey(t),
 					User:       "git",
 				},
@@ -60,8 +60,8 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 		},
 		{
 			name: "SSH auth with empty user should default to git",
-			auth: &AuthConfig{
-				SSHAuth: &SSHAuthConfig{
+			auth: &GitAuthConfig{
+				SSHAuth: &GitSSHAuthConfig{
 					PrivateKey: loadTestSSHKey(t),
 					User:       "",
 				},
@@ -71,8 +71,8 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 		},
 		{
 			name: "SSH auth with invalid key should return error",
-			auth: &AuthConfig{
-				SSHAuth: &SSHAuthConfig{
+			auth: &GitAuthConfig{
+				SSHAuth: &GitSSHAuthConfig{
 					PrivateKey: "invalid-key",
 					User:       "git",
 				},
@@ -101,14 +101,14 @@ func TestAuthConfig_createAuthMethod(t *testing.T) {
 	}
 }
 
-func TestAuthConfig_createHTTPAuth(t *testing.T) {
+func TestGitAuthConfig_createHTTPAuth(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
 	gitService := NewGitService(config)
 
-	auth := &AuthConfig{
-		HTTPAuth: &HTTPAuthConfig{
+	auth := &GitAuthConfig{
+		HTTPAuth: &GitHTTPAuthConfig{
 			Username: "token",
 			Password: "ghp_test_token",
 		},
@@ -124,14 +124,14 @@ func TestAuthConfig_createHTTPAuth(t *testing.T) {
 	assert.Equal(t, "ghp_test_token", basicAuth.Password)
 }
 
-func TestAuthConfig_createSSHAuth(t *testing.T) {
+func TestGitAuthConfig_createSSHAuth(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
 	gitService := NewGitService(config)
 
-	auth := &AuthConfig{
-		SSHAuth: &SSHAuthConfig{
+	auth := &GitAuthConfig{
+		SSHAuth: &GitSSHAuthConfig{
 			PrivateKey: loadTestSSHKey(t),
 			User:       "testuser",
 		},
@@ -146,14 +146,14 @@ func TestAuthConfig_createSSHAuth(t *testing.T) {
 	assert.Equal(t, "testuser", publicKeys.User)
 }
 
-func TestAuthConfig_createSSHAuth_DefaultUser(t *testing.T) {
+func TestGitAuthConfig_createSSHAuth_DefaultUser(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
 	gitService := NewGitService(config)
 
-	auth := &AuthConfig{
-		SSHAuth: &SSHAuthConfig{
+	auth := &GitAuthConfig{
+		SSHAuth: &GitSSHAuthConfig{
 			PrivateKey: loadTestSSHKey(t),
 			User:       "", // Empty user should default to "git"
 		},
@@ -168,7 +168,7 @@ func TestAuthConfig_createSSHAuth_DefaultUser(t *testing.T) {
 	assert.Equal(t, "git", publicKeys.User)
 }
 
-func TestAuthConfig_createSSHAuth_NilConfig(t *testing.T) {
+func TestGitAuthConfig_createSSHAuth_NilConfig(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
@@ -179,19 +179,19 @@ func TestAuthConfig_createSSHAuth_NilConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "SSH auth config is nil")
 }
 
-func TestAuthConfig_MultipleAuthMethods(t *testing.T) {
+func TestGitAuthConfig_MultipleAuthMethods(t *testing.T) {
 	config := &Config{
 		GitTimeout: 5 * time.Minute,
 	}
 	gitService := NewGitService(config)
 
 	// Both HTTP and SSH auth configured - should prefer HTTP
-	auth := &AuthConfig{
-		HTTPAuth: &HTTPAuthConfig{
+	auth := &GitAuthConfig{
+		HTTPAuth: &GitHTTPAuthConfig{
 			Username: "token",
 			Password: "ghp_test_token",
 		},
-		SSHAuth: &SSHAuthConfig{
+		SSHAuth: &GitSSHAuthConfig{
 			PrivateKey: loadTestSSHKey(t),
 			User:       "git",
 		},
@@ -219,7 +219,7 @@ func TestGitService_Clone_WithAuth(t *testing.T) {
 	gitService := NewGitService(config)
 
 	// Test cloning public repo (no auth)
-	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", cloneDir, nil)
+	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", nil, cloneDir)
 	if err != nil {
 		t.Logf("Public repo clone failed (may not exist): %v", err)
 		// Don't fail the test - the public repo might not exist
@@ -246,13 +246,13 @@ func TestGitService_Pull_WithAuth(t *testing.T) {
 
 	// First clone a repo
 	cloneDir := filepath.Join(tempDir, "clone")
-	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", cloneDir, nil)
+	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", nil, cloneDir)
 	if err != nil {
 		t.Skipf("Cannot test pull - clone failed: %v", err)
 	}
 
 	// Test pulling with no auth
-	err = gitService.Pull(cloneDir, nil)
+	err = gitService.Pull(nil, cloneDir)
 	// Don't assert success since remote repo might not exist
 	// Just ensure no panic and method is callable
 	t.Logf("Pull result: %v", err)

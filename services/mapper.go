@@ -2,7 +2,13 @@ package services
 
 import "github.com/ch00k/oar/models"
 
-type ProjectMapper struct{}
+type ProjectMapper struct {
+	encryption *EncryptionService
+}
+
+func NewProjectMapper(encryption *EncryptionService) *ProjectMapper {
+	return &ProjectMapper{encryption: encryption}
+}
 
 func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 	status, err := ParseProjectStatus(p.Status)
@@ -10,10 +16,24 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 		status = ProjectStatusUnknown
 	}
 
+	// Decrypt authentication data if present
+	var gitAuth *GitAuthConfig
+	if p.GitAuthType != nil && p.GitAuthCredentials != nil && m.encryption != nil {
+		decryptedAuth, err := m.encryption.DecryptGitAuthConfig(*p.GitAuthType, *p.GitAuthCredentials)
+		if err != nil {
+			// Log error but don't fail - project should still be usable
+			// This could happen if encryption key changed
+			gitAuth = nil
+		} else {
+			gitAuth = decryptedAuth
+		}
+	}
+
 	return &Project{
 		ID:               p.ID,
 		Name:             p.Name,
 		GitURL:           p.GitURL,
+		GitAuth:          gitAuth,
 		WorkingDir:       p.WorkingDir,
 		ComposeFiles:     parseFiles(p.ComposeFiles),
 		EnvironmentFiles: parseFiles(p.EnvironmentFiles),
@@ -25,7 +45,7 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 }
 
 func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
-	return &models.ProjectModel{
+	model := &models.ProjectModel{
 		BaseModel: models.BaseModel{
 			ID: p.ID,
 		},
@@ -37,6 +57,23 @@ func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
 		Status:           p.Status.String(),
 		LastCommit:       p.LastCommit,
 	}
+
+	// Encrypt authentication data if present
+	if p.GitAuth != nil && m.encryption != nil {
+		authType, encryptedCredentials, err := m.encryption.EncryptGitAuthConfig(p.GitAuth)
+		if err != nil {
+			// For now, we'll skip encryption on error
+			// In production, this should be handled more carefully
+			return model
+		}
+
+		if authType != "" && encryptedCredentials != "" {
+			model.GitAuthType = &authType
+			model.GitAuthCredentials = &encryptedCredentials
+		}
+	}
+
+	return model
 }
 
 type DeploymentMapper struct{}

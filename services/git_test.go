@@ -25,7 +25,7 @@ func TestGitService_Pull_InvalidRepo(t *testing.T) {
 	service := NewGitService(config)
 
 	// Test with non-existent directory
-	err := service.Pull("/non/existent/path", nil)
+	err := service.Pull(nil, "/non/existent/path")
 	if err == nil {
 		t.Errorf("Pull() expected error for non-existent repository")
 	}
@@ -40,7 +40,7 @@ func TestGitService_Clone_InvalidURL(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test with invalid URL
-	err := service.Clone("invalid-url", tempDir, nil)
+	err := service.Clone("invalid-url", nil, tempDir)
 	if err == nil {
 		t.Errorf("Clone() expected error for invalid URL")
 	}
@@ -65,5 +65,73 @@ func TestGitService_TimeoutConfiguration(t *testing.T) {
 
 	if service.config.GitTimeout != 30*time.Second {
 		t.Errorf("GitService config timeout = %v, want %v", service.config.GitTimeout, 30*time.Second)
+	}
+}
+
+func TestGitAuthType_String(t *testing.T) {
+	tests := []struct {
+		authType GitAuthType
+		expected string
+	}{
+		{GitAuthTypeHTTP, "http"},
+		{GitAuthTypeSSH, "ssh"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.expected, func(t *testing.T) {
+			if got := tt.authType.String(); got != tt.expected {
+				t.Errorf("GitAuthType.String() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGitAuthType_IsValid(t *testing.T) {
+	tests := []struct {
+		name     string
+		authType GitAuthType
+		expected bool
+	}{
+		{"valid HTTP", GitAuthTypeHTTP, true},
+		{"valid SSH", GitAuthTypeSSH, true},
+		{"invalid empty", GitAuthType(""), false},
+		{"invalid unknown", GitAuthType("unknown"), false},
+		{"invalid oauth", GitAuthType("oauth"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.authType.IsValid(); got != tt.expected {
+				t.Errorf("GitAuthType.IsValid() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseGitAuthType(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected GitAuthType
+		wantErr  bool
+	}{
+		{"valid HTTP", "http", GitAuthTypeHTTP, false},
+		{"valid SSH", "ssh", GitAuthTypeSSH, false},
+		{"invalid empty", "", GitAuthType(""), true},
+		{"invalid unknown", "unknown", GitAuthType(""), true},
+		{"invalid oauth", "oauth", GitAuthType(""), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseGitAuthType(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseGitAuthType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.expected {
+				t.Errorf("ParseGitAuthType() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
