@@ -12,6 +12,7 @@ type Project struct {
 	ID               uuid.UUID
 	Name             string
 	GitURL           string
+	GitAuth          *GitAuthConfig // Git authentication configuration
 	WorkingDir       string
 	ComposeFiles     []string
 	EnvironmentFiles []string

@@ -13,7 +13,7 @@ import (
 // Tests for ProjectRepository
 func TestProjectRepository_Create_Success(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	project := createTestProject()
 	project.Name = "unique-create-project"
@@ -32,7 +32,7 @@ func TestProjectRepository_Create_Success(t *testing.T) {
 
 func TestProjectRepository_Create_UniqueNameConstraint(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create first project
 	project1 := createTestProject()
@@ -56,7 +56,7 @@ func TestProjectRepository_Create_UniqueNameConstraint(t *testing.T) {
 
 func TestProjectRepository_FindByID_Success(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project
 	originalProject := createTestProject()
@@ -77,7 +77,7 @@ func TestProjectRepository_FindByID_Success(t *testing.T) {
 
 func TestProjectRepository_FindByID_NotFound(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Test with non-existent ID
 	nonExistentID := uuid.New()
@@ -90,7 +90,7 @@ func TestProjectRepository_FindByID_NotFound(t *testing.T) {
 
 func TestProjectRepository_FindByName_Success(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project
 	originalProject := createTestProject()
@@ -110,7 +110,7 @@ func TestProjectRepository_FindByName_Success(t *testing.T) {
 
 func TestProjectRepository_FindByName_NotFound(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Test with non-existent name
 	foundProject, err := repo.FindByName("non-existent-project")
@@ -122,7 +122,7 @@ func TestProjectRepository_FindByName_NotFound(t *testing.T) {
 
 func TestProjectRepository_Update_Success(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project
 	originalProject := createTestProject()
@@ -153,7 +153,7 @@ func TestProjectRepository_Update_Success(t *testing.T) {
 
 func TestProjectRepository_Delete_Success(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project
 	originalProject := createTestProject()
@@ -175,7 +175,7 @@ func TestProjectRepository_Delete_Success(t *testing.T) {
 
 func TestProjectRepository_Delete_NotFound(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Test with non-existent ID
 	nonExistentID := uuid.New()
@@ -187,7 +187,7 @@ func TestProjectRepository_Delete_NotFound(t *testing.T) {
 
 func TestProjectRepository_List_Empty(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Test
 	projects, err := repo.List()
@@ -200,7 +200,7 @@ func TestProjectRepository_List_Empty(t *testing.T) {
 
 func TestProjectRepository_List_Multiple(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create multiple projects
 	project1 := createTestProject()
@@ -239,7 +239,7 @@ func TestProjectRepository_List_Multiple(t *testing.T) {
 func TestDeploymentRepository_Create_Success(t *testing.T) {
 	db := setupTestDB(t)
 	deploymentRepo := NewDeploymentRepository(db)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create parent project first
 	project := createTestProject()
@@ -260,7 +260,7 @@ func TestDeploymentRepository_Create_Success(t *testing.T) {
 func TestDeploymentRepository_FindByID_Success(t *testing.T) {
 	db := setupTestDB(t)
 	deploymentRepo := NewDeploymentRepository(db)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create parent project first
 	project := createTestProject()
@@ -300,7 +300,7 @@ func TestDeploymentRepository_FindByID_NotFound(t *testing.T) {
 func TestDeploymentRepository_ListByProjectID_Success(t *testing.T) {
 	db := setupTestDB(t)
 	deploymentRepo := NewDeploymentRepository(db)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create parent project
 	project := createTestProject()
@@ -355,7 +355,7 @@ func TestDeploymentRepository_ListByProjectID_Success(t *testing.T) {
 func TestDeploymentRepository_ListByProjectID_Empty(t *testing.T) {
 	db := setupTestDB(t)
 	deploymentRepo := NewDeploymentRepository(db)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project with no deployments
 	project := createTestProject()
@@ -417,7 +417,7 @@ func TestSerializeFiles_Roundtrip(t *testing.T) {
 // Tests for data mapping and persistence
 func TestProjectRepository_FilesSerialization(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project with multiple files
 	project := createTestProject()
@@ -439,7 +439,7 @@ func TestProjectRepository_FilesSerialization(t *testing.T) {
 
 func TestProjectRepository_StatusMapping(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	tests := []struct {
 		name   string
@@ -473,7 +473,7 @@ func TestProjectRepository_StatusMapping(t *testing.T) {
 func TestDeploymentRepository_StatusMapping(t *testing.T) {
 	db := setupTestDB(t)
 	deploymentRepo := NewDeploymentRepository(db)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create parent project
 	project := createTestProject()
@@ -512,7 +512,7 @@ func TestDeploymentRepository_StatusMapping(t *testing.T) {
 // Tests for edge cases and error scenarios
 func TestProjectRepository_NullCommitHandling(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create project with nil LastCommit
 	project := createTestProject()
@@ -547,7 +547,7 @@ func TestProjectRepository_InvalidStatusHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test repository mapping
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 	retrievedProject, err := repo.FindByID(invalidModel.ID)
 
 	// Assertions
@@ -558,7 +558,7 @@ func TestProjectRepository_InvalidStatusHandling(t *testing.T) {
 
 func TestDeploymentRepository_InvalidStatusHandling(t *testing.T) {
 	db := setupTestDB(t)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Create parent project
 	project := createTestProject()
@@ -593,7 +593,7 @@ func TestDeploymentRepository_InvalidStatusHandling(t *testing.T) {
 // Tests for cascade delete behavior
 func TestProjectRepository_Delete_CascadesBehavior(t *testing.T) {
 	db := setupTestDB(t)
-	projectRepo := NewProjectRepository(db)
+	projectRepo := NewProjectRepository(db, setupTestEncryption(t))
 	deploymentRepo := NewDeploymentRepository(db)
 
 	// Create parent project
@@ -642,7 +642,7 @@ func TestProjectRepository_Delete_CascadesBehavior(t *testing.T) {
 // Tests for repository constructor functions
 func TestNewProjectRepository(t *testing.T) {
 	db := setupTestDB(t)
-	repo := NewProjectRepository(db)
+	repo := NewProjectRepository(db, setupTestEncryption(t))
 
 	// Assertions
 	assert.NotNil(t, repo)

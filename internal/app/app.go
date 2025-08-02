@@ -29,8 +29,14 @@ func InitializeWithConfig(cfg *services.Config) error {
 
 	gitService := services.NewGitService(config)
 
+	// Initialize encryption service
+	encryption, err := services.NewEncryptionService(config.EncryptionKey)
+	if err != nil {
+		return err
+	}
+
 	// Initialize repositories
-	projectRepo := services.NewProjectRepository(database)
+	projectRepo := services.NewProjectRepository(database, encryption)
 	deploymentRepo := services.NewDeploymentRepository(database)
 
 	// Initialize services with dependency injection

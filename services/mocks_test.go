@@ -10,21 +10,21 @@ import (
 
 // MockGitExecutor for testing
 type MockGitExecutor struct {
-	CloneFunc           func(gitURL, workingDir string, auth *AuthConfig) error
-	PullFunc            func(workingDir string, auth *AuthConfig) error
+	CloneFunc           func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
+	PullFunc            func(auth *GitAuthConfig, workingDir string) error
 	GetLatestCommitFunc func(workingDir string) (string, error)
 }
 
-func (m *MockGitExecutor) Clone(gitURL, workingDir string, auth *AuthConfig) error {
+func (m *MockGitExecutor) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 	if m.CloneFunc != nil {
-		return m.CloneFunc(gitURL, workingDir, auth)
+		return m.CloneFunc(gitURL, gitAuth, workingDir)
 	}
 	return nil
 }
 
-func (m *MockGitExecutor) Pull(workingDir string, auth *AuthConfig) error {
+func (m *MockGitExecutor) Pull(gitAuth *GitAuthConfig, workingDir string) error {
 	if m.PullFunc != nil {
-		return m.PullFunc(workingDir, auth)
+		return m.PullFunc(gitAuth, workingDir)
 	}
 	return nil
 }

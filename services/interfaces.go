@@ -6,8 +6,8 @@ import (
 
 // GitExecutor defines the contract for Git operations
 type GitExecutor interface {
-	Clone(gitURL, workingDir string, auth *AuthConfig) error
-	Pull(workingDir string, auth *AuthConfig) error
+	Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
+	Pull(gitAuth *GitAuthConfig, workingDir string) error
 	GetLatestCommit(workingDir string) (string, error)
 }
 

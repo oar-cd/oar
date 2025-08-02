@@ -72,6 +72,9 @@ type Config struct {
 	// Git
 	GitTimeout time.Duration
 
+	// Encryption
+	EncryptionKey string
+
 	// Environment provider for testing
 	env EnvProvider
 }
@@ -148,6 +151,7 @@ func (c *Config) setDefaults() {
 	c.HTTPHost = "127.0.0.1"
 	c.HTTPPort = 8080
 	c.GitTimeout = 5 * time.Minute
+	// Don't set default encryption key - it must be provided explicitly
 }
 
 // loadFromEnv loads configuration from environment variables
@@ -185,6 +189,9 @@ func (c *Config) loadFromEnv() {
 			c.GitTimeout = d
 		}
 	}
+	if v := c.env.Getenv("OAR_ENCRYPTION_KEY"); v != "" {
+		c.EncryptionKey = v
+	}
 }
 
 // derivePaths calculates dependent paths from the base DataDir
@@ -221,6 +228,11 @@ func (c *Config) validate() error {
 	// Validate Docker command is not empty
 	if c.DockerCommand == "" {
 		return fmt.Errorf("docker command cannot be empty")
+	}
+
+	// Require encryption key to be explicitly provided via environment variable
+	if c.EncryptionKey == "" {
+		return fmt.Errorf("encryption key is required - set OAR_ENCRYPTION_KEY environment variable")
 	}
 
 	return nil

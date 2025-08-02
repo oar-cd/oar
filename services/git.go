@@ -11,22 +11,54 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-// AuthConfig holds authentication configuration for a project
-type AuthConfig struct {
-	HTTPAuth *HTTPAuthConfig
-	SSHAuth  *SSHAuthConfig
+// GitAuthConfig holds Git authentication configuration for a project
+type GitAuthConfig struct {
+	HTTPAuth *GitHTTPAuthConfig
+	SSHAuth  *GitSSHAuthConfig
 }
 
-// HTTPAuthConfig for HTTP basic authentication (GitHub tokens, etc.)
-type HTTPAuthConfig struct {
+// GitHTTPAuthConfig for HTTP basic authentication (GitHub tokens, etc.)
+type GitHTTPAuthConfig struct {
 	Username string // "token" for GitHub
 	Password string // actual token/password
 }
 
-// SSHAuthConfig for passwordless SSH key authentication
-type SSHAuthConfig struct {
+// GitSSHAuthConfig for passwordless SSH key authentication
+type GitSSHAuthConfig struct {
 	PrivateKey string // PEM-encoded private key as string
 	User       string // SSH user (default: "git")
+}
+
+// GitAuthType represents the Git authentication method type
+type GitAuthType string
+
+const (
+	GitAuthTypeHTTP GitAuthType = "http"
+	GitAuthTypeSSH  GitAuthType = "ssh"
+)
+
+// String implements the Stringer interface
+func (a GitAuthType) String() string {
+	return string(a)
+}
+
+// IsValid checks if the GitAuthType is valid
+func (a GitAuthType) IsValid() bool {
+	switch a {
+	case GitAuthTypeHTTP, GitAuthTypeSSH:
+		return true
+	default:
+		return false
+	}
+}
+
+// ParseGitAuthType parses a string into a GitAuthType
+func ParseGitAuthType(s string) (GitAuthType, error) {
+	authType := GitAuthType(s)
+	if !authType.IsValid() {
+		return "", fmt.Errorf("invalid auth type: %s", s)
+	}
+	return authType, nil
 }
 
 type GitService struct {
@@ -42,8 +74,8 @@ func NewGitService(config *Config) *GitService {
 	}
 }
 
-// createAuthMethod creates a transport.AuthMethod from AuthConfig
-func (s *GitService) createAuthMethod(auth *AuthConfig) (transport.AuthMethod, error) {
+// createAuthMethod creates a transport.AuthMethod from GitAuthConfig
+func (s *GitService) createAuthMethod(auth *GitAuthConfig) (transport.AuthMethod, error) {
 	if auth == nil {
 		return nil, nil // Public repo
 	}
@@ -66,7 +98,7 @@ func (s *GitService) createAuthMethod(auth *AuthConfig) (transport.AuthMethod, e
 }
 
 // createSSHAuth creates SSH authentication from SSHAuthConfig
-func (s *GitService) createSSHAuth(config *SSHAuthConfig) (transport.AuthMethod, error) {
+func (s *GitService) createSSHAuth(config *GitSSHAuthConfig) (transport.AuthMethod, error) {
 	if config == nil {
 		return nil, fmt.Errorf("SSH auth config is nil")
 	}
@@ -82,11 +114,11 @@ func (s *GitService) createSSHAuth(config *SSHAuthConfig) (transport.AuthMethod,
 }
 
 // Clone clones a repository with optional authentication
-func (s *GitService) Clone(gitURL, workingDir string, auth *AuthConfig) error {
+func (s *GitService) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
 	slog.Info("Cloning repository", "git_url", gitURL, "working_dir", workingDir)
 
 	// Create authentication method
-	authMethod, err := s.createAuthMethod(auth)
+	authMethod, err := s.createAuthMethod(gitAuth)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
@@ -123,11 +155,11 @@ func (s *GitService) Clone(gitURL, workingDir string, auth *AuthConfig) error {
 }
 
 // Pull pulls latest changes from remote with optional authentication
-func (s *GitService) Pull(workingDir string, auth *AuthConfig) error {
+func (s *GitService) Pull(gitAuth *GitAuthConfig, workingDir string) error {
 	slog.Debug("Pulling repository changes", "working_dir", workingDir)
 
 	// Create authentication method
-	authMethod, err := s.createAuthMethod(auth)
+	authMethod, err := s.createAuthMethod(gitAuth)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
