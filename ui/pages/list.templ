@@ -11,19 +11,12 @@ import (
 	"github.com/ch00k/oar/ui/components/tagsinput"
 	"github.com/ch00k/oar/ui/components/toast"
 	"github.com/ch00k/oar/ui/components/code"
+	"github.com/ch00k/oar/ui/components/actionbutton"
 	"github.com/ch00k/oar/services"
 	"fmt"
 )
 
 // Configuration structures
-type ActionButtonConfig struct {
-	ModalID    string
-	Icon       templ.Component
-	Tooltip    string
-	ColorClass string
-	HoverClass string
-	Condition  bool
-}
 
 type ModalConfig struct {
 	ID     string
@@ -102,7 +95,7 @@ templ ProjectCard(project *services.Project) {
 		}
 		@card.Footer(card.FooterProps{Class: "justify-end"}) {
 			<div class="flex space-x-2">
-				@ActionButton(ActionButtonConfig{
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("deploy-project-modal-%s", project.ID.String()),
 					Icon:       icon.Rocket(),
 					Tooltip:    "Deploy Project",
@@ -110,7 +103,7 @@ templ ProjectCard(project *services.Project) {
 					HoverClass: "hover:text-blue-800 hover:bg-blue-100",
 					Condition:  true,
 				})
-				@ActionButtonWithVisibility(ActionButtonConfig{
+				@ActionButtonWithVisibility(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("stop-project-modal-%s", project.ID.String()),
 					Icon:       icon.CircleStop(),
 					Tooltip:    "Stop Project",
@@ -118,7 +111,7 @@ templ ProjectCard(project *services.Project) {
 					HoverClass: "hover:text-red-800 hover:bg-red-100",
 					Condition:  true, // Always render, control visibility with CSS
 				}, project.Status == services.ProjectStatusRunning)
-				@ActionButton(ActionButtonConfig{
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("edit-project-modal-%s", project.ID.String()),
 					Icon:       icon.SquarePen(),
 					Tooltip:    "Edit Project",
@@ -126,7 +119,7 @@ templ ProjectCard(project *services.Project) {
 					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
 					Condition:  true,
 				})
-				@ActionButton(ActionButtonConfig{
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    "",
 					Icon:       icon.ListChecks(),
 					Tooltip:    "View Deployments",
@@ -134,7 +127,7 @@ templ ProjectCard(project *services.Project) {
 					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
 					Condition:  true,
 				})
-				@ActionButton(ActionButtonConfig{
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("logs-modal-%s", project.ID.String()),
 					Icon:       icon.ScrollText(),
 					Tooltip:    "View Logs",
@@ -142,7 +135,7 @@ templ ProjectCard(project *services.Project) {
 					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
 					Condition:  true,
 				})
-				@ActionButton(ActionButtonConfig{
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("delete-project-modal-%s", project.ID.String()),
 					Icon:       icon.Trash2(),
 					Tooltip:    "Delete Project",
@@ -155,44 +148,22 @@ templ ProjectCard(project *services.Project) {
 	}
 }
 
-templ ActionButton(config ActionButtonConfig) {
-	if config.Condition {
-		<div class="relative group">
-			if config.ModalID != "" {
-				@modal.Trigger(modal.TriggerProps{For: config.ModalID}) {
-					<button class={ "flex items-center justify-center p-2 rounded-md transition-colors", config.ColorClass, config.HoverClass }>
-						@config.Icon
-					</button>
-				}
-			} else {
-				<button class={ "flex items-center justify-center p-2 rounded-md transition-colors", config.ColorClass, config.HoverClass }>
-					@config.Icon
-				</button>
-			}
-			<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-				{ config.Tooltip }
-			</div>
-		</div>
-	}
-}
 
-templ ActionButtonWithVisibility(config ActionButtonConfig, visible bool) {
+templ ActionButtonWithVisibility(config actionbutton.ActionButtonConfig, visible bool) {
 	if config.Condition {
-		<div class={ "relative group", templ.KV("hidden", !visible) }>
-			if config.ModalID != "" {
-				@modal.Trigger(modal.TriggerProps{For: config.ModalID}) {
-					<button class={ "flex items-center justify-center p-2 rounded-md transition-colors", config.ColorClass, config.HoverClass }>
-						@config.Icon
-					</button>
-				}
-			} else {
-				<button class={ "flex items-center justify-center p-2 rounded-md transition-colors", config.ColorClass, config.HoverClass }>
-					@config.Icon
-				</button>
-			}
-			<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-200 text-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-				{ config.Tooltip }
-			</div>
+		<div class={ templ.KV("hidden", !visible) }>
+			@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
+				ID:         config.ID,
+				ModalID:    config.ModalID,
+				Icon:       config.Icon,
+				Tooltip:    config.Tooltip,
+				ColorClass: config.ColorClass,
+				HoverClass: config.HoverClass,
+				Condition:  true,
+				Onclick:    config.Onclick,
+				Disabled:   config.Disabled,
+				Class:      config.Class,
+			})
 		</div>
 	}
 }
@@ -303,7 +274,7 @@ templ editProjectForm(project *services.Project) {
 				Placeholder: "Enter project name",
 				Value:       project.Name,
 				Required:    true,
-				Class:       "bg-gray-50",
+				Class:       "bg-gray-50 placeholder:text-gray-400",
 			})
 		}
 		@form.Item() {
@@ -313,41 +284,35 @@ templ editProjectForm(project *services.Project) {
 			@input.Input(input.Props{
 				ID:          fmt.Sprintf("project-git-url-%s", project.ID.String()),
 				Name:        "git_url",
-				Type:        input.TypeURL,
-				Placeholder: "https://github.com/user/repo.git",
+				Type:        input.TypeText,
+				Placeholder: "https://github.com/user/repo.git or git@github.com:user/repo.git",
 				Value:       project.GitURL,
 				Required:    true,
-				Class:       "bg-gray-50",
+				Class:       "bg-gray-50 placeholder:text-gray-400",
 			})
 		}
 		@form.Item() {
 			@form.Label(form.LabelProps{For: fmt.Sprintf("project-compose-files-%s", project.ID.String())}) {
 				Compose Files
 			}
-			@form.Description() {
-				Docker Compose file paths (e.g., docker-compose.yml, compose.yaml)
-			}
 			@tagsinput.TagsInput(tagsinput.Props{
 				ID:          fmt.Sprintf("project-compose-files-%s", project.ID.String()),
 				Name:        "compose_files",
 				Placeholder: "Add compose file...",
 				Value:       project.ComposeFiles,
-				Class:       "bg-gray-50",
+				Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
 			})
 		}
 		@form.Item() {
 			@form.Label(form.LabelProps{For: fmt.Sprintf("project-env-files-%s", project.ID.String())}) {
 				Environment Files
 			}
-			@form.Description() {
-				Environment file paths (optional)
-			}
 			@tagsinput.TagsInput(tagsinput.Props{
 				ID:          fmt.Sprintf("project-env-files-%s", project.ID.String()),
 				Name:        "environment_files",
 				Placeholder: "Add environment file...",
 				Value:       project.EnvironmentFiles,
-				Class:       "bg-gray-50",
+				Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
 			})
 		}
 	</form>

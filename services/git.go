@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -240,4 +241,49 @@ func (s *GitService) GetLatestCommit(workingDir string) (string, error) {
 	}
 
 	return ref.Hash().String(), nil
+}
+
+// TestAuthentication tests Git authentication using ls-remote operation
+// This is more resistant to credential caching than clone operations
+func (s *GitService) TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error {
+	slog.Info("Testing Git authentication", "git_url", gitURL)
+
+	// Use ls-remote operation instead of clone to avoid credential caching
+	err := s.testGitLsRemote(gitURL, gitAuth)
+	if err != nil {
+		slog.Error("Git authentication test failed",
+			"layer", "service",
+			"operation", "test_git_authentication",
+			"git_url", gitURL,
+			"error", err)
+		return err
+	}
+
+	slog.Info("Git authentication test successful", "git_url", gitURL)
+	return nil
+}
+
+// testGitLsRemote performs a git ls-remote operation to test authentication
+func (s *GitService) testGitLsRemote(gitURL string, gitAuth *GitAuthConfig) error {
+	// Create authentication method using existing logic
+	authMethod, err := s.createAuthMethod(gitAuth)
+	if err != nil {
+		return fmt.Errorf("failed to create auth method: %w", err)
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
+	defer cancel()
+
+	// Use git ls-remote to test authentication
+	remote := git.NewRemote(nil, &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{gitURL},
+	})
+
+	_, err = remote.ListContext(ctx, &git.ListOptions{
+		Auth: authMethod,
+	})
+
+	return err
 }

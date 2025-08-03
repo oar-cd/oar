@@ -10,9 +10,10 @@ import (
 
 // MockGitExecutor for testing
 type MockGitExecutor struct {
-	CloneFunc           func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
-	PullFunc            func(auth *GitAuthConfig, workingDir string) error
-	GetLatestCommitFunc func(workingDir string) (string, error)
+	CloneFunc              func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
+	PullFunc               func(auth *GitAuthConfig, workingDir string) error
+	GetLatestCommitFunc    func(workingDir string) (string, error)
+	TestAuthenticationFunc func(gitURL string, gitAuth *GitAuthConfig) error
 }
 
 func (m *MockGitExecutor) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
@@ -34,6 +35,13 @@ func (m *MockGitExecutor) GetLatestCommit(workingDir string) (string, error) {
 		return m.GetLatestCommitFunc(workingDir)
 	}
 	return "mock-commit-hash", nil
+}
+
+func (m *MockGitExecutor) TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error {
+	if m.TestAuthenticationFunc != nil {
+		return m.TestAuthenticationFunc(gitURL, gitAuth)
+	}
+	return nil
 }
 
 // MockDockerComposeExecutor for testing

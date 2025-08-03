@@ -4,6 +4,7 @@ import (
 	"github.com/ch00k/oar/services"
 	"github.com/ch00k/oar/ui/components/form"
 	"github.com/ch00k/oar/ui/components/tagsinput"
+	"github.com/ch00k/oar/ui/components/toast"
 )
 
 type DiscoveredFilesProps struct {
@@ -19,9 +20,6 @@ templ DiscoveredFiles(props DiscoveredFilesProps) {
 		@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
 			Compose Files
 		}
-		@form.Description() {
-			Docker Compose file paths (discovered files are pre-selected)
-		}
 		@tagsinput.TagsInput(tagsinput.Props{
 			ID:          "new-project-compose-files",
 			Name:        "compose_files",
@@ -34,9 +32,6 @@ templ DiscoveredFiles(props DiscoveredFilesProps) {
 		@form.Label(form.LabelProps{For: "new-project-env-files"}) {
 			Environment Files
 		}
-		@form.Description() {
-			Environment file paths (optional)
-		}
 		@tagsinput.TagsInput(tagsinput.Props{
 			ID:          "new-project-env-files",
 			Name:        "environment_files",
@@ -45,7 +40,6 @@ templ DiscoveredFiles(props DiscoveredFilesProps) {
 			Class:       "bg-gray-50",
 		})
 	}
-
 	if len(props.ComposeFiles) == 0 && len(props.EnvFiles) == 0 {
 		@form.Item() {
 			@form.Message(form.MessageProps{Variant: form.MessageVariantInfo}) {
@@ -53,17 +47,49 @@ templ DiscoveredFiles(props DiscoveredFilesProps) {
 			}
 		}
 	}
-
 	<!-- Hidden field to pass temp clone path -->
 	<input type="hidden" name="temp_clone_path" value={ props.TempClonePath }/>
 }
 
-templ DiscoveryError(gitURL string, errorMessage string) {
+templ DiscoveryErrorWithToast(errorMessage string) {
+	<!-- Preserve the original compose files section content -->
 	@form.Item() {
-		@form.Message(form.MessageProps{Variant: form.MessageVariantError}) {
-			Failed to discover files in repository: { errorMessage }
+		@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
+			Compose Files
 		}
+		@tagsinput.TagsInput(tagsinput.Props{
+			ID:          "new-project-compose-files",
+			Name:        "compose_files",
+			Placeholder: "Add compose file...",
+			Value:       []string{},
+			Class:       "bg-gray-50",
+		})
 	}
+	@form.Item() {
+		@form.Label(form.LabelProps{For: "new-project-env-files"}) {
+			Environment Files
+		}
+		@tagsinput.TagsInput(tagsinput.Props{
+			ID:          "new-project-env-files",
+			Name:        "environment_files",
+			Placeholder: "Add environment file...",
+			Value:       []string{},
+			Class:       "bg-gray-50",
+		})
+	}
+	<!-- Toast out-of-band -->
+	<div hx-swap-oob="afterbegin:#toast-container">
+		@toast.Toast(toast.Props{
+			Title:         "Discovery Failed",
+			Description:   errorMessage,
+			Variant:       toast.VariantError,
+			Position:      toast.PositionBottomRight,
+			Duration:      5000,
+			Dismissible:   true,
+			ShowIndicator: true,
+			Icon:          true,
+		})
+	</div>
 }
 
 // Helper functions to convert file structs to string slices

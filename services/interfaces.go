@@ -9,6 +9,7 @@ type GitExecutor interface {
 	Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
 	Pull(gitAuth *GitAuthConfig, workingDir string) error
 	GetLatestCommit(workingDir string) (string, error)
+	TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error
 }
 
 // ComposeProjectInterface defines the contract for Docker Compose operations
