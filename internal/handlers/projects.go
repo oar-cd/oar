@@ -99,7 +99,7 @@ func (h *ProjectHandlers) handleProjectCardResponse(
 	if err != nil {
 		slog.Error("Handler operation failed",
 			"layer", "handler",
-			"operation", "project_grid_response",
+			"operation", "project_card_response",
 			"error", err)
 		component = pages.ProjectCardWithErrorToast(project, errorTitle, errorDesc)
 	} else {
@@ -221,7 +221,13 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		errorDesc = services.FormatErrorForUser(err)
 	}
 
-	h.handleProjectGridResponse(w, r, err, "project-created",
+	// Send different triggers for success vs failure
+	trigger := "project-created"
+	if err != nil {
+		trigger = "project-creation-failed"
+	}
+
+	h.handleProjectGridResponse(w, r, err, trigger,
 		"Project created successfully", "New project has been added and cloned.",
 		"Failed to create project", errorDesc)
 }
@@ -272,7 +278,13 @@ func (h *ProjectHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 		errorDesc = services.FormatErrorForUser(err)
 	}
 
-	h.handleProjectGridResponse(w, r, err, "project-deleted",
+	// Send different triggers for success vs failure
+	trigger := "project-deleted"
+	if err != nil {
+		trigger = "project-deletion-failed"
+	}
+
+	h.handleProjectGridResponse(w, r, err, trigger,
 		"Project deleted successfully", "Project has been removed and all data cleaned up.",
 		"Failed to delete project", errorDesc)
 }

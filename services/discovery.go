@@ -48,21 +48,21 @@ func NewProjectDiscoveryService(
 }
 
 // DiscoverFiles clones repository to temp location and discovers compose files
-func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string) (*DiscoveryResponse, error) {
+func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string, authConfig *GitAuthConfig) (*DiscoveryResponse, error) {
 	if gitURL == "" {
 		return nil, fmt.Errorf("git URL is required")
 	}
 
 	slog.Info("Starting file discovery",
-		"git_url", gitURL)
+		"git_url", gitURL,
+		"has_auth", authConfig != nil)
 
 	// Create temporary directory for discovery
 	tempID := uuid.New().String()
 	tempDir := filepath.Join(s.config.TmpDir, "discovery-"+tempID)
 
-	// Clone repository to temp location (using no auth for discovery)
-	// TODO: Support authentication during discovery phase for private repositories
-	if err := s.gitService.Clone(gitURL, nil, tempDir); err != nil {
+	// Clone repository to temp location with authentication
+	if err := s.gitService.Clone(gitURL, authConfig, tempDir); err != nil {
 		slog.Error("Service operation failed",
 			"layer", "service",
 			"operation", "discover_files",

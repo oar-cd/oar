@@ -3,3 +3,5 @@ TESTING_ANALYSIS.md
 coverage.*
 oar
 data/
+dev_oar_data_dir/
+*rsa*

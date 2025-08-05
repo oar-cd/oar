@@ -4,6 +4,8 @@ import (
 	"github.com/ch00k/oar/ui/components/modal"
 	"github.com/ch00k/oar/ui/components/input"
 	"github.com/ch00k/oar/ui/components/tagsinput"
+	"github.com/ch00k/oar/ui/components/selectbox"
+	"github.com/ch00k/oar/ui/components/popover"
 	"github.com/ch00k/oar/ui/components/toast"
 )
 
@@ -38,6 +40,8 @@ templ Base(title string) {
 			@modal.Script()
 			@input.Script()
 			@tagsinput.Script()
+			@popover.Script()
+			@selectbox.Script()
 			@toast.Script()
 			<!-- Streaming system modules -->
 			<script src="/assets/js/streaming/ui-utils.js"></script>
@@ -135,6 +139,40 @@ templ Base(title string) {
                         });
                     }
                 });
+
+				// Handle authentication type selection
+				function handleAuthTypeChange(value) {
+					const httpFields = document.getElementById('http-auth-fields');
+					const sshFields = document.getElementById('ssh-auth-fields');
+
+					if (!httpFields || !sshFields) return;
+
+					// Hide all auth fields by default
+					httpFields.style.display = 'none';
+					sshFields.style.display = 'none';
+
+					// Show appropriate fields based on selection
+					if (value === 'http') {
+						httpFields.style.display = 'block';
+					} else if (value === 'ssh') {
+						sshFields.style.display = 'block';
+					}
+				}
+
+
+				// Initialize auth type handler
+				document.addEventListener('DOMContentLoaded', function() {
+					// Listen for selectbox changes using the TemplUI change event
+					document.addEventListener('change', function(e) {
+						if (e.target && e.target.name === 'auth_type') {
+							console.log('Auth type changed to:', e.target.value);
+							handleAuthTypeChange(e.target.value);
+						}
+					});
+
+					// Set up initial state (default to 'none')
+					handleAuthTypeChange('none');
+				});
             </script>
 		</body>
 	</html>

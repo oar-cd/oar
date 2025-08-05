@@ -39,10 +39,12 @@ func main() {
 	// Initialize handlers
 	projectHandlers := handlers.NewProjectHandlers(app.GetProjectService())
 	discoveryHandlers := handlers.NewDiscoveryHandlers(app.GetDiscoveryService())
+	gitHandlers := handlers.NewGitHandlers(app.GetGitService())
 
 	// Register routes
 	projectHandlers.RegisterRoutes(r)
 	discoveryHandlers.RegisterRoutes(r)
+	gitHandlers.RegisterRoutes(r)
 
 	// Health check endpoint
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

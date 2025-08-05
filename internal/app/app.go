@@ -11,6 +11,7 @@ var (
 	database         *gorm.DB
 	projectService   services.ProjectManager
 	discoveryService *services.ProjectDiscoveryService
+	gitService       services.GitExecutor
 	config           *services.Config
 )
 
@@ -27,7 +28,7 @@ func InitializeWithConfig(cfg *services.Config) error {
 		return err
 	}
 
-	gitService := services.NewGitService(config)
+	gitService = services.NewGitService(config)
 
 	// Initialize encryption service
 	encryption, err := services.NewEncryptionService(config.EncryptionKey)
@@ -51,4 +52,8 @@ func GetProjectService() services.ProjectManager {
 
 func GetDiscoveryService() *services.ProjectDiscoveryService {
 	return discoveryService
+}
+
+func GetGitService() services.GitExecutor {
+	return gitService
 }

@@ -40,16 +40,19 @@ func (h *DiscoveryHandlers) DiscoverFiles(w http.ResponseWriter, r *http.Request
 			"operation", "discover_files",
 			"error", "git_url is required")
 
-		// Render error template
-		component := discovery.DiscoveryError("", "Git URL is required")
+		// Render error with toast and preserved form
+		component := discovery.DiscoveryErrorWithToast("Git URL is required")
 		if err := component.Render(r.Context(), w); err != nil {
 			http.Error(w, "Failed to render error", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	// Perform discovery
-	response, err := h.discoveryService.DiscoverFiles(gitURL)
+	// Create temporary auth config from form fields
+	authConfig := CreateTempAuthConfig(r)
+
+	// Perform discovery with authentication
+	response, err := h.discoveryService.DiscoverFiles(gitURL, authConfig)
 	if err != nil {
 		slog.Error("Handler operation failed",
 			"layer", "handler",
@@ -57,8 +60,8 @@ func (h *DiscoveryHandlers) DiscoverFiles(w http.ResponseWriter, r *http.Request
 			"git_url", gitURL,
 			"error", err)
 
-		// Render error template
-		component := discovery.DiscoveryError(gitURL, err.Error())
+		// Render error with toast and preserved form
+		component := discovery.DiscoveryErrorWithToast(err.Error())
 		if err := component.Render(r.Context(), w); err != nil {
 			http.Error(w, "Failed to render error", http.StatusInternalServerError)
 		}
