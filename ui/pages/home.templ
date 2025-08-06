@@ -13,7 +13,6 @@ import (
 	"github.com/ch00k/oar/ui/components/actionbutton"
 )
 
-
 templ Home(projects []*services.Project) {
 	@Base("Oar - Home") {
 		<div class="max-w-7xl mx-auto">
@@ -89,19 +88,19 @@ templ addProjectForm() {
 					Class:       "bg-gray-50 flex-1 placeholder:text-gray-400",
 				})
 				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
-					ID:         "discover-button",
-					Icon:       icon.Radar(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
-					Tooltip:    "Auto-discover compose files",
-					ColorClass: "text-green-600",
-					HoverClass: "hover:text-green-800 hover:bg-green-100",
-					Condition:  true,
-					Disabled:   true,
-					Class:      "shrink-0",
-					Attributes: templ.Attributes{"onclick": "validateAndDiscover()"},
-					ButtonType: "button",
-					ShowSpinner: true,
-					SpinnerID:   "discover-indicator",
-					IconID:      "discover-icon",
+					ID:              "discover-button",
+					Icon:            icon.Radar(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
+					Tooltip:         "Auto-discover compose files",
+					ColorClass:      "text-green-600",
+					HoverClass:      "hover:text-green-800 hover:bg-green-100",
+					Condition:       true,
+					Disabled:        true,
+					Class:           "shrink-0",
+					Attributes:      templ.Attributes{"onclick": "validateAndDiscover()"},
+					ButtonType:      "button",
+					ShowSpinner:     true,
+					SpinnerID:       "discover-indicator",
+					IconID:          "discover-icon",
 					TooltipPosition: "left",
 				})
 			</div>
@@ -145,19 +144,19 @@ templ addProjectForm() {
 					}
 				}
 				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
-					ID:         "test-git-auth-button",
-					Icon:       icon.FlaskConical(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
-					Tooltip:    "Test git authentication",
-					ColorClass: "text-blue-600",
-					HoverClass: "hover:text-blue-800 hover:bg-blue-100",
-					Condition:  true,
-					Disabled:   true,
-					Class:      "shrink-0",
-					Attributes: templ.Attributes{"onclick": "validateAndTestGitAuth()"},
-					ButtonType: "button",
-					ShowSpinner: true,
-					SpinnerID:   "test-git-auth-indicator",
-					IconID:      "test-git-auth-icon",
+					ID:              "test-git-auth-button",
+					Icon:            icon.FlaskConical(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
+					Tooltip:         "Test git authentication",
+					ColorClass:      "text-blue-600",
+					HoverClass:      "hover:text-blue-800 hover:bg-blue-100",
+					Condition:       true,
+					Disabled:        true,
+					Class:           "shrink-0",
+					Attributes:      templ.Attributes{"onclick": "validateAndTestGitAuth()"},
+					ButtonType:      "button",
+					ShowSpinner:     true,
+					SpinnerID:       "test-git-auth-indicator",
+					IconID:          "test-git-auth-icon",
 					TooltipPosition: "left",
 				})
 			</div>
@@ -227,6 +226,21 @@ templ addProjectForm() {
 					Placeholder: "Add compose file...",
 					Value:       []string{},
 					Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
+				})
+			}
+		</div>
+		<div class="space-y-4">
+			@form.Item() {
+				@form.Label(form.LabelProps{For: "new-project-variables"}) {
+					Variables
+				}
+				@textarea.Textarea(textarea.Props{
+					ID:          "new-project-variables",
+					Name:        "variables_raw",
+					Placeholder: "Paste your .env file content here...\nKEY1=value1\nKEY2=value2\n# Comments will be ignored",
+					Rows:        4,
+					Class:       "bg-gray-50 placeholder:text-gray-400",
+					Attributes:  templ.Attributes{"oninput": "parseVariables()"},
 				})
 			}
 		</div>

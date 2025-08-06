@@ -423,7 +423,7 @@ func TestProjectRepository_FilesSerialization(t *testing.T) {
 	project := createTestProject()
 	project.Name = "files-serialization-test"
 	project.ComposeFiles = []string{"docker-compose.yml", "docker-compose.override.yml", "docker-compose.prod.yml"}
-	project.EnvironmentVariables = []string{"KEY1=value1", "KEY2=value2", "KEY3=value3"}
+	project.Variables = []string{"KEY1=value1", "KEY2=value2", "KEY3=value3"}
 
 	// Create and retrieve
 	createdProject, err := repo.Create(project)
@@ -434,7 +434,7 @@ func TestProjectRepository_FilesSerialization(t *testing.T) {
 
 	// Assertions
 	assert.Equal(t, project.ComposeFiles, retrievedProject.ComposeFiles)
-	assert.Equal(t, project.EnvironmentVariables, retrievedProject.EnvironmentVariables)
+	assert.Equal(t, project.Variables, retrievedProject.Variables)
 }
 
 func TestProjectRepository_StatusMapping(t *testing.T) {

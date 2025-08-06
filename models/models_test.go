@@ -366,14 +366,14 @@ func TestProjectModel_ComposeFiles_Serialization(t *testing.T) {
 	assert.Equal(t, expected, files)
 }
 
-func TestProjectModel_EnvironmentVariables_Serialization(t *testing.T) {
+func TestProjectModel_Variables_Serialization(t *testing.T) {
 	db := setupTestDB(t)
 
 	project := createTestProjectModel()
 
-	// Test with multiple environment variables (null-separated)
-	envVars := "KEY1=value1\x00KEY2=value2\x00KEY3=value3"
-	project.EnvironmentVariables = envVars
+	// Test with multiple variables (null-separated)
+	vars := "KEY1=value1\x00KEY2=value2\x00KEY3=value3"
+	project.Variables = vars
 
 	// Create and retrieve
 	result := db.Create(project)
@@ -384,12 +384,12 @@ func TestProjectModel_EnvironmentVariables_Serialization(t *testing.T) {
 	require.NoError(t, result.Error)
 
 	// Assertions
-	assert.Equal(t, envVars, retrievedProject.EnvironmentVariables)
+	assert.Equal(t, vars, retrievedProject.Variables)
 
 	// Test splitting the null-separated string
-	vars := strings.Split(retrievedProject.EnvironmentVariables, "\x00")
+	splitVars := strings.Split(retrievedProject.Variables, "\x00")
 	expected := []string{"KEY1=value1", "KEY2=value2", "KEY3=value3"}
-	assert.Equal(t, expected, vars)
+	assert.Equal(t, expected, splitVars)
 }
 
 // Tests for UUID field handling
