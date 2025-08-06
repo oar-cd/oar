@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"log/slog"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -16,8 +17,8 @@ type ComposeProject struct {
 	WorkingDir string
 	// ComposeFiles is a list of Docker Compose files for the project.
 	ComposeFiles []string
-	// EnvironmentFiles is a list of environment files for the project.
-	EnvironmentFiles []string
+	// EnvironmentVariables contains environment variables in KEY=value format
+	EnvironmentVariables []string
 	// Config holds configuration for docker commands and timeouts
 	Config *Config
 }
@@ -37,11 +38,11 @@ func NewComposeProject(p *Project, config *Config) *ComposeProject {
 	}
 
 	return &ComposeProject{
-		Name:             p.Name,
-		WorkingDir:       gitDir,
-		ComposeFiles:     p.ComposeFiles,
-		EnvironmentFiles: p.EnvironmentFiles,
-		Config:           config,
+		Name:                 p.Name,
+		WorkingDir:           gitDir,
+		ComposeFiles:         p.ComposeFiles,
+		EnvironmentVariables: p.EnvironmentVariables,
+		Config:               config,
 	}
 }
 
@@ -153,6 +154,15 @@ func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cm
 	// Create command
 	cmd := exec.Command(p.Config.DockerCommand, commandArgs...)
 	cmd.Dir = p.WorkingDir
+
+	// Inject environment variables if provided
+	if len(p.EnvironmentVariables) > 0 {
+		// Start with existing environment and append/override with user variables
+		cmd.Env = append(os.Environ(), p.EnvironmentVariables...)
+		slog.Debug("Injecting environment variables",
+			"project_name", p.Name,
+			"env_count", len(p.EnvironmentVariables))
+	}
 
 	return cmd, nil
 }

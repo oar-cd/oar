@@ -33,13 +33,13 @@ func createTestProjectModel() *ProjectModel {
 		BaseModel: BaseModel{
 			ID: uuid.New(),
 		},
-		Name:             "test-project",
-		GitURL:           "https://github.com/test/repo.git",
-		WorkingDir:       "/tmp/test-project",
-		ComposeFiles:     "docker-compose.yml",
-		EnvironmentFiles: ".env",
-		Status:           "stopped",
-		LastCommit:       stringPtr("abc123"),
+		Name:                 "test-project",
+		GitURL:               "https://github.com/test/repo.git",
+		WorkingDir:           "/tmp/test-project",
+		ComposeFiles:         "docker-compose.yml",
+		EnvironmentVariables: "KEY1=value1",
+		Status:               "stopped",
+		LastCommit:           stringPtr("abc123"),
 	}
 }
 

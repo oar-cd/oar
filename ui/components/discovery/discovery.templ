@@ -28,22 +28,10 @@ templ DiscoveredFiles(props DiscoveredFilesProps) {
 			Class:       "bg-gray-50",
 		})
 	}
-	@form.Item() {
-		@form.Label(form.LabelProps{For: "new-project-env-files"}) {
-			Environment Files
-		}
-		@tagsinput.TagsInput(tagsinput.Props{
-			ID:          "new-project-env-files",
-			Name:        "environment_files",
-			Placeholder: "Add environment file...",
-			Value:       []string{}, // Don't pre-populate env files, let user add them manually
-			Class:       "bg-gray-50",
-		})
-	}
 	if len(props.ComposeFiles) == 0 && len(props.EnvFiles) == 0 {
 		@form.Item() {
 			@form.Message(form.MessageProps{Variant: form.MessageVariantInfo}) {
-				No Docker Compose or environment files found in this repository.
+				No Docker Compose files found in this repository.
 			}
 		}
 	}
@@ -61,18 +49,6 @@ templ DiscoveryErrorWithToast(errorMessage string) {
 			ID:          "new-project-compose-files",
 			Name:        "compose_files",
 			Placeholder: "Add compose file...",
-			Value:       []string{},
-			Class:       "bg-gray-50",
-		})
-	}
-	@form.Item() {
-		@form.Label(form.LabelProps{For: "new-project-env-files"}) {
-			Environment Files
-		}
-		@tagsinput.TagsInput(tagsinput.Props{
-			ID:          "new-project-env-files",
-			Name:        "environment_files",
-			Placeholder: "Add environment file...",
 			Value:       []string{},
 			Class:       "bg-gray-50",
 		})

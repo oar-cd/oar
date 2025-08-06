@@ -104,7 +104,7 @@ func PrintProjectDetails(project *services.Project, short bool) (string, error) 
 				{"Git Directory", gitDir},
 				{"Git URL", project.GitURL},
 				{"Compose Files", strings.Join(project.ComposeFiles, "\n")},
-				{"Environment Files", strings.Join(project.EnvironmentFiles, "\n")},
+				{"Environment Variables", strings.Join(project.EnvironmentVariables, "\n")},
 			}...,
 		)
 	}
