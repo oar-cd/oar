@@ -15,15 +15,15 @@ type BaseModel struct {
 
 type ProjectModel struct {
 	BaseModel
-	Name               string  `gorm:"not null;unique"`
-	GitURL             string  `gorm:"not null"`
-	GitAuthType        *string `gorm:"type:varchar(20)"` // "http", "ssh", "oauth", etc.
-	GitAuthCredentials *string `gorm:"type:text"`        // Encrypted JSON blob containing all auth data
-	WorkingDir         string  `gorm:"not null"`         // directory where the project is cloned
-	ComposeFiles       string  `gorm:"not null"`         // list of compose file paths separated by null character (\0)
-	EnvironmentFiles   string  `gorm:"not null"`         // list of environment file paths separated by null character (\0)
-	Status             string  `gorm:"not null"`         // running, stopped, error
-	LastCommit         *string
+	Name                 string  `gorm:"not null;unique"`
+	GitURL               string  `gorm:"not null"`
+	GitAuthType          *string `gorm:"type:varchar(20)"` // "http", "ssh", "oauth", etc.
+	GitAuthCredentials   *string `gorm:"type:text"`        // Encrypted JSON blob containing all auth data
+	WorkingDir           string  `gorm:"not null"`         // directory where the project is cloned
+	ComposeFiles         string  `gorm:"not null"`         // list of compose file paths separated by null character (\0)
+	EnvironmentVariables string  `gorm:"not null"`         // Environment variables separated by null character (\0)
+	Status               string  `gorm:"not null"`         // running, stopped, error
+	LastCommit           *string
 
 	Deployments []DeploymentModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
 }

@@ -303,18 +303,6 @@ templ editProjectForm(project *services.Project) {
 				Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
 			})
 		}
-		@form.Item() {
-			@form.Label(form.LabelProps{For: fmt.Sprintf("project-env-files-%s", project.ID.String())}) {
-				Environment Files
-			}
-			@tagsinput.TagsInput(tagsinput.Props{
-				ID:          fmt.Sprintf("project-env-files-%s", project.ID.String()),
-				Name:        "environment_files",
-				Placeholder: "Add environment file...",
-				Value:       project.EnvironmentFiles,
-				Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
-			})
-		}
 	</form>
 }
 

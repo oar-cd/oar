@@ -30,17 +30,17 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 	}
 
 	return &Project{
-		ID:               p.ID,
-		Name:             p.Name,
-		GitURL:           p.GitURL,
-		GitAuth:          gitAuth,
-		WorkingDir:       p.WorkingDir,
-		ComposeFiles:     parseFiles(p.ComposeFiles),
-		EnvironmentFiles: parseFiles(p.EnvironmentFiles),
-		Status:           status,
-		LastCommit:       p.LastCommit,
-		CreatedAt:        p.CreatedAt,
-		UpdatedAt:        p.UpdatedAt,
+		ID:                   p.ID,
+		Name:                 p.Name,
+		GitURL:               p.GitURL,
+		GitAuth:              gitAuth,
+		WorkingDir:           p.WorkingDir,
+		ComposeFiles:         parseFiles(p.ComposeFiles),
+		EnvironmentVariables: parseFiles(p.EnvironmentVariables),
+		Status:               status,
+		LastCommit:           p.LastCommit,
+		CreatedAt:            p.CreatedAt,
+		UpdatedAt:            p.UpdatedAt,
 	}
 }
 
@@ -49,13 +49,13 @@ func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
 		BaseModel: models.BaseModel{
 			ID: p.ID,
 		},
-		Name:             p.Name,
-		GitURL:           p.GitURL,
-		WorkingDir:       p.WorkingDir,
-		ComposeFiles:     serializeFiles(p.ComposeFiles),
-		EnvironmentFiles: serializeFiles(p.EnvironmentFiles),
-		Status:           p.Status.String(),
-		LastCommit:       p.LastCommit,
+		Name:                 p.Name,
+		GitURL:               p.GitURL,
+		WorkingDir:           p.WorkingDir,
+		ComposeFiles:         serializeFiles(p.ComposeFiles),
+		EnvironmentVariables: serializeFiles(p.EnvironmentVariables),
+		Status:               p.Status.String(),
+		LastCommit:           p.LastCommit,
 	}
 
 	// Encrypt authentication data if present

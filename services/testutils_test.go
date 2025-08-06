@@ -59,16 +59,16 @@ func setupTestEncryption(t *testing.T) *EncryptionService {
 // createTestProject creates a standard test project for domain layer testing
 func createTestProject() *Project {
 	return &Project{
-		ID:               uuid.New(),
-		Name:             "test-project",
-		GitURL:           "https://github.com/test/repo.git",
-		WorkingDir:       "/tmp/test-project",
-		ComposeFiles:     []string{"docker-compose.yml"},
-		EnvironmentFiles: []string{".env"},
-		Status:           ProjectStatusStopped,
-		LastCommit:       stringPtr("abc123"),
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		ID:                   uuid.New(),
+		Name:                 "test-project",
+		GitURL:               "https://github.com/test/repo.git",
+		WorkingDir:           "/tmp/test-project",
+		ComposeFiles:         []string{"docker-compose.yml"},
+		EnvironmentVariables: []string{"KEY1=value1"},
+		Status:               ProjectStatusStopped,
+		LastCommit:           stringPtr("abc123"),
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
 	}
 }
 
@@ -88,8 +88,8 @@ func createTestProjectWithOptions(opts ProjectOptions) *Project {
 	if len(opts.ComposeFiles) > 0 {
 		project.ComposeFiles = opts.ComposeFiles
 	}
-	if len(opts.EnvironmentFiles) > 0 {
-		project.EnvironmentFiles = opts.EnvironmentFiles
+	if len(opts.EnvironmentVariables) > 0 {
+		project.EnvironmentVariables = opts.EnvironmentVariables
 	}
 	if opts.Status != ProjectStatusUnknown {
 		project.Status = opts.Status
@@ -100,12 +100,12 @@ func createTestProjectWithOptions(opts ProjectOptions) *Project {
 
 // ProjectOptions provides customization options for test projects
 type ProjectOptions struct {
-	Name             string
-	GitURL           string
-	WorkingDir       string
-	ComposeFiles     []string
-	EnvironmentFiles []string
-	Status           ProjectStatus
+	Name                 string
+	GitURL               string
+	WorkingDir           string
+	ComposeFiles         []string
+	EnvironmentVariables []string
+	Status               ProjectStatus
 }
 
 // createTestDeployment creates a test deployment for domain layer testing
@@ -123,15 +123,15 @@ func createTestDeployment(projectID uuid.UUID) *Deployment {
 func createTestComposeProject() *ComposeProject {
 	// Create a test project
 	testProject := &Project{
-		ID:               uuid.New(),
-		Name:             "test-project",
-		GitURL:           "https://github.com/test/repo.git",
-		WorkingDir:       "/tmp/test-compose-project",
-		ComposeFiles:     []string{"docker-compose.yml"},
-		EnvironmentFiles: []string{".env"},
-		Status:           ProjectStatusStopped,
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
+		ID:                   uuid.New(),
+		Name:                 "test-project",
+		GitURL:               "https://github.com/test/repo.git",
+		WorkingDir:           "/tmp/test-compose-project",
+		ComposeFiles:         []string{"docker-compose.yml"},
+		EnvironmentVariables: []string{"KEY1=value1"},
+		Status:               ProjectStatusStopped,
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
 	}
 
 	// Create test config

@@ -9,17 +9,17 @@ import (
 )
 
 type Project struct {
-	ID               uuid.UUID
-	Name             string
-	GitURL           string
-	GitAuth          *GitAuthConfig // Git authentication configuration
-	WorkingDir       string
-	ComposeFiles     []string
-	EnvironmentFiles []string
-	Status           ProjectStatus
-	LastCommit       *string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                   uuid.UUID
+	Name                 string
+	GitURL               string
+	GitAuth              *GitAuthConfig // Git authentication configuration
+	WorkingDir           string
+	ComposeFiles         []string
+	EnvironmentVariables []string // Environment variables in .env format, one per string
+	Status               ProjectStatus
+	LastCommit           *string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
 }
 
 func (p *Project) GitDir() (string, error) {
@@ -36,14 +36,14 @@ func (p *Project) LastCommitStr() string {
 	return *p.LastCommit
 }
 
-func NewProject(name, gitURL string, composeFiles, environmentFiles []string) Project {
+func NewProject(name, gitURL string, composeFiles []string, environmentVariables []string) Project {
 	return Project{
-		ID:               uuid.New(),
-		Name:             name,
-		GitURL:           gitURL,
-		ComposeFiles:     composeFiles,
-		EnvironmentFiles: environmentFiles,
-		Status:           ProjectStatusStopped,
+		ID:                   uuid.New(),
+		Name:                 name,
+		GitURL:               gitURL,
+		ComposeFiles:         composeFiles,
+		EnvironmentVariables: environmentVariables,
+		Status:               ProjectStatusStopped,
 	}
 }
 

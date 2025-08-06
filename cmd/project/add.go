@@ -22,10 +22,9 @@ Oar will clone the repository and detect Docker Compose files automatically.`,
 			gitURL, _ := cmd.Flags().GetString("git-url")
 			name, _ := cmd.Flags().GetString("name")
 			composeFiles, _ := cmd.Flags().GetStringArray("compose-file")
-			envFiles, _ := cmd.Flags().GetStringArray("env-file")
 
 			// Create project struct from CLI input
-			project := services.NewProject(name, gitURL, composeFiles, envFiles)
+			project := services.NewProject(name, gitURL, composeFiles, []string{})
 
 			// Call service
 			createdProject, err := app.GetProjectService().Create(&project)
@@ -48,7 +47,6 @@ Oar will clone the repository and detect Docker Compose files automatically.`,
 	cmd.Flags().StringP("git-url", "u", "", "Git repository URL")
 	cmd.Flags().StringP("name", "n", "", "Custom project name (auto-detected if not specified)")
 	cmd.Flags().StringArrayP("compose-file", "f", nil, "Docker Compose file path (relative to repository root)")
-	cmd.Flags().StringArrayP("env-file", "e", nil, "Environment file path (absolute)")
 	if err := cmd.MarkFlagRequired("git-url"); err != nil {
 		slog.Error("Failed to mark git-url flag as required", "error", err)
 		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic

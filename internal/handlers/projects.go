@@ -178,11 +178,11 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	gitURL := r.FormValue("git_url")
 	composeFiles := r.Form["compose_files"]
-	environmentFiles := r.Form["environment_files"]
+	environmentVariables := r.Form["environment_variables"]
 	tempClonePath := r.FormValue("temp_clone_path")
 
 	// Create and save project
-	project := services.NewProject(name, gitURL, composeFiles, environmentFiles)
+	project := services.NewProject(name, gitURL, composeFiles, environmentVariables)
 
 	var err error
 	if tempClonePath == "" {
@@ -332,14 +332,14 @@ func (h *ProjectHandlers) buildProjectFromForm(r *http.Request, projectID uuid.U
 	}
 
 	return &services.Project{
-		ID:               projectID,
-		Name:             r.FormValue("name"),
-		GitURL:           r.FormValue("git_url"),
-		WorkingDir:       r.FormValue("working_dir"),
-		ComposeFiles:     r.Form["compose_files"],
-		EnvironmentFiles: r.Form["environment_files"],
-		Status:           status,
-		LastCommit:       lastCommit,
+		ID:                   projectID,
+		Name:                 r.FormValue("name"),
+		GitURL:               r.FormValue("git_url"),
+		WorkingDir:           r.FormValue("working_dir"),
+		ComposeFiles:         r.Form["compose_files"],
+		EnvironmentVariables: r.Form["environment_variables"],
+		Status:               status,
+		LastCommit:           lastCommit,
 	}
 }
 

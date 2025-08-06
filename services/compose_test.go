@@ -29,10 +29,10 @@ func extractMessageFromJSON(jsonStr string) (string, error) {
 func TestNewComposeProject_Success(t *testing.T) {
 	// Create test project with working directory
 	testProject := createTestProjectWithOptions(ProjectOptions{
-		Name:             "test-compose-project",
-		WorkingDir:       "/tmp/test-compose-project",
-		ComposeFiles:     []string{"docker-compose.yml", "docker-compose.override.yml"},
-		EnvironmentFiles: []string{".env", ".env.local"},
+		Name:                 "test-compose-project",
+		WorkingDir:           "/tmp/test-compose-project",
+		ComposeFiles:         []string{"docker-compose.yml", "docker-compose.override.yml"},
+		EnvironmentVariables: []string{"KEY1=value1", "KEY2=value2"},
 	})
 	tempDir := t.TempDir()
 	testProject.WorkingDir = filepath.Join(tempDir, testProject.ID.String())
@@ -60,16 +60,16 @@ func TestNewComposeProject_Success(t *testing.T) {
 	assert.Equal(t, testProject.Name, composeProject.Name)
 	assert.Equal(t, gitDir, composeProject.WorkingDir)
 	assert.Equal(t, testProject.ComposeFiles, composeProject.ComposeFiles)
-	assert.Equal(t, testProject.EnvironmentFiles, composeProject.EnvironmentFiles)
+	assert.Equal(t, testProject.EnvironmentVariables, composeProject.EnvironmentVariables)
 }
 
 func TestNewComposeProject_InvalidProject(t *testing.T) {
 	// Create project with invalid working directory
 	testProject := createTestProjectWithOptions(ProjectOptions{
-		Name:             "test-compose-project",
-		WorkingDir:       "/tmp/test-compose-project",
-		ComposeFiles:     []string{"docker-compose.yml", "docker-compose.override.yml"},
-		EnvironmentFiles: []string{".env", ".env.local"},
+		Name:                 "test-compose-project",
+		WorkingDir:           "/tmp/test-compose-project",
+		ComposeFiles:         []string{"docker-compose.yml", "docker-compose.override.yml"},
+		EnvironmentVariables: []string{"KEY1=value1", "KEY2=value2"},
 	})
 	testProject.WorkingDir = "" // Invalid working directory
 
