@@ -9,11 +9,13 @@ import (
 	"github.com/ch00k/oar/ui/components/button"
 	"github.com/ch00k/oar/ui/components/checkbox"
 	"github.com/ch00k/oar/ui/components/tagsinput"
+	"github.com/ch00k/oar/ui/components/textarea"
 	"github.com/ch00k/oar/ui/components/toast"
 	"github.com/ch00k/oar/ui/components/code"
 	"github.com/ch00k/oar/ui/components/actionbutton"
 	"github.com/ch00k/oar/services"
 	"fmt"
+	"strings"
 )
 
 // Configuration structures
@@ -301,6 +303,20 @@ templ editProjectForm(project *services.Project) {
 				Placeholder: "Add compose file...",
 				Value:       project.ComposeFiles,
 				Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
+			})
+		}
+		@form.Item() {
+			@form.Label(form.LabelProps{For: fmt.Sprintf("project-variables-%s", project.ID.String())}) {
+				Variables
+			}
+			@textarea.Textarea(textarea.Props{
+				ID:          fmt.Sprintf("project-variables-%s", project.ID.String()),
+				Name:        "variables_raw",
+				Placeholder: "Paste your .env file content here...\nKEY1=value1\nKEY2=value2\n# Comments will be ignored",
+				Rows:        4,
+				Class:       "bg-gray-50 placeholder:text-gray-400",
+				Value:       strings.Join(project.Variables, "\n"),
+				Attributes:  templ.Attributes{"oninput": fmt.Sprintf("parseVariablesEdit('%s')", project.ID.String())},
 			})
 		}
 	</form>
