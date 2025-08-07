@@ -228,20 +228,20 @@ templ addProjectForm() {
 					Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
 				})
 			}
-			@form.Item() {
-				@form.Label(form.LabelProps{For: "new-project-variables"}) {
-					Variables
-				}
-				@textarea.Textarea(textarea.Props{
-					ID:          "new-project-variables",
-					Name:        "variables_raw",
-					Placeholder: "Paste your .env file content here...\nKEY1=value1\nKEY2=value2\n# Comments will be ignored",
-					Rows:        4,
-					Class:       "bg-gray-50 placeholder:text-gray-400",
-					Attributes:  templ.Attributes{"oninput": "parseVariables()"},
-				})
-			}
 		</div>
+		@form.Item() {
+			@form.Label(form.LabelProps{For: "new-project-variables"}) {
+				Variables
+			}
+			@textarea.Textarea(textarea.Props{
+				ID:          "new-project-variables",
+				Name:        "variables_raw",
+				Placeholder: "Paste your .env file content here...\nKEY1=value1\nKEY2=value2\n# Comments will be ignored",
+				Rows:        4,
+				Class:       "bg-gray-50 placeholder:text-gray-400",
+				Attributes:  templ.Attributes{"oninput": "parseVariables()"},
+			})
+		}
 	</form>
 }
 

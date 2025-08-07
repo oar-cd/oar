@@ -181,8 +181,9 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	variables := r.Form["variables"]
 	tempClonePath := r.FormValue("temp_clone_path")
 
-	// Create and save project
+	// Create project and set Git authentication
 	project := services.NewProject(name, gitURL, composeFiles, variables)
+	project.GitAuth = CreateTempAuthConfig(r)
 
 	var err error
 	if tempClonePath == "" {
@@ -335,6 +336,7 @@ func (h *ProjectHandlers) buildProjectFromForm(r *http.Request, projectID uuid.U
 		ID:           projectID,
 		Name:         r.FormValue("name"),
 		GitURL:       r.FormValue("git_url"),
+		GitAuth:      CreateTempAuthConfig(r),
 		WorkingDir:   r.FormValue("working_dir"),
 		ComposeFiles: r.Form["compose_files"],
 		Variables:    r.Form["variables"],
