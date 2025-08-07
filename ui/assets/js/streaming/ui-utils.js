@@ -101,22 +101,76 @@ class UIUpdater {
      * Update project action buttons based on status
      */
     static updateProjectActionButtons(projectId, newStatus) {
-        // Find the stop button container (now always rendered)
-        const stopButtonTrigger = document.querySelector(`[data-modal-trigger="stop-project-modal-${projectId}"]`);
+        const projectCard = document.getElementById(`project-card-${projectId}`);
+        if (!projectCard) {
+            console.warn('Project card not found:', projectId);
+            return;
+        }
 
-        if (stopButtonTrigger) {
-            // Find the parent container (div.relative.group)
-            const stopButtonContainer = stopButtonTrigger.closest('.relative.group');
+        const allButtons = projectCard.querySelectorAll('button');
 
-            if (stopButtonContainer) {
+        // Update stop button visibility
+        const stopButton = allButtons[1]; // Stop button is typically at index 1 (red button)
+
+        if (stopButton && stopButton.classList.contains('text-red-600')) {
+            // Find the ActionButtonWithVisibility wrapper
+            const actionButtonContainer = stopButton.closest('.relative.group');
+            const visibilityContainer = actionButtonContainer ? actionButtonContainer.parentElement : null;
+
+            if (visibilityContainer && visibilityContainer !== actionButtonContainer) {
                 if (newStatus === 'running') {
                     // Show stop button by removing hidden class
-                    stopButtonContainer.classList.remove('hidden');
+                    visibilityContainer.classList.remove('hidden');
                 } else {
                     // Hide stop button by adding hidden class
-                    stopButtonContainer.classList.add('hidden');
+                    visibilityContainer.classList.add('hidden');
                 }
             }
+        }
+
+        // Update edit button state
+        const editButton = allButtons[2]; // Edit button is typically at index 2
+
+        if (editButton) {
+            const editButtonContainer = editButton.closest('.relative.group');
+
+            if (editButtonContainer) {
+                // Update edit button state based on running status
+                UIUpdater.updateEditButtonState(editButtonContainer, projectId, newStatus === 'running');
+            }
+        }
+    }
+
+    /**
+     * Update edit button state (enabled/disabled) based on project status
+     */
+    static updateEditButtonState(container, projectId, isRunning) {
+        const button = container.querySelector('button');
+        const tooltip = container.querySelector('div');
+
+        const tooltipText = isRunning ? 'Cannot edit running project - stop it first' : 'Edit Project';
+        const baseClasses = 'flex items-center justify-center p-2 rounded-md transition-colors relative';
+
+        if (button) {
+            if (isRunning) {
+                // Disabled state for running projects
+                button.disabled = true;
+                button.removeAttribute('data-modal-trigger');
+                button.className = `${baseClasses} text-gray-400 cursor-not-allowed opacity-50`;
+            } else {
+                // Enabled state for non-running projects
+                button.disabled = false;
+                button.setAttribute('data-modal-trigger', `edit-project-modal-${projectId}`);
+                button.className = `${baseClasses} text-gray-600 hover:text-gray-800 hover:bg-gray-200`;
+            }
+
+            // Set tooltip text for both title and aria-label
+            button.title = tooltipText;
+            button.setAttribute('aria-label', tooltipText);
+        }
+
+        if (tooltip) {
+            tooltip.textContent = tooltipText;
         }
     }
 
