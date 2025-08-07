@@ -4,13 +4,8 @@ import (
 	"github.com/ch00k/oar/services"
 	"github.com/ch00k/oar/ui/components/button"
 	"github.com/ch00k/oar/ui/components/modal"
-	"github.com/ch00k/oar/ui/components/form"
-	"github.com/ch00k/oar/ui/components/input"
-	"github.com/ch00k/oar/ui/components/tagsinput"
-	"github.com/ch00k/oar/ui/components/selectbox"
 	"github.com/ch00k/oar/ui/components/icon"
-	"github.com/ch00k/oar/ui/components/textarea"
-	"github.com/ch00k/oar/ui/components/actionbutton"
+	"github.com/ch00k/oar/ui/components/projectform"
 )
 
 templ Home(projects []*services.Project) {
@@ -54,195 +49,15 @@ templ addProjectModal() {
 }
 
 templ addProjectForm() {
-	<form
-		id="add-project-form"
-		class="space-y-4"
-		hx-post="/projects/create"
-		hx-target="#projects-grid"
-		hx-swap="innerHTML"
-	>
-		@form.Item() {
-			@form.Label(form.LabelProps{For: "new-project-name"}) {
-				Project Name
-			}
-			@input.Input(input.Props{
-				ID:          "new-project-name",
-				Name:        "name",
-				Type:        input.TypeText,
-				Placeholder: "Enter project name",
-				Required:    true,
-				Class:       "bg-gray-50 placeholder:text-gray-400",
-			})
-		}
-		@form.Item() {
-			@form.Label(form.LabelProps{For: "new-project-git-url"}) {
-				Git URL
-			}
-			<div class="flex gap-2">
-				@input.Input(input.Props{
-					ID:          "new-project-git-url",
-					Name:        "git_url",
-					Type:        input.TypeText,
-					Placeholder: "https://github.com/user/repo.git or git@github.com:user/repo.git",
-					Required:    true,
-					Class:       "bg-gray-50 flex-1 placeholder:text-gray-400",
-				})
-				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
-					ID:              "discover-button",
-					Icon:            icon.Radar(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
-					Tooltip:         "Auto-discover compose files",
-					ColorClass:      "text-green-600",
-					HoverClass:      "hover:text-green-800 hover:bg-green-100",
-					Condition:       true,
-					Disabled:        true,
-					Class:           "shrink-0",
-					Attributes:      templ.Attributes{"onclick": "validateAndDiscover()"},
-					ButtonType:      "button",
-					ShowSpinner:     true,
-					SpinnerID:       "discover-indicator",
-					IconID:          "discover-icon",
-					TooltipPosition: "left",
-				})
-			</div>
-		}
-		@form.Item() {
-			@form.Label(form.LabelProps{For: "new-project-auth-type"}) {
-				Authentication Type
-			}
-			<div class="flex gap-2">
-				@selectbox.SelectBox(selectbox.Props{
-					ID: "auth-type-select",
-				}) {
-					@selectbox.Trigger(selectbox.TriggerProps{
-						ID:    "new-project-auth-type",
-						Name:  "auth_type",
-						Class: "bg-gray-50 flex-1",
-					}) {
-						@selectbox.Value(selectbox.ValueProps{
-							Placeholder: "None",
-						})
-					}
-					@selectbox.Content(selectbox.ContentProps{
-						NoSearch: true,
-					}) {
-						@selectbox.Item(selectbox.ItemProps{
-							Value:    "none",
-							Selected: true,
-						}) {
-							None
-						}
-						@selectbox.Item(selectbox.ItemProps{
-							Value: "http",
-						}) {
-							HTTP (username/password)
-						}
-						@selectbox.Item(selectbox.ItemProps{
-							Value: "ssh",
-						}) {
-							SSH (private key)
-						}
-					}
-				}
-				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
-					ID:              "test-git-auth-button",
-					Icon:            icon.FlaskConical(icon.Props{Class: "!w-6 !h-6 !min-w-[24px] !min-h-[24px] !max-w-[24px] !max-h-[24px]"}),
-					Tooltip:         "Test git authentication",
-					ColorClass:      "text-blue-600",
-					HoverClass:      "hover:text-blue-800 hover:bg-blue-100",
-					Condition:       true,
-					Disabled:        true,
-					Class:           "shrink-0",
-					Attributes:      templ.Attributes{"onclick": "validateAndTestGitAuth()"},
-					ButtonType:      "button",
-					ShowSpinner:     true,
-					SpinnerID:       "test-git-auth-indicator",
-					IconID:          "test-git-auth-icon",
-					TooltipPosition: "left",
-				})
-			</div>
-		}
-		<div id="auth-fields-section">
-			<div id="http-auth-fields" class="space-y-4" style="display: none;">
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-username"}) {
-						Username
-					}
-					@input.Input(input.Props{
-						ID:          "new-project-username",
-						Name:        "username",
-						Type:        input.TypeText,
-						Placeholder: "Enter username",
-						Class:       "bg-gray-50 placeholder:text-gray-400",
-					})
-				}
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-password"}) {
-						Password
-					}
-					@input.Input(input.Props{
-						ID:          "new-project-password",
-						Name:        "password",
-						Type:        input.TypePassword,
-						Placeholder: "Enter password",
-						Class:       "bg-gray-50 placeholder:text-gray-400",
-					})
-				}
-			</div>
-			<div id="ssh-auth-fields" class="space-y-4" style="display: none;">
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-ssh-user"}) {
-						SSH User
-					}
-					@input.Input(input.Props{
-						ID:          "new-project-ssh-user",
-						Name:        "ssh_user",
-						Type:        input.TypeText,
-						Placeholder: "Enter SSH user (e.g., git)",
-						Class:       "bg-gray-50 placeholder:text-gray-400",
-					})
-				}
-				@form.Item() {
-					@form.Label(form.LabelProps{For: "new-project-ssh-key"}) {
-						SSH Private Key
-					}
-					@textarea.Textarea(textarea.Props{
-						ID:          "new-project-ssh-key",
-						Name:        "ssh_private_key",
-						Placeholder: "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----",
-						Rows:        3,
-						Class:       "bg-gray-50 placeholder:text-gray-400",
-					})
-				}
-			</div>
-		</div>
-		<div id="compose-files-section" class="space-y-4">
-			@form.Item() {
-				@form.Label(form.LabelProps{For: "new-project-compose-files"}) {
-					Compose Files
-				}
-				@tagsinput.TagsInput(tagsinput.Props{
-					ID:          "new-project-compose-files",
-					Name:        "compose_files",
-					Placeholder: "Add compose file...",
-					Value:       []string{},
-					Class:       "bg-gray-50 [&_input]:placeholder:text-gray-400",
-				})
-			}
-		</div>
-		@form.Item() {
-			@form.Label(form.LabelProps{For: "new-project-variables"}) {
-				Variables
-			}
-			@textarea.Textarea(textarea.Props{
-				ID:          "new-project-variables",
-				Name:        "variables_raw",
-				Placeholder: "Paste your .env file content here...\nKEY1=value1\nKEY2=value2\n# Comments will be ignored",
-				Rows:        4,
-				Class:       "bg-gray-50 placeholder:text-gray-400",
-				Attributes:  templ.Attributes{"oninput": "parseVariables()"},
-			})
-		}
-	</form>
+	@projectform.ProjectForm(projectform.ProjectFormProps{
+		Mode:       "create",
+		Project:    nil,
+		FormID:     "add-project-form",
+		FormAction: "/projects/create",
+		FormTarget: "#projects-grid",
+		FormSwap:   "innerHTML",
+		IDPrefix:   "new-project",
+	})
 }
 
 templ addProjectFooter() {
