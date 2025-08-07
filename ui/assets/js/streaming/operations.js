@@ -119,6 +119,44 @@ function getOperationConfig(operationType) {
 }
 
 /**
+ * Load project configuration (non-streaming)
+ */
+function loadProjectConfig(projectId) {
+    const outputContent = document.getElementById(`config-output-content-${projectId}`);
+
+    if (!outputContent) {
+        console.error('Config output element not found');
+        return;
+    }
+
+    // Fetch configuration
+    fetch(`/projects/${projectId}/config`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(configText => {
+            // Display the configuration with consistent text color (gray-400)
+            outputContent.innerHTML = `<pre class="whitespace-pre-wrap text-gray-400">${escapeHtml(configText)}</pre>`;
+        })
+        .catch(error => {
+            console.error('Error loading config:', error);
+            outputContent.innerHTML = '<span class="oar-text text-red-400">Failed to load configuration. Please try again.</span>';
+        });
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
  * Validate operation type
  */
 function isValidOperation(operationType) {
@@ -130,6 +168,7 @@ if (typeof window !== 'undefined') {
     window.deployProjectWithStreaming = deployProjectWithStreaming;
     window.stopProjectWithStreaming = stopProjectWithStreaming;
     window.viewLogsWithStreaming = viewLogsWithStreaming;
+    window.loadProjectConfig = loadProjectConfig;
     window.getAvailableOperations = getAvailableOperations;
     window.getOperationConfig = getOperationConfig;
     window.isValidOperation = isValidOperation;
@@ -141,6 +180,7 @@ if (typeof module !== 'undefined' && module.exports) {
         deployProjectWithStreaming,
         stopProjectWithStreaming,
         viewLogsWithStreaming,
+        loadProjectConfig,
         getAvailableOperations,
         getOperationConfig,
         isValidOperation,
