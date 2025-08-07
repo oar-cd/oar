@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/ch00k/oar/services"
@@ -178,7 +179,7 @@ func (h *ProjectHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	gitURL := r.FormValue("git_url")
 	composeFiles := r.Form["compose_files"]
-	variables := r.Form["variables"]
+	variables := parseVariablesFromRaw(r.FormValue("variables_raw"))
 	tempClonePath := r.FormValue("temp_clone_path")
 
 	// Create project and set Git authentication
@@ -370,10 +371,40 @@ func (h *ProjectHandlers) buildProjectFromForm(r *http.Request, projectID uuid.U
 		GitAuth:      CreateTempAuthConfig(r),
 		WorkingDir:   r.FormValue("working_dir"),
 		ComposeFiles: r.Form["compose_files"],
-		Variables:    r.Form["variables"],
+		Variables:    parseVariablesFromRaw(r.FormValue("variables_raw")),
 		Status:       status,
 		LastCommit:   lastCommit,
 	}
+}
+
+// parseVariablesFromRaw parses raw variable text into a slice of KEY=value strings
+func parseVariablesFromRaw(raw string) []string {
+	var variables []string
+	lines := strings.Split(raw, "\n")
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Skip empty lines and comments
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		// Check if line contains = separator
+		if strings.Contains(trimmed, "=") {
+			// Split only on the first = to handle values containing =
+			equalIndex := strings.Index(trimmed, "=")
+			key := strings.TrimSpace(trimmed[:equalIndex])
+			value := strings.TrimSpace(trimmed[equalIndex+1:])
+
+			// Skip if key is empty
+			if key != "" {
+				variables = append(variables, key+"="+value)
+			}
+		}
+	}
+
+	return variables
 }
 
 // RegisterRoutes registers all project-related routes

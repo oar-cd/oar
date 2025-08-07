@@ -1020,7 +1020,6 @@ func ProjectForm(props ProjectFormProps) templ.Component {
 				Rows:        4,
 				Class:       "bg-gray-50 placeholder:text-gray-400",
 				Value:       getProjectVariables(props.Project),
-				Attributes:  getVariablesAttributes(props.Mode, props.IDPrefix, props.Project),
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -1116,16 +1115,6 @@ func getAuthFieldsDisplay(project *services.Project, authType string) string {
 		return "display: block;"
 	}
 	return "display: none;"
-}
-
-func getVariablesAttributes(mode, idPrefix string, project *services.Project) templ.Attributes {
-	if mode == "create" {
-		return templ.Attributes{"oninput": "parseVariables()"}
-	}
-	if project != nil {
-		return templ.Attributes{"oninput": fmt.Sprintf("parseVariablesEdit('%s')", project.ID.String())}
-	}
-	return templ.Attributes{"oninput": fmt.Sprintf("parseVariablesEdit('%s')", idPrefix)}
 }
 
 func getGitURLFieldClass(mode string) string {
