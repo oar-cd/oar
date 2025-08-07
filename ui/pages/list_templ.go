@@ -358,10 +358,11 @@ func ProjectCard(project *services.Project) templ.Component {
 				templ_7745c5c3_Err = actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    "",
 					Icon:       icon.ListChecks(),
-					Tooltip:    "View Deployments",
-					ColorClass: "text-gray-600",
-					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
+					Tooltip:    "View Deployments (coming soon)",
+					ColorClass: "text-gray-400 cursor-not-allowed",
+					HoverClass: "",
 					Condition:  true,
+					Disabled:   true,
 				}).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -589,7 +590,7 @@ func statusBadge(status services.ProjectStatus) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(status.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 204, Col: 31}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 205, Col: 31}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -602,7 +603,7 @@ func statusBadge(status services.ProjectStatus) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(status.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 206, Col: 19}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 207, Col: 19}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -645,7 +646,7 @@ func lastCommitBadge(lastCommit *string) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(*lastCommit)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 212, Col: 152}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 213, Col: 152}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -658,7 +659,7 @@ func lastCommitBadge(lastCommit *string) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs((*lastCommit)[:8])
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 213, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 214, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -730,7 +731,7 @@ func GenericModal(config ModalConfig) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(config.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 226, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 227, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -870,7 +871,7 @@ func CodeOutput(config CodeOutputConfig) templ.Component {
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s-output-container-%s", config.OutputType, config.ProjectID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 244, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 245, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -905,7 +906,7 @@ func CodeOutput(config CodeOutputConfig) templ.Component {
 			var templ_7745c5c3_Var34 string
 			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s-output-content-%s", config.OutputType, config.ProjectID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 257, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 258, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
@@ -918,7 +919,7 @@ func CodeOutput(config CodeOutputConfig) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(config.InitialText)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 258, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 259, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -1158,7 +1159,7 @@ func deleteProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 333, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 334, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -1171,7 +1172,7 @@ func deleteProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("delete-project-form-%s", project.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 338, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 339, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
@@ -1184,7 +1185,7 @@ func deleteProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var44 string
 		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/projects/%s", project.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 339, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 340, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 		if templ_7745c5c3_Err != nil {
@@ -1415,7 +1416,7 @@ func deployProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("deploy-project-form-%s", project.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 394, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 395, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -1553,7 +1554,7 @@ func stopProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var57 string
 		templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 428, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 429, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 		if templ_7745c5c3_Err != nil {
@@ -1579,7 +1580,7 @@ func stopProjectBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("stop-project-form-%s", project.ID.String()))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 438, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 439, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {
@@ -1716,7 +1717,7 @@ func logsModalBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 471, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 472, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1806,7 +1807,7 @@ func configModalBody(project *services.Project) templ.Component {
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 498, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/pages/list.templ`, Line: 499, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {

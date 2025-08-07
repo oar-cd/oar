@@ -115,10 +115,11 @@ templ ProjectCard(project *services.Project) {
 				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    "",
 					Icon:       icon.ListChecks(),
-					Tooltip:    "View Deployments",
-					ColorClass: "text-gray-600",
-					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
+					Tooltip:    "View Deployments (coming soon)",
+					ColorClass: "text-gray-400 cursor-not-allowed",
+					HoverClass: "",
 					Condition:  true,
+					Disabled:   true,
 				})
 				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
 					ModalID:    fmt.Sprintf("logs-modal-%s", project.ID.String()),
