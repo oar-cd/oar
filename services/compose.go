@@ -129,6 +129,20 @@ func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
+func (p *ComposeProject) GetConfig() (string, error) {
+	cmd, err := p.commandConfig()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_config",
+			"project_name", p.Name,
+			"error", err)
+		return "", err
+	}
+
+	return p.executeCommand(cmd)
+}
+
 func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cmd, error) {
 	// Build docker compose command
 	commandArgs := []string{
@@ -306,6 +320,20 @@ func (p *ComposeProject) commandLogs() (*exec.Cmd, error) {
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",
 			"operation", "docker_compose_logs",
+			"project_name", p.Name,
+			"error", err)
+		return nil, err
+	}
+
+	return cmd, nil
+}
+
+func (p *ComposeProject) commandConfig() (*exec.Cmd, error) {
+	cmd, err := p.prepareCommand("config", []string{})
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_config",
 			"project_name", p.Name,
 			"error", err)
 		return nil, err

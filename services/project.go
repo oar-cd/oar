@@ -561,6 +561,47 @@ func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<-
 	return nil
 }
 
+func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return "", fmt.Errorf("project not found: %w", err)
+	}
+
+	// Get configuration using Docker Compose
+	slog.Info(
+		"Getting Docker Compose configuration",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project, s.config)
+
+	output, err := composeProject.GetConfig()
+	if err != nil {
+		slog.Error(
+			"Failed to get configuration",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return "", fmt.Errorf("failed to get configuration: %w", err)
+	}
+	slog.Info(
+		"Configuration retrieved successfully",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+		"output_length",
+		len(output),
+	)
+	return output, nil
+}
+
 func (s *ProjectService) pullLatestChanges(project *Project) error {
 	slog.Info("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
 

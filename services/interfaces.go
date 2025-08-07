@@ -17,6 +17,7 @@ type ComposeProjectInterface interface {
 	Up() (string, error)
 	Down() (string, error)
 	Logs() (string, error)
+	GetConfig() (string, error)
 	UpStreaming(outputChan chan<- string) error
 	DownStreaming(outputChan chan<- string) error
 	LogsStreaming(outputChan chan<- string) error
@@ -36,4 +37,5 @@ type ProjectManager interface {
 	Stop(projectID uuid.UUID) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	GetConfig(projectID uuid.UUID) (string, error)
 }

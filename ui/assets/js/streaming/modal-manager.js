@@ -18,6 +18,11 @@ class ModalController {
             outputMessage: 'Starting log stream...',
             buttonText: null,
             buttonHandler: null
+        },
+        config: {
+            outputMessage: '',
+            buttonText: null,
+            buttonHandler: null
         }
     };
 
@@ -25,7 +30,8 @@ class ModalController {
     static MODAL_PATTERNS = [
         { pattern: 'deploy-project-modal-', type: 'deploy' },
         { pattern: 'stop-project-modal-', type: 'stop' },
-        { pattern: 'logs-modal-', type: 'logs' }
+        { pattern: 'logs-modal-', type: 'logs' },
+        { pattern: 'config-modal-', type: 'config' }
     ];
 
     /**
@@ -127,6 +133,11 @@ class ModalController {
                     // Auto-start logs streaming for logs modal
                     if (modalType === 'logs' && window.viewLogsWithStreaming) {
                         window.viewLogsWithStreaming(projectId);
+                    }
+
+                    // Auto-load config for config modal
+                    if (modalType === 'config' && window.loadProjectConfig) {
+                        window.loadProjectConfig(projectId);
                     }
                 }, 100); // Give modal time to open
             }

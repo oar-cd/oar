@@ -66,6 +66,7 @@ templ projectModals(project *services.Project) {
 	@deployProjectModal(project)
 	@stopProjectModal(project)
 	@logsModal(project)
+	@configModal(project)
 }
 
 templ ProjectCard(project *services.Project) {
@@ -123,6 +124,14 @@ templ ProjectCard(project *services.Project) {
 					ModalID:    fmt.Sprintf("logs-modal-%s", project.ID.String()),
 					Icon:       icon.ScrollText(),
 					Tooltip:    "View Logs",
+					ColorClass: "text-gray-600",
+					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
+					Condition:  true,
+				})
+				@actionbutton.ActionButton(actionbutton.ActionButtonConfig{
+					ModalID:    fmt.Sprintf("config-modal-%s", project.ID.String()),
+					Icon:       icon.Settings(),
+					Tooltip:    "View Config",
 					ColorClass: "text-gray-600",
 					HoverClass: "hover:text-gray-800 hover:bg-gray-200",
 					Condition:  true,
@@ -470,6 +479,34 @@ templ logsModalBody(project *services.Project) {
 		})
 	</div>
 }
+
+templ configModal(project *services.Project) {
+	@GenericModal(ModalConfig{
+		ID:     fmt.Sprintf("config-modal-%s", project.ID.String()),
+		Title:  fmt.Sprintf("Docker Compose Config - %s", project.Name),
+		Size:   "sm:max-w-4xl",
+		Body:   configModalBody(project),
+		Footer: templ.NopComponent,
+	})
+}
+
+templ configModalBody(project *services.Project) {
+	<div class="space-y-4">
+		<div>
+			<p class="text-sm text-gray-500">
+				Generated Docker Compose configuration for project
+				<strong>{ project.Name }</strong> after variable interpolation.
+			</p>
+		</div>
+		@CodeOutput(CodeOutputConfig{
+			ProjectID:   project.ID.String(),
+			OutputType:  "config",
+			Height:      "h-96",
+			InitialText: "",
+		})
+	</div>
+}
+
 
 // Generic toast component
 templ GenericToast(config ToastConfig) {

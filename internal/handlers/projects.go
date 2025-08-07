@@ -323,6 +323,37 @@ func (h *ProjectHandlers) LogsStream(w http.ResponseWriter, r *http.Request) {
 		"Log streaming ended", "Log streaming failed")
 }
 
+func (h *ProjectHandlers) GetConfig(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
+	}
+
+	config, err := h.projectManager.GetConfig(projectID)
+	if err != nil {
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "get_config",
+			"project_id", projectID,
+			"error", err)
+		http.Error(w, "Failed to get project configuration", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(config)); err != nil {
+		slog.Error("Handler operation failed",
+			"layer", "handler",
+			"operation", "write_config_response",
+			"project_id", projectID,
+			"error", err)
+		http.Error(w, "Failed to write project configuration", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Helper function to build project from form data
 func (h *ProjectHandlers) buildProjectFromForm(r *http.Request, projectID uuid.UUID) *services.Project {
 	status, _ := services.ParseProjectStatus(r.FormValue("status"))
@@ -353,4 +384,5 @@ func (h *ProjectHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/projects/{projectID}/deploy/stream", h.DeployStream)
 	r.Get("/projects/{projectID}/stop/stream", h.StopStream)
 	r.Get("/projects/{projectID}/logs/stream", h.LogsStream)
+	r.Get("/projects/{projectID}/config", h.GetConfig)
 }
