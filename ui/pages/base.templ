@@ -173,6 +173,104 @@ templ Base(title string) {
 					// Set up initial state (default to 'none')
 					handleAuthTypeChange('none');
 				});
+
+				// Parse variables from textarea
+				function parseVariables() {
+					const textarea = document.getElementById('new-project-variables');
+
+					if (!textarea) return;
+
+					const content = textarea.value;
+					const lines = content.split('\n');
+					const envVars = [];
+
+					for (const line of lines) {
+						// Trim whitespace
+						const trimmed = line.trim();
+
+						// Skip empty lines and comments
+						if (trimmed === '' || trimmed.startsWith('#')) {
+							continue;
+						}
+
+						// Check if line contains = separator
+						if (trimmed.includes('=')) {
+							// Split only on the first = to handle values containing =
+							const equalIndex = trimmed.indexOf('=');
+							const key = trimmed.substring(0, equalIndex).trim();
+							const value = trimmed.substring(equalIndex + 1).trim();
+
+							// Skip if key is empty
+							if (key !== '') {
+								envVars.push(key + '=' + value);
+							}
+						}
+					}
+
+					// Set the parsed values as the hidden field value
+					// The backend expects form array data, so we'll set multiple hidden fields
+					// First clear any existing hidden fields
+					const existingFields = document.querySelectorAll('input[name="variables"]');
+					existingFields.forEach(field => field.remove());
+
+					// Create hidden fields for each variable
+					const form = textarea.closest('form');
+					envVars.forEach(envVar => {
+						const hiddenInput = document.createElement('input');
+						hiddenInput.type = 'hidden';
+						hiddenInput.name = 'variables';
+						hiddenInput.value = envVar;
+						form.appendChild(hiddenInput);
+					});
+				}
+
+				// Parse variables from textarea for edit forms
+				function parseVariablesEdit(projectId) {
+					const textarea = document.getElementById('project-variables-' + projectId);
+
+					if (!textarea) return;
+
+					const content = textarea.value;
+					const lines = content.split('\n');
+					const envVars = [];
+
+					for (const line of lines) {
+						// Trim whitespace
+						const trimmed = line.trim();
+
+						// Skip empty lines and comments
+						if (trimmed === '' || trimmed.startsWith('#')) {
+							continue;
+						}
+
+						// Check if line contains = separator
+						if (trimmed.includes('=')) {
+							// Split only on the first = to handle values containing =
+							const equalIndex = trimmed.indexOf('=');
+							const key = trimmed.substring(0, equalIndex).trim();
+							const value = trimmed.substring(equalIndex + 1).trim();
+
+							// Skip if key is empty
+							if (key !== '') {
+								envVars.push(key + '=' + value);
+							}
+						}
+					}
+
+					// First clear any existing hidden fields
+					const existingFields = document.querySelectorAll('input[name="variables"]');
+					existingFields.forEach(field => field.remove());
+
+					// Create hidden fields for each variable
+					const form = textarea.closest('form');
+					envVars.forEach(envVar => {
+						const hiddenInput = document.createElement('input');
+						hiddenInput.type = 'hidden';
+						hiddenInput.name = 'variables';
+						hiddenInput.value = envVar;
+						form.appendChild(hiddenInput);
+					});
+				}
             </script>
 		</body>
 	</html>
