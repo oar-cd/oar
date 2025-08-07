@@ -28,6 +28,10 @@ type ProjectModel struct {
 	Deployments []DeploymentModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
 }
 
+func (ProjectModel) TableName() string {
+	return "projects"
+}
+
 type DeploymentModel struct {
 	BaseModel
 	ProjectID   uuid.UUID `gorm:"not null;index"`
@@ -37,4 +41,8 @@ type DeploymentModel struct {
 	Output      string    `gorm:"type:text"` // Command output/logs
 
 	Project ProjectModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
+}
+
+func (DeploymentModel) TableName() string {
+	return "deployments"
 }
