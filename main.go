@@ -7,10 +7,8 @@ import (
 	"net/http"
 
 	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/internal/handlers"
 	"github.com/ch00k/oar/logging"
 	"github.com/ch00k/oar/services"
-	"github.com/ch00k/oar/ui/pages"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -37,14 +35,10 @@ func main() {
 	r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("./ui/assets/"))))
 
 	// Initialize handlers
-	projectHandlers := handlers.NewProjectHandlers(app.GetProjectService())
-	discoveryHandlers := handlers.NewDiscoveryHandlers(app.GetDiscoveryService())
-	gitHandlers := handlers.NewGitHandlers(app.GetGitService())
+	// TODO
 
 	// Register routes
-	projectHandlers.RegisterRoutes(r)
-	discoveryHandlers.RegisterRoutes(r)
-	gitHandlers.RegisterRoutes(r)
+	// TODO
 
 	// Health check endpoint
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -56,23 +50,6 @@ func main() {
 				"error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
-		}
-	})
-
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		projectService := app.GetProjectService()
-		projects, err := projectService.List()
-		if err != nil {
-			slog.Error("Application operation failed",
-				"layer", "main",
-				"operation", "list_projects",
-				"error", err)
-			projects = []*services.Project{} // Empty slice on error
-		}
-
-		component := pages.Home(projects)
-		if err := component.Render(r.Context(), w); err != nil {
-			http.Error(w, "Failed to render home page", http.StatusInternalServerError)
 		}
 	})
 
