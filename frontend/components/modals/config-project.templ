@@ -1,0 +1,15 @@
+package modals
+
+import "github.com/ch00k/oar/frontend/components/project"
+
+// ConfigProjectModal renders the project configuration modal
+templ ConfigProjectModal(proj project.ProjectView, config string) {
+	@LargeModal(proj.Name + " configuration", configProjectBody(proj, config), CloseOnlyFooter())
+}
+
+// configProjectBody renders the modal body content
+templ configProjectBody(proj project.ProjectView, config string) {
+	<div class="config-code-block">
+		<pre class="streaming-output">{ config }</pre>
+	</div>
+}

@@ -238,9 +238,8 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			msg := map[string]string{
-				"type":    "info",
+				"type":    "docker",
 				"message": scanner.Text(),
-				"source":  "docker",
 			}
 			if jsonMsg, err := json.Marshal(msg); err == nil {
 				outputChan <- string(jsonMsg)
@@ -255,9 +254,8 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			msg := map[string]string{
-				"type":    "info",
+				"type":    "docker",
 				"message": scanner.Text(),
-				"source":  "docker",
 			}
 			if jsonMsg, err := json.Marshal(msg); err == nil {
 				outputChan <- string(jsonMsg)
@@ -315,7 +313,7 @@ func (p *ComposeProject) commandDown() (*exec.Cmd, error) {
 }
 
 func (p *ComposeProject) commandLogs() (*exec.Cmd, error) {
-	cmd, err := p.prepareCommand("logs", []string{"--follow"})
+	cmd, err := p.prepareCommand("logs", []string{"--no-color", "--follow"})
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",

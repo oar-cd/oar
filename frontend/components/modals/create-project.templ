@@ -1,0 +1,20 @@
+package modals
+
+import "github.com/ch00k/oar/frontend/components/forms"
+
+// CreateProjectModal renders the create project modal
+templ CreateProjectModal() {
+	@BaseModal("Create Project", createProjectBody(), createProjectFooter())
+}
+
+// createProjectBody renders the modal body content
+templ createProjectBody() {
+	@forms.ProjectForm(forms.ProjectFormData{
+		IsEdit: false,
+	})
+}
+
+// createProjectFooter renders the modal footer with form action buttons
+templ createProjectFooter() {
+	@FormFooter("Create Project")
+}

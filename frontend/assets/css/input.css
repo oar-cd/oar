@@ -1,0 +1,444 @@
+@import 'tailwindcss';
+
+/* Custom CSS for Oar Frontend */
+
+/* Base styles */
+body {
+    @apply font-sans bg-gray-50 text-gray-900;
+}
+
+/* Layout Components */
+.main-container {
+    @apply max-w-7xl mx-auto px-4 py-8;
+}
+
+
+/* Button Components */
+.btn-primary {
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-secondary {
+    @apply inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-danger {
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+}
+
+.btn-link {
+    @apply inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:underline transition-colors duration-200;
+}
+
+.btn-link-primary {
+    @apply inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none focus:underline transition-colors duration-200;
+}
+
+.btn-link-danger {
+    @apply inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 focus:outline-none focus:underline transition-colors duration-200;
+}
+
+.btn-link-warning {
+    @apply inline-flex items-center text-sm font-medium text-orange-600 hover:text-orange-800 focus:outline-none focus:underline transition-colors duration-200;
+}
+
+/* Form Components */
+.form-input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm;
+}
+
+.form-textarea {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 text-xs resize-y font-mono;
+}
+
+.form-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1;
+}
+
+.form-group {
+    @apply text-sm mb-4;
+}
+
+/* Project Grid */
+.project-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+.project-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 relative flex flex-col;
+}
+
+.project-card-header {
+    @apply flex justify-between items-start mb-4 flex-1;
+}
+
+.project-name {
+    @apply text-2xl font-semibold text-gray-900 mb-2;
+}
+
+.project-url {
+    @apply text-sm text-blue-600 hover:text-blue-800 break-all;
+}
+
+.project-commit {
+    @apply text-xs text-gray-500 font-mono mt-1;
+}
+
+.project-status {
+    @apply absolute top-4 right-4;
+}
+
+.status-pill {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.status-running {
+    @apply bg-green-100 text-green-800;
+}
+
+.status-stopped {
+    @apply bg-gray-100 text-gray-800;
+}
+
+.status-error {
+    @apply bg-red-100 text-red-800;
+}
+
+.project-actions {
+    @apply flex flex-wrap gap-1 pt-4 border-t border-gray-200 justify-center mt-auto;
+}
+
+/* Base styles for action buttons */
+.action-button,
+.action-button-inline {
+    @apply inline-flex items-center text-sm font-medium transition-colors duration-200 no-underline rounded;
+}
+
+.action-button {
+    @apply px-2 py-1;
+}
+
+.action-button:focus,
+.action-button:active,
+.action-button:hover,
+.action-button-inline:focus,
+.action-button-inline:active,
+.action-button-inline:hover {
+    @apply no-underline;
+}
+
+/* Action button hover backgrounds */
+.btn-link-primary:hover {
+    @apply bg-blue-50;
+}
+
+.btn-link-danger:hover {
+    @apply bg-red-50;
+}
+
+.btn-link-warning:hover {
+    @apply bg-orange-50;
+}
+
+.btn-link:hover {
+    @apply bg-gray-50;
+}
+
+.btn-link-success:hover {
+    @apply bg-green-50;
+}
+
+.action-button .icon-sm,
+.action-button-inline .icon-sm {
+    @apply mr-1;
+}
+
+.action-button svg,
+.action-button-inline svg {
+    @apply w-4 h-4;
+}
+
+/* Empty State */
+.empty-state {
+    @apply text-center py-12;
+}
+
+.empty-state-icon {
+    @apply w-16 h-16 mx-auto text-gray-400 mb-4;
+}
+
+.empty-state-title {
+    @apply text-lg font-medium text-gray-900 mb-2;
+}
+
+.empty-state-description {
+    @apply text-gray-600 mb-6;
+}
+
+/* Modal Components */
+.modal {
+    @apply fixed inset-0 z-50 overflow-y-auto;
+}
+
+.modal-backdrop {
+    @apply fixed inset-0 bg-gray-500/75 transition-opacity;
+}
+
+.modal-container {
+    @apply flex min-h-full items-center justify-center p-4 text-center;
+}
+
+.modal-panel {
+    @apply relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6;
+}
+
+.modal-panel-large {
+    @apply relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-4 sm:w-full sm:max-w-4xl sm:p-8;
+}
+
+.modal-header {
+    @apply flex justify-between items-center mb-4;
+}
+
+.modal-title {
+    @apply text-lg font-semibold text-gray-900;
+}
+
+.modal-close {
+    @apply text-gray-400 hover:text-gray-600 focus:outline-none;
+}
+
+.modal-body {
+    @apply mb-6;
+}
+
+.modal-footer {
+    @apply flex justify-end space-x-3;
+}
+
+/* Code Block Styles */
+.code-block {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto max-h-96 overflow-y-auto;
+}
+
+.code-block-scrollable {
+    @apply max-h-80 overflow-y-auto;
+}
+
+/* Modal Code Blocks */
+/* Base styles for all modal code blocks */
+.config-code-block,
+.deploy-code-block,
+.stop-code-block,
+.logs-code-block {
+    @apply bg-gray-800 text-gray-300 p-4 rounded-lg font-mono text-xs overflow-x-auto overflow-y-auto;
+    min-height: 500px;
+    max-height: 50vh;
+}
+
+.deploy-output-container,
+.stop-output-container,
+.logs-output-container {
+    @apply relative;
+}
+
+/* Streaming output text styles */
+.deploy-text-frontend-generic {
+    @apply text-gray-400 italic;
+}
+
+.deploy-text-frontend-success {
+    @apply text-green-400 italic;
+}
+
+.deploy-text-frontend-error {
+    @apply text-red-400 italic;
+}
+
+.deploy-text-backend {
+    @apply text-gray-300;
+}
+
+.deploy-text-info {
+    @apply text-gray-400 italic;
+}
+
+.deploy-text-success {
+    @apply text-green-400 italic;
+}
+
+.deploy-text-error {
+    @apply text-red-400 italic;
+}
+
+.streaming-output {
+    @apply whitespace-pre;
+}
+
+.success-text {
+    @apply text-green-400;
+}
+
+.error-text {
+    @apply text-red-400;
+}
+
+/* Header and Footer */
+.site-header {
+    @apply bg-white border-b border-gray-200;
+}
+
+.header-content {
+    @apply max-w-7xl mx-auto px-4 py-4 flex justify-between items-center;
+}
+
+.site-logo {
+    @apply flex items-center;
+}
+
+.logo-text {
+    @apply text-2xl font-bold text-gray-900;
+}
+
+.logo-tagline {
+    @apply text-sm text-gray-600;
+}
+
+.site-footer {
+    @apply bg-white border-t border-gray-200 mt-16;
+}
+
+.footer-content {
+    @apply max-w-7xl mx-auto px-4 py-6 flex justify-between items-center text-sm text-gray-600;
+}
+
+.footer-links {
+    @apply flex space-x-6;
+}
+
+.footer-link {
+    @apply hover:text-gray-900 transition-colors duration-200;
+}
+
+/* Icon Utilities */
+.icon-sm {
+    @apply w-4 h-4;
+}
+
+.icon-md {
+    @apply w-5 h-5;
+}
+
+.icon-lg {
+    @apply w-6 h-6;
+}
+
+.icon-xl {
+    @apply w-8 h-8;
+}
+
+/* Loading States */
+.loading-spinner {
+    @apply animate-spin;
+}
+
+
+
+/* Git Authentication Fields */
+.auth-fields {
+    @apply mt-4 space-y-4;
+}
+
+.test-connection-result {
+    @apply flex items-center mt-2;
+}
+
+.test-success {
+    @apply text-green-600;
+}
+
+.test-error {
+    @apply text-red-600;
+}
+
+/* Discovery Results */
+.discovery-results {
+    @apply mt-4 p-4 bg-gray-50 rounded-md;
+}
+
+.discovery-title {
+    @apply font-medium text-gray-900 mb-2;
+}
+
+.discovery-files {
+    @apply space-y-1;
+}
+
+.discovery-file {
+    @apply text-sm text-gray-600 font-mono;
+}
+
+/* Responsive Design Helpers */
+@media (max-width: 640px) {
+    .project-actions {
+        @apply flex-col space-y-2 gap-0;
+    }
+
+    .project-actions .action-button {
+        @apply justify-center;
+    }
+
+    .modal-panel {
+        @apply mx-4 w-auto;
+    }
+}
+
+/* Utility Classes */
+
+.monospace {
+    @apply font-mono;
+}
+
+
+/* Result Indicators */
+.result-indicator {
+    @apply inline-flex items-center rounded text-sm font-medium transition-colors duration-200;
+}
+
+.result-indicator.success {
+    @apply bg-green-50 text-green-600;
+}
+
+.result-indicator.error {
+    @apply bg-red-50 text-red-600;
+}
+
+/* HTMX Indicators */
+.htmx-indicator {
+    @apply hidden;
+}
+
+.htmx-request .htmx-indicator {
+    @apply inline;
+}
+
+.htmx-request .htmx-indicator-hide {
+    @apply hidden;
+}
+
+/* CSS-only Authentication Field Visibility */
+/* Hide auth fields by default */
+.auth-fields {
+    @apply hidden;
+}
+
+/* Show HTTP fields when HTTP radio is checked anywhere in the container */
+.auth-container:has(input[name='auth_method'][value='http']:checked)
+    .auth-http {
+    @apply block;
+}
+
+/* Show SSH fields when SSH radio is checked anywhere in the container */
+.auth-container:has(input[name='auth_method'][value='ssh']:checked) .auth-ssh {
+    @apply block;
+}
