@@ -14,7 +14,7 @@ import (
 )
 
 // Home renders the main home page with project grid
-func Home() templ.Component {
+func Home(version string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -35,7 +35,7 @@ func Home() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = base.Layout("Home", homeContent()).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = base.Layout("Home", homeContent(), version).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -44,7 +44,7 @@ func Home() templ.Component {
 }
 
 // HomeWithProjects renders the home page with actual project data
-func HomeWithProjects(projects []project.ProjectView) templ.Component {
+func HomeWithProjects(projects []project.ProjectView, version string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -65,7 +65,7 @@ func HomeWithProjects(projects []project.ProjectView) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = base.Layout("Home", homeContentWithProjects(projects)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = base.Layout("Home", homeContentWithProjects(projects), version).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

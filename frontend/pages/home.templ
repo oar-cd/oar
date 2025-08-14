@@ -6,13 +6,13 @@ import (
 )
 
 // Home renders the main home page with project grid
-templ Home() {
-	@base.Layout("Home", homeContent())
+templ Home(version string) {
+	@base.Layout("Home", homeContent(), version)
 }
 
 // HomeWithProjects renders the home page with actual project data
-templ HomeWithProjects(projects []project.ProjectView) {
-	@base.Layout("Home", homeContentWithProjects(projects))
+templ HomeWithProjects(projects []project.ProjectView, version string) {
+	@base.Layout("Home", homeContentWithProjects(projects), version)
 }
 
 // homeContent renders the main content area (empty state)
