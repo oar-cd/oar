@@ -1,0 +1,207 @@
+package forms
+
+import (
+	"github.com/ch00k/oar/frontend/components/icons"
+)
+
+// ProjectFormData holds the form data for project forms
+type ProjectFormData struct {
+	IsEdit       bool
+	ProjectID    string // Only used for edit mode
+	Name         string
+	GitURL       string
+	AuthMethod   string // "none", "http", "ssh"
+	Username     string
+	Password     string
+	PrivateKey   string
+	ComposeFiles string
+	Variables    string
+}
+
+// ProjectForm renders the project form with all required fields
+templ ProjectForm(data ProjectFormData) {
+	<form
+		id="project-form"
+		hx-post={ getFormAction(data) }
+		hx-target="#project-grid"
+		hx-swap="outerHTML"
+	>
+		<!-- Project name (required) -->
+		<div class="form-group">
+			<label for="name" class="form-label">Project name <span class="text-red-500">*</span></label>
+			<input
+				type="text"
+				id="name"
+				name="name"
+				class="form-input"
+				value={ data.Name }
+				required
+			/>
+		</div>
+		<!-- Git URL (required) -->
+		<div class="form-group">
+			<label for="git_url" class="form-label">Git URL <span class="text-red-500">*</span></label>
+			if data.IsEdit {
+				<input
+					type="url"
+					id="git_url"
+					name="git_url"
+					class="form-input bg-gray-50 cursor-not-allowed"
+					value={ data.GitURL }
+					readonly
+					title="Git URL cannot be changed when editing"
+				/>
+			} else {
+				<input
+					type="url"
+					id="git_url"
+					name="git_url"
+					class="form-input"
+					value={ data.GitURL }
+					required
+				/>
+			}
+		</div>
+		<!-- Authentication method with CSS-only field switching -->
+		<div class="auth-container">
+			<div class="form-group">
+				<div class="flex items-center justify-between">
+					<label class="form-label">Authentication method</label>
+					<!-- Test Git Auth button with result indicator -->
+					<div class="flex items-center gap-2">
+						<div id="test-auth-result" class="result-indicator hidden"></div>
+						<button
+							type="button"
+							id="test-auth-btn"
+							class="action-button-inline btn-link-primary opacity-50 cursor-not-allowed"
+							hx-post="/test-git-auth"
+							hx-include="closest form"
+							hx-swap="none"
+							disabled
+						>
+							@icons.FlaskConical("icon-sm")
+							<span>Test Git Auth</span>
+						</button>
+					</div>
+				</div>
+				<div class="flex gap-4">
+					<label class="flex items-center">
+						<input type="radio" name="auth_method" value="none" class="auth-radio mr-2" checked?={ data.AuthMethod == "none" || data.AuthMethod == "" }/>
+						None
+					</label>
+					<label class="flex items-center">
+						<input type="radio" name="auth_method" value="http" class="auth-radio mr-2" checked?={ data.AuthMethod == "http" }/>
+						HTTP
+					</label>
+					<label class="flex items-center">
+						<input type="radio" name="auth_method" value="ssh" class="auth-radio mr-2" checked?={ data.AuthMethod == "ssh" }/>
+						SSH
+					</label>
+				</div>
+			</div>
+			<!-- Dynamic auth fields (CSS-controlled) -->
+			@AuthFields(data)
+		</div>
+		<!-- Compose file paths -->
+		<div class="form-group">
+			<div class="flex items-center justify-between">
+				<label for="compose_files" class="form-label">Compose file paths <span class="text-red-500">*</span></label>
+				<!-- Discover Compose Files button with result indicator -->
+				<div class="flex items-center gap-2">
+					<div id="discover-result" class="result-indicator hidden"></div>
+					<button
+						type="button"
+						id="discover-btn"
+						class="action-button-inline btn-link-success opacity-50 cursor-not-allowed"
+						style="color: #10b981"
+						hx-post="/discover"
+						hx-include="closest form"
+						hx-target="#compose_files"
+						hx-swap="outerHTML"
+						disabled
+					>
+						@icons.Radar("icon-sm")
+						<span>Discover</span>
+					</button>
+				</div>
+			</div>
+			<textarea
+				id="compose_files"
+				name="compose_files"
+				class="form-textarea"
+				rows="3"
+				placeholder="docker-compose.yml"
+				required
+			>{ data.ComposeFiles }</textarea>
+		</div>
+		<!-- Variables (optional) -->
+		<div class="form-group">
+			<label for="variables" class="form-label">Variables</label>
+			<textarea
+				id="variables"
+				name="variables"
+				class="form-textarea"
+				rows="3"
+				placeholder="KEY1=value1&#10;KEY2=value2"
+			>{ data.Variables }</textarea>
+		</div>
+	</form>
+}
+
+// AuthFields renders the dynamic authentication fields using CSS-only visibility
+templ AuthFields(data ProjectFormData) {
+	<!-- HTTP Auth Fields - shown when HTTP radio is checked -->
+	<div class="auth-fields auth-http">
+		<div class="form-group">
+			<label for="username" class="form-label">Username <span class="text-red-500">*</span></label>
+			<input
+				type="text"
+				id="username"
+				name="username"
+				class="form-input"
+				value={ data.Username }
+			/>
+		</div>
+		<div class="form-group">
+			<label for="password" class="form-label">Password <span class="text-red-500">*</span></label>
+			<input
+				type="password"
+				id="password"
+				name="password"
+				class="form-input"
+				value={ data.Password }
+			/>
+		</div>
+	</div>
+	<!-- SSH Auth Fields - shown when SSH radio is checked -->
+	<div class="auth-fields auth-ssh">
+		<div class="form-group">
+			<label for="ssh_username" class="form-label">Username <span class="text-red-500">*</span></label>
+			<input
+				type="text"
+				id="ssh_username"
+				name="ssh_username"
+				class="form-input"
+				value={ data.Username }
+			/>
+		</div>
+		<div class="form-group">
+			<label for="private_key" class="form-label">Private key <span class="text-red-500">*</span></label>
+			<textarea
+				id="private_key"
+				name="private_key"
+				class="form-textarea"
+				rows="3"
+				placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
+			>{ data.PrivateKey }</textarea>
+		</div>
+	</div>
+}
+
+// Helper function to get form action URL
+func getFormAction(data ProjectFormData) string {
+	if data.IsEdit {
+		return "/projects/" + data.ProjectID + "/edit"
+	}
+	return "/projects/create"
+}

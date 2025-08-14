@@ -17,10 +17,10 @@ templ_watch:
 
 air:
 	air \
-	--build.cmd "go build -o tmp/bin/main ./main.go" \
+	--build.cmd "go build -o tmp/bin/main ." \
 	--build.bin "tmp/bin/main" \
 	--build.delay "100" \
-	--build.exclude_dir "dev_oar_data_dir" \
+	--build.exclude_dir "cmd,dev_oar_data_dir" \
 	--build.include_ext "go" \
 	--build.stop_on_error "false" \
 	--misc.clean_on_exit true
@@ -32,7 +32,7 @@ tailwind_watch:
 	tailwindcss -i ./frontend/assets/css/input.css -o ./frontend/assets/css/output.css --watch
 
 server:
-	go run ./main.go
+	go run .
 
 generate: tailwind templ
 

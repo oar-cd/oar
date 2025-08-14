@@ -1,0 +1,104 @@
+package icons
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// Icon renders an SVG icon from the assets/icons directory
+templ Icon(name string, class string) {
+	@renderSVG(name, class)
+}
+
+// renderSVG reads and renders the SVG file content
+templ renderSVG(name, class string) {
+	if iconContent := loadIconContent(name); iconContent != "" {
+		<div class={ fmt.Sprintf("inline-block %s", class) }>
+			@templ.Raw(iconContent)
+		</div>
+	} else {
+		<!-- Icon not found: { name } -->
+		@renderSVG("help-circle", class)
+	}
+}
+
+// loadIconContent reads the SVG file content from the assets directory
+func loadIconContent(name string) string {
+	iconPath := filepath.Join("frontend", "assets", "icons", name+".svg")
+	content, err := os.ReadFile(iconPath)
+	if err != nil {
+		return ""
+	}
+	return string(content)
+}
+
+// Specific icon components for better type safety and IDE support
+
+templ Plus(class string) {
+	@Icon("plus", class)
+}
+
+templ Check(class string) {
+	@Icon("check", class)
+}
+
+templ X(class string) {
+	@Icon("x", class)
+}
+
+templ Rocket(class string) {
+	@Icon("rocket", class)
+}
+
+templ CircleStop(class string) {
+	@Icon("circle-stop", class)
+}
+
+templ SquarePen(class string) {
+	@Icon("square-pen", class)
+}
+
+templ ListChecks(class string) {
+	@Icon("list-checks", class)
+}
+
+templ ScrollText(class string) {
+	@Icon("scroll-text", class)
+}
+
+templ Settings(class string) {
+	@Icon("settings", class)
+}
+
+templ Trash2(class string) {
+	@Icon("trash-2", class)
+}
+
+templ FlaskConical(class string) {
+	@Icon("flask-conical", class)
+}
+
+templ Radar(class string) {
+	@Icon("radar", class)
+}
+
+templ LoaderCircle(class string) {
+	@Icon("loader-circle", class + " loading-spinner")
+}
+
+templ Layers(class string) {
+	@Icon("layers", class)
+}
+
+templ HelpCircle(class string) {
+	@Icon("help-circle", class)
+}
+
+templ Github(class string) {
+	@Icon("github", class)
+}
+
+templ Logo(class string) {
+	@Icon("logo", class)
+}

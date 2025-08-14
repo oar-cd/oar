@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 
 	"github.com/ch00k/oar/internal/app"
@@ -32,29 +31,17 @@ func main() {
 	r.Use(middleware.Logger)
 
 	// Serve static files
-	r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("./ui/assets/"))))
+	r.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
 
-	// Initialize handlers
-	// TODO
+	// Register all routes
+	registerHomeRoutes(r)
+	registerProjectRoutes(r)
+	registerUtilityRoutes(r)
 
-	// Register routes
-	// TODO
-
-	// Health check endpoint
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte("OK")); err != nil {
-			slog.Error("Failed to write health check response",
-				"layer", "main",
-				"operation", "health_check",
-				"error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	})
-
+	// Start server
 	address := fmt.Sprintf("%s:%d", config.HTTPHost, config.HTTPPort)
-	slog.Info("Server starting", "address", fmt.Sprintf("http://%s", address))
+	log.Printf("Server starting on http://%s", address)
+
 	if err := http.ListenAndServe(address, r); err != nil {
 		panic(err)
 	}
