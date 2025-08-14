@@ -1,6 +1,9 @@
 # Build stage
 FROM golang:1.24.5-alpine AS builder
 
+# Accept version as build argument
+ARG VERSION=dev
+
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev
 
@@ -13,8 +16,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the binary with SQLite support
-RUN CGO_ENABLED=1 go build -ldflags="-s -w" -o oar .
+# Build the binary with SQLite support and version
+RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.ServerVersion=${VERSION}" -o oar .
 
 # Runtime stage
 FROM alpine:latest

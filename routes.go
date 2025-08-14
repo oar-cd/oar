@@ -24,7 +24,7 @@ func registerHomeRoutes(r chi.Router) {
 		if err != nil {
 			logOperationError("list_projects", "main", err)
 			// Fall back to empty state on error
-			component := pages.Home()
+			component := pages.Home(GetServerVersion())
 			if err := renderComponent(w, r, component, "home_page_fallback"); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
@@ -35,9 +35,9 @@ func registerHomeRoutes(r chi.Router) {
 
 		var component templ.Component
 		if len(projectViews) > 0 {
-			component = pages.HomeWithProjects(projectViews)
+			component = pages.HomeWithProjects(projectViews, GetServerVersion())
 		} else {
-			component = pages.Home()
+			component = pages.Home(GetServerVersion())
 		}
 
 		if err := renderComponent(w, r, component, "home_page"); err != nil {

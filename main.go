@@ -12,6 +12,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// ServerVersion is set at build time via -ldflags
+var ServerVersion = "dev"
+
+// GetServerVersion returns the server version for use in templates
+func GetServerVersion() string {
+	return ServerVersion
+}
+
 func main() {
 	// Initialize configuration for web app
 	config, err := services.NewConfigForWebApp()

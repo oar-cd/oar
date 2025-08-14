@@ -2,7 +2,7 @@ package base
 
 import "github.com/ch00k/oar/frontend/components/icons"
 
-templ Layout(title string, content templ.Component) {
+templ Layout(title string, content templ.Component, version string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -18,7 +18,7 @@ templ Layout(title string, content templ.Component) {
 			<main class="flex-1">
 				@content
 			</main>
-			@Footer()
+			@Footer(version)
 			<!-- Modal container for dynamic modals -->
 			<div id="modal-container" class="modal hidden"></div>
 		</body>
@@ -48,7 +48,7 @@ templ Header() {
 	</header>
 }
 
-templ Footer() {
+templ Footer(version string) {
 	<footer class="site-footer">
 		<div class="footer-content">
 			<p>&copy; 2025 Oar. All rights reserved.</p>
@@ -64,7 +64,7 @@ templ Footer() {
 				</a>
 				<a href="/about" class="footer-link">About</a>
 			</div>
-			<p>v1.0.0</p>
+			<p>v{ version }</p>
 		</div>
 	</footer>
 }
