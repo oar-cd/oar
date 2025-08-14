@@ -28,6 +28,6 @@ WORKDIR /app
 COPY --from=builder /build/oar .
 
 # Copy UI assets
-COPY --from=builder /build/ui ./ui
+COPY --from=builder /build/frontend/assets ./frontend/assets
 
 CMD ["./oar"]

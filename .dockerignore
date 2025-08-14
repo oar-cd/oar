@@ -18,13 +18,22 @@ test_project/
 cmd/test/
 
 # CSS source files (only need compiled output.css)
-ui/assets/css/input.css
+frontend/assets/css/input.css
 
-# Docker files (not needed inside image)
+# Config files
 Dockerfile
 .dockerignore
 compose.yaml
+.golangci.yml
+.pre-commit-config.yaml
+.prettierignore
+.prettierrc
+*.md
+install.sh
+LICENSE
+Makefile
+release.sh*
 
 # Build and data files
 oar
-data/
+dev_oar_data_dir/
