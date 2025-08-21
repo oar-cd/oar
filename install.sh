@@ -38,6 +38,10 @@ else
 fi
 
 cat >.env <<EOF
+# User permissions - ensures Oar container runs with current user's permissions
+OAR_UID=$(id -u)
+OAR_GID=$(id -g)
+
 # Oar encryption key - keep this secure and do not commit to version control
 OAR_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF

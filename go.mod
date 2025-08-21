@@ -3,10 +3,10 @@ module github.com/ch00k/oar
 go 1.24.4
 
 require (
-	github.com/Oudwins/tailwind-merge-go v0.2.1
 	github.com/a-h/templ v0.3.906
 	github.com/compose-spec/compose-go/v2 v2.8.0
 	github.com/fatih/color v1.16.0
+	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/google/uuid v1.6.0
@@ -28,7 +28,6 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
