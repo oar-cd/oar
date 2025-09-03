@@ -43,8 +43,16 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 			}
 
 			// Initialize configuration for CLI with data directory override
+			// Only override if the flag was explicitly set by the user (differs from default)
+			var cliDataDirOverride string
+			if dataDir != defaultDataDir {
+				// CLI flag was provided and differs from default, use it to override
+				cliDataDirOverride = dataDir
+			}
+			// Otherwise pass empty string to let config system use environment variables/defaults
+
 			var err error
-			config, err = services.NewConfigForCLI(dataDir)
+			config, err = services.NewConfigForCLI(cliDataDirOverride)
 			if err != nil {
 				log.Fatalf("Failed to initialize configuration: %s", err)
 				os.Exit(1)

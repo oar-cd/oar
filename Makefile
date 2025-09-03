@@ -50,10 +50,10 @@ build:
 		echo "Error: VERSION must be set. Usage: make build VERSION=1.2.3"; \
 		exit 1; \
 	fi
-	CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/ch00k/oar/cmd/version.CLIVersion=$(VERSION)" -o oar ./
+	CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/ch00k/oar/cmd/version.CLIVersion=$(VERSION)" -o oar ./cmd
 
 build-dev:
-	CGO_ENABLED=1 go build -ldflags="-X github.com/ch00k/oar/cmd/version.CLIVersion=dev-$(shell git rev-parse --short HEAD)" -o oar ./
+	CGO_ENABLED=1 go build -ldflags="-X github.com/ch00k/oar/cmd/version.CLIVersion=dev-$(shell git rev-parse --short HEAD)" -o oar ./cmd
 
 dev:
 	make -j3 tailwind_watch templ_watch air

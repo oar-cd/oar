@@ -2,6 +2,7 @@
 package db
 
 import (
+	"context"
 	"log/slog"
 	"path/filepath"
 
@@ -13,13 +14,16 @@ import (
 )
 
 func InitDB(dataDir string) (*gorm.DB, error) {
-	slog.Info("Initializing database", "data_dir", dataDir)
+	slog.Debug("Initializing database", "data_dir", dataDir)
 	dbPath := filepath.Join(dataDir, "oar.db")
+
+	// Set GORM log level based on application log level
+	gormLogLevel := getGormLogLevel()
 
 	// Initialize database using shared utility
 	db, err := dbutil.InitDatabase(dbutil.DBConfig{
 		Path:     dbPath,
-		LogLevel: logger.Info,
+		LogLevel: gormLogLevel,
 	})
 	if err != nil {
 		return nil, err
@@ -30,6 +34,22 @@ func InitDB(dataDir string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	slog.Info("Database initialized successfully", "path", dbPath)
+	slog.Debug("Database initialized successfully", "path", dbPath)
 	return db, nil
+}
+
+// getGormLogLevel maps application log level to corresponding GORM log level
+func getGormLogLevel() logger.LogLevel {
+	// Check the current slog level to determine appropriate GORM level
+	ctx := slog.Default()
+
+	if ctx.Enabled(context.TODO(), slog.LevelDebug) {
+		return logger.Info // Show SQL queries only when debug logging is enabled
+	} else if ctx.Enabled(context.TODO(), slog.LevelInfo) {
+		return logger.Warn // Show warnings but not SQL queries
+	} else if ctx.Enabled(context.TODO(), slog.LevelWarn) {
+		return logger.Warn // Show warnings
+	} else {
+		return logger.Error // Show only errors for error-level and above
+	}
 }
