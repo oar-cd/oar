@@ -229,18 +229,12 @@ func (s *ProjectService) DeployStreaming(
 ) error {
 	defer close(outputChan)
 
-	// Get project
-	project, err := s.Get(projectID)
+	project, commitHash, deployment, composeProject, err := s.prepareDeployment(projectID, pull)
 	if err != nil {
-		return fmt.Errorf("project not found: %w", err)
+		return err
 	}
 
-	gitDir, err := project.GitDir()
-	if err != nil {
-		return fmt.Errorf("failed to get git directory: %w", err)
-	}
-
-	// Pull latest changes if requested
+	// Streaming-specific messages
 	if pull {
 		outputChan <- `{"type":"info","message":"Pulling latest changes from Git...","source":"oar"}`
 		if err := s.pullLatestChanges(project); err != nil {
@@ -250,6 +244,64 @@ func (s *ProjectService) DeployStreaming(
 		outputChan <- `{"type":"success","message":"Git pull completed successfully"}`
 	}
 
+	outputChan <- `{"type":"info","message":"Starting Docker Compose deployment...","source":"oar"}`
+
+	// Execute deployment with streaming
+	err = composeProject.UpStreaming(outputChan)
+	if err != nil {
+		return s.handleDeploymentError(project.ID, err)
+	}
+
+	// Complete deployment
+	if err := s.completeDeployment(project, commitHash, deployment); err != nil {
+		return err
+	}
+
+	// Send unified message with both display text and project state
+	outputChan <- fmt.Sprintf(`{"type":"success","message":"Docker Compose deployment completed successfully","projectState":{"status":"running","lastCommit":"%s"}}`, commitHash)
+
+	return nil
+}
+
+func (s *ProjectService) DeployPiping(projectID uuid.UUID, pull bool) error {
+	project, commitHash, deployment, composeProject, err := s.prepareDeployment(projectID, pull)
+	if err != nil {
+		return err
+	}
+
+	// Handle git pull for piping (no JSON messages needed)
+	if pull {
+		if err := s.pullLatestChanges(project); err != nil {
+			return fmt.Errorf("failed to pull latest changes: %w", err)
+		}
+	}
+
+	// Execute deployment with direct piping
+	err = composeProject.UpPiping()
+	if err != nil {
+		return s.handleDeploymentError(project.ID, err)
+	}
+
+	// Complete deployment
+	return s.completeDeployment(project, commitHash, deployment)
+}
+
+// prepareDeployment handles the common setup logic for both streaming and piping deployments
+func (s *ProjectService) prepareDeployment(
+	projectID uuid.UUID,
+	pull bool,
+) (*Project, string, Deployment, *ComposeProject, error) {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return nil, "", Deployment{}, nil, fmt.Errorf("project not found: %w", err)
+	}
+
+	gitDir, err := project.GitDir()
+	if err != nil {
+		return nil, "", Deployment{}, nil, fmt.Errorf("failed to get git directory: %w", err)
+	}
+
 	commitHash, err := s.gitService.GetLatestCommit(gitDir)
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -257,13 +309,13 @@ func (s *ProjectService) DeployStreaming(
 			"operation", "deploy_project",
 			"project_id", project.ID,
 			"error", err)
-		return err
+		return nil, "", Deployment{}, nil, err
 	}
 
 	deployment := NewDeployment(projectID, commitHash)
 
-	// Deploy using Docker Compose
-	slog.Info("Starting Docker Compose deployment",
+	// Log deployment start
+	slog.Debug("Starting Docker Compose deployment",
 		"project_id", project.ID,
 		"project_name", project.Name,
 		"compose_files", project.ComposeFiles,
@@ -271,27 +323,28 @@ func (s *ProjectService) DeployStreaming(
 
 	composeProject := NewComposeProject(project, s.config)
 
-	outputChan <- `{"type":"info","message":"Starting Docker Compose deployment...","source":"oar"}`
-	err = composeProject.UpStreaming(outputChan)
-	if err != nil {
-		slog.Error(
-			"Docker Compose up failed",
-			"project_id",
-			project.ID,
-			"error",
-			err,
-		)
-		return fmt.Errorf("failed to start project: %w", err)
-	}
-	slog.Info(
+	return project, commitHash, deployment, composeProject, nil
+}
+
+// handleDeploymentError handles deployment errors consistently
+func (s *ProjectService) handleDeploymentError(projectID uuid.UUID, err error) error {
+	slog.Error(
+		"Docker Compose up failed",
+		"project_id", projectID,
+		"error", err,
+	)
+	return fmt.Errorf("failed to start project: %w", err)
+}
+
+// completeDeployment handles the post-deployment database updates
+func (s *ProjectService) completeDeployment(project *Project, commitHash string, deployment Deployment) error {
+	slog.Debug(
 		"Docker Compose project started",
-		"project_id",
-		project.ID,
+		"project_id", project.ID,
 	)
 
 	// Update deployment
 	deployment.Status = DeploymentStatusCompleted
-	// deployment.Output = result.Output
 
 	// Update project
 	project.Status = ProjectStatusRunning
@@ -305,9 +358,6 @@ func (s *ProjectService) DeployStreaming(
 	if err := s.projectRepository.Update(project); err != nil {
 		return fmt.Errorf("failed to update project status: %w", err)
 	}
-
-	// Send unified message with both display text and project state
-	outputChan <- fmt.Sprintf(`{"type":"success","message":"Docker Compose deployment completed successfully","projectState":{"status":"running","lastCommit":"%s"}}`, commitHash)
 
 	return nil
 }
@@ -487,6 +537,45 @@ func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- st
 	return nil
 }
 
+func (s *ProjectService) StopPiping(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stop Docker Compose
+	slog.Debug(
+		"Stopping Docker Compose project with piping",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project, s.config)
+
+	err = composeProject.DownPiping()
+	if err != nil {
+		slog.Error(
+			"Docker Compose down failed",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to stop project: %w", err)
+	}
+	slog.Debug(
+		"Docker Compose project stopped",
+		"project_id",
+		project.ID,
+	)
+
+	project.Status = ProjectStatusStopped
+	return s.Update(project)
+}
+
 func (s *ProjectService) Remove(projectID uuid.UUID) error {
 	// Get project
 	project, err := s.Get(projectID)
@@ -561,6 +650,45 @@ func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<-
 	return nil
 }
 
+func (s *ProjectService) GetLogsPiping(projectID uuid.UUID) error {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	// Stream logs using Docker Compose with direct piping
+	slog.Debug(
+		"Streaming logs for Docker Compose project with piping",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project, s.config)
+
+	err = composeProject.LogsPiping()
+	if err != nil {
+		slog.Error(
+			"Failed to stream logs",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return fmt.Errorf("failed to stream logs: %w", err)
+	}
+	slog.Debug(
+		"Logs streaming completed",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+	return nil
+}
+
 func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
 	// Get project
 	project, err := s.Get(projectID)
@@ -569,7 +697,7 @@ func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
 	}
 
 	// Get configuration using Docker Compose
-	slog.Info(
+	slog.Debug(
 		"Getting Docker Compose configuration",
 		"project_id",
 		project.ID,
@@ -590,7 +718,7 @@ func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
 		)
 		return "", fmt.Errorf("failed to get configuration: %w", err)
 	}
-	slog.Info(
+	slog.Debug(
 		"Configuration retrieved successfully",
 		"project_id",
 		project.ID,
@@ -603,7 +731,7 @@ func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
 }
 
 func (s *ProjectService) pullLatestChanges(project *Project) error {
-	slog.Info("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
+	slog.Debug("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
 
 	gitDir, err := project.GitDir()
 	if err != nil {
@@ -615,7 +743,7 @@ func (s *ProjectService) pullLatestChanges(project *Project) error {
 		return fmt.Errorf("failed to pull changes: %w", err)
 	}
 
-	slog.Info("Git pull completed", "project_id", project.ID)
+	slog.Debug("Git pull completed", "project_id", project.ID)
 	return nil
 }
 

@@ -103,9 +103,10 @@ func TestProjectAddHappy(t *testing.T) {
 			// Verify results
 			assert.NoError(t, err, "Expected command to succeed")
 			data := map[string]any{
-				"ProjectID":   createdProject.ID.String(),
-				"ProjectName": createdProject.Name,
-				"ProjectsDir": filepath.Join(tempDir, services.ProjectsDir),
+				"ProjectID":     createdProject.ID.String(),
+				"ProjectName":   createdProject.Name,
+				"ProjectsDir":   filepath.Join(tempDir, services.ProjectsDir),
+				"ProjectGitURL": createdProject.GitURL,
 			}
 			expectedOutput := test.RenderTemplate(data)
 			t.Logf("Expected output: %s", expectedOutput)

@@ -73,6 +73,19 @@ func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
+func (p *ComposeProject) UpPiping() error {
+	cmd, err := p.commandUp()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_up",
+			"project_name", p.Name,
+			"error", err)
+		return err
+	}
+	return p.executeCommandPiping(cmd)
+}
+
 func (p *ComposeProject) Down() (string, error) {
 	cmd, err := p.commandDown()
 	if err != nil {
@@ -101,6 +114,19 @@ func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
+func (p *ComposeProject) DownPiping() error {
+	cmd, err := p.commandDown()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_down",
+			"project_name", p.Name,
+			"error", err)
+		return err
+	}
+	return p.executeCommandPiping(cmd)
+}
+
 func (p *ComposeProject) Logs() (string, error) {
 	cmd, err := p.commandLogs()
 	if err != nil {
@@ -127,6 +153,19 @@ func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
 	}
 
 	return p.executeCommandStreaming(cmd, outputChan)
+}
+
+func (p *ComposeProject) LogsPiping() error {
+	cmd, err := p.commandLogs()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_logs",
+			"project_name", p.Name,
+			"error", err)
+		return err
+	}
+	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) GetConfig() (string, error) {
@@ -284,6 +323,30 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 	return nil
 }
 
+func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
+	// Inherit stdout and stderr for direct piping to terminal
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	slog.Debug("Executing Docker Compose command with direct piping",
+		"project_name", p.Name,
+		"command", cmd.String(),
+		"working_dir", p.WorkingDir)
+
+	err := cmd.Run()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_piping",
+			"project_name", p.Name,
+			"command", cmd.String(),
+			"error", err)
+		return err
+	}
+
+	return nil
+}
+
 func (p *ComposeProject) commandUp() (*exec.Cmd, error) {
 	cmd, err := p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans"})
 	if err != nil {
@@ -313,6 +376,13 @@ func (p *ComposeProject) commandDown() (*exec.Cmd, error) {
 }
 
 func (p *ComposeProject) commandLogs() (*exec.Cmd, error) {
+	// TODO: Implement color configuration that supports both CLI and web UI
+	// Currently hardcoded to --no-color, but should be configurable.
+	// Cannot import cmd/output here due to import cycle (cmd/output imports services).
+	// Options:
+	// 1. Add color config to ComposeProject struct/Config
+	// 2. Pass color preference as parameter to commandLogs()
+	// 3. Create a shared config package that both can import
 	cmd, err := p.prepareCommand("logs", []string{"--no-color", "--follow"})
 	if err != nil {
 		slog.Error("Service operation failed",

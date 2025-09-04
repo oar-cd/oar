@@ -1,5 +1,4 @@
-                ID  {{ .ProjectID }}
-              Name  {{ .ProjectName }}
- Working Directory  {{ .ProjectsDir }}/{{ .ProjectID }}
-            Status  stopped
+    Name  {{ .ProjectName }}
+  Status  stopped
+ Git URL  {{ .ProjectGitURL }}
 

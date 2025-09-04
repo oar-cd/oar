@@ -19,8 +19,11 @@ type ComposeProjectInterface interface {
 	Logs() (string, error)
 	GetConfig() (string, error)
 	UpStreaming(outputChan chan<- string) error
+	UpPiping() error
 	DownStreaming(outputChan chan<- string) error
+	DownPiping() error
 	LogsStreaming(outputChan chan<- string) error
+	LogsPiping() error
 }
 
 // ProjectManager defines the contract for project management operations
@@ -32,10 +35,13 @@ type ProjectManager interface {
 	Update(project *Project) error
 	Remove(projectID uuid.UUID) error
 	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	DeployPiping(projectID uuid.UUID, pull bool) error
 	Start(projectID uuid.UUID) error
 	StartStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	Stop(projectID uuid.UUID) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	StopPiping(projectID uuid.UUID) error
 	GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	GetLogsPiping(projectID uuid.UUID) error
 	GetConfig(projectID uuid.UUID) (string, error)
 }
