@@ -48,6 +48,10 @@ EOF
 
 echo "Created .env file with encryption key"
 
+# Create data directory with current user permissions
+echo "Creating data directory..."
+mkdir -p data
+
 # Start Oar
 echo "Starting Oar with Docker Compose..."
 docker compose --project-name oar up -d
