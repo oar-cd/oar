@@ -2,6 +2,8 @@
 package app
 
 import (
+	"os"
+
 	"github.com/ch00k/oar/db"
 	"github.com/ch00k/oar/services"
 	"gorm.io/gorm"
@@ -21,6 +23,17 @@ func InitializeWithConfig(cfg *services.Config) error {
 
 	// Store the provided config
 	config = cfg
+
+	// Ensure required directories exist
+	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(config.TmpDir, 0755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(config.WorkspaceDir, 0755); err != nil {
+		return err
+	}
 
 	// Initialize database using config
 	database, err = db.InitDB(config.DataDir)
