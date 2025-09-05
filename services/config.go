@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/compose-spec/compose-go/v2/dotenv"
 )
 
 const (
@@ -106,6 +108,13 @@ func newConfigWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
 	// Derive dependent paths
 	c.derivePaths()
 
+	// Try to read encryption key from .env file as fallback (after data dir is finalized)
+	if c.EncryptionKey == "" {
+		if key := c.readEncryptionKeyFromEnvFile(); key != "" {
+			c.EncryptionKey = key
+		}
+	}
+
 	// Validate
 	if err := c.validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
@@ -194,6 +203,19 @@ func (c *Config) loadFromEnv() {
 	}
 }
 
+// readEncryptionKeyFromEnvFile attempts to read OAR_ENCRYPTION_KEY from .env file in data directory
+func (c *Config) readEncryptionKeyFromEnvFile() string {
+	envFile := filepath.Join(c.DataDir, ".env")
+
+	envVars, err := dotenv.Read(envFile)
+	if err != nil {
+		// .env file doesn't exist or can't be read, that's okay
+		return ""
+	}
+
+	return envVars["OAR_ENCRYPTION_KEY"]
+}
+
 // derivePaths calculates dependent paths from the base DataDir
 func (c *Config) derivePaths() {
 	c.TmpDir = filepath.Join(c.DataDir, TmpDir)
@@ -230,9 +252,12 @@ func (c *Config) validate() error {
 		return fmt.Errorf("docker command cannot be empty")
 	}
 
-	// Require encryption key to be explicitly provided via environment variable
+	// Require encryption key to be provided via environment variable or .env file
 	if c.EncryptionKey == "" {
-		return fmt.Errorf("encryption key is required - set OAR_ENCRYPTION_KEY environment variable")
+		return fmt.Errorf(
+			"encryption key is required - set OAR_ENCRYPTION_KEY environment variable or ensure .env file exists in data directory (%s)",
+			c.DataDir,
+		)
 	}
 
 	return nil

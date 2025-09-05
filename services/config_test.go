@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -150,7 +152,7 @@ func TestConfig_RequiresEncryptionKey(t *testing.T) {
 		t.Fatal("Expected config creation to fail when encryption key is missing, but got nil error")
 	}
 
-	expectedErrorMsg := "encryption key is required - set OAR_ENCRYPTION_KEY environment variable"
+	expectedErrorMsg := "encryption key is required - set OAR_ENCRYPTION_KEY environment variable or ensure .env file exists in data directory"
 	if !strings.Contains(err.Error(), expectedErrorMsg) {
 		t.Errorf("Expected error message to contain %q, got %q", expectedErrorMsg, err.Error())
 	}
@@ -170,5 +172,72 @@ func TestConfig_EncryptionKeyFromEnvironment(t *testing.T) {
 
 	if config.EncryptionKey != envKey {
 		t.Error("Expected encryption key from environment variable to be used")
+	}
+}
+
+func TestConfig_EncryptionKeyFromEnvFile(t *testing.T) {
+	// Create temporary directory for test
+	tempDir := t.TempDir()
+
+	// Create .env file with encryption key
+	envKey := generateTestKey()
+	envContent := fmt.Sprintf(`# Test .env file
+OAR_UID=1000
+OAR_GID=1000
+
+# Encryption key
+OAR_ENCRYPTION_KEY=%s
+`, envKey)
+
+	envFile := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+		t.Fatalf("Failed to create test .env file: %v", err)
+	}
+
+	// Create config with no environment variable set (fallback to .env file)
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		// Deliberately omit OAR_ENCRYPTION_KEY to test .env file fallback
+	})
+
+	config, err := NewConfigForCLIWithEnv(mockEnv, tempDir)
+	if err != nil {
+		t.Fatalf("Expected config creation to succeed with .env file, got error: %v", err)
+	}
+
+	if config.EncryptionKey != envKey {
+		t.Errorf("Expected encryption key from .env file (%q) to be used, got %q", envKey, config.EncryptionKey)
+	}
+}
+
+func TestConfig_EncryptionKeyEnvironmentOverridesEnvFile(t *testing.T) {
+	// Create temporary directory for test
+	tempDir := t.TempDir()
+
+	// Create .env file with one encryption key
+	envFileKey := generateTestKey()
+	envContent := fmt.Sprintf("OAR_ENCRYPTION_KEY=%s\n", envFileKey)
+
+	envFile := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+		t.Fatalf("Failed to create test .env file: %v", err)
+	}
+
+	// Set environment variable with different key (should override .env file)
+	envVarKey := generateTestKey()
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		"OAR_ENCRYPTION_KEY": envVarKey,
+	})
+
+	config, err := NewConfigForCLIWithEnv(mockEnv, tempDir)
+	if err != nil {
+		t.Fatalf("Expected config creation to succeed, got error: %v", err)
+	}
+
+	if config.EncryptionKey != envVarKey {
+		t.Errorf(
+			"Expected environment variable encryption key (%q) to override .env file, got %q",
+			envVarKey,
+			config.EncryptionKey,
+		)
 	}
 }
