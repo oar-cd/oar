@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ch00k/oar/cmd/logs"
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
 	"github.com/ch00k/oar/cmd/update"
@@ -38,7 +39,7 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Skip initialization for commands that don't need full app context
-			if cmd.Name() == "version" || cmd.Name() == "update" {
+			if cmd.Name() == "version" || cmd.Name() == "update" || cmd.Name() == "logs" {
 				return
 			}
 
@@ -85,6 +86,7 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 	cmd.PersistentFlags().VarP(logging.LogLevel, "log-level", "l", "Set log verbosity level")
 	cmd.PersistentFlags().VarP(output.NoColor, "no-color", "c", "Disable colored terminal output")
 
+	cmd.AddCommand(logs.NewCmdLogs())
 	cmd.AddCommand(project.NewCmdProject())
 	cmd.AddCommand(update.NewCmdUpdate())
 	cmd.AddCommand(version.NewCmdVersion())
