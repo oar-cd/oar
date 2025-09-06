@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/dotenv"
 	"github.com/google/uuid"
 )
 
@@ -193,21 +194,60 @@ func (s *ProjectDiscoveryService) isValidComposeFile(path string) bool {
 
 	ctx := context.Background()
 
-	// Create project options without specifying a name
-	options, err := cli.NewProjectOptions([]string{path})
+	// Get the directory containing the compose file
+	workingDir := filepath.Dir(path)
+	envPath := filepath.Join(workingDir, ".env")
+
+	// TODO: cli.WithEnvFiles() should theoretically work for loading .env files during validation,
+	// but it doesn't seem to make environment variables available for variable substitution during
+	// compose file parsing. This might be a bug in compose-go v2 or a misunderstanding of the API.
+	// For now, we manually load .env files and pass only those variables to compose-go.
+
+	// Load .env file variables if it exists
+	var envSlice []string
+	if _, err := os.Stat(envPath); err == nil {
+		slog.Debug("Found .env file in compose directory", "env_path", envPath, "compose_path", path)
+
+		// Read and parse .env file
+		envVars, err := dotenv.Read(envPath)
+		if err != nil {
+			slog.Debug("Failed to read .env file", "env_path", envPath, "error", err)
+		} else {
+			// Convert map to []string format expected by cli.WithEnv()
+			for key, value := range envVars {
+				envSlice = append(envSlice, key+"="+value)
+			}
+			slog.Debug("Loaded environment variables from .env file", "env_path", envPath, "var_count", len(envVars))
+		}
+	} else {
+		slog.Debug("No .env file found in compose directory", "working_dir", workingDir, "compose_path", path)
+	}
+
+	// Pass the .env file variables to compose-go for validation
+	options, err := cli.NewProjectOptions([]string{path},
+		cli.WithWorkingDirectory(workingDir),
+		cli.WithEnv(envSlice))
 	if err != nil {
-		slog.Debug("Failed to create project options", "path", path, "error", err)
+		slog.Debug("Failed to create project options", "path", path, "working_dir", workingDir, "error", err)
 		return false
 	}
 
 	// Try to load and validate the project
-	_, err = options.LoadProject(ctx)
+	project, err := options.LoadProject(ctx)
 	if err != nil {
-		slog.Debug("File is not a valid compose file", "path", path, "error", err)
+		slog.Debug("File is not a valid compose file", "path", path, "working_dir", workingDir, "error", err)
 		return false
 	}
 
-	slog.Debug("File is a valid compose file", "path", path)
+	slog.Debug(
+		"File is a valid compose file",
+		"path",
+		path,
+		"project_name",
+		project.Name,
+		"services_count",
+		len(project.Services),
+	)
 	return true
 }
 
