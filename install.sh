@@ -37,10 +37,18 @@ else
     exit 1
 fi
 
+# Get docker group GID for container access to Docker socket
+DOCKER_GID=$(getent group docker | cut -d: -f3)
+if [ -z "$DOCKER_GID" ]; then
+    echo "Error: docker group not found. Make sure Docker is installed and you are in the docker group."
+    exit 1
+fi
+
 cat >.env <<EOF
 # User permissions - ensures Oar container runs with current user's permissions
+# Use docker group GID so container can access Docker socket
 OAR_UID=$(id -u)
-OAR_GID=$(id -g)
+OAR_GID=$DOCKER_GID
 
 # Oar encryption key - keep this secure and do not commit to version control
 OAR_ENCRYPTION_KEY=$ENCRYPTION_KEY
