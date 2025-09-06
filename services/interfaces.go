@@ -18,6 +18,7 @@ type ComposeProjectInterface interface {
 	Down() (string, error)
 	Logs() (string, error)
 	GetConfig() (string, error)
+	Status() (*ComposeStatus, error)
 	UpStreaming(outputChan chan<- string) error
 	UpPiping() error
 	DownStreaming(outputChan chan<- string) error

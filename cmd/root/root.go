@@ -9,6 +9,7 @@ import (
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
 	"github.com/ch00k/oar/cmd/start"
+	"github.com/ch00k/oar/cmd/status"
 	"github.com/ch00k/oar/cmd/stop"
 	"github.com/ch00k/oar/cmd/update"
 	"github.com/ch00k/oar/cmd/version"
@@ -41,7 +42,7 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Skip initialization for commands that don't need full app context
-			skipInitCommands := []string{"version", "update", "logs", "start", "stop"}
+			skipInitCommands := []string{"version", "update", "logs", "start", "stop", "status"}
 			for _, skipCmd := range skipInitCommands {
 				if cmd.Name() == skipCmd {
 					return
@@ -94,6 +95,7 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 	cmd.AddCommand(logs.NewCmdLogs())
 	cmd.AddCommand(project.NewCmdProject())
 	cmd.AddCommand(start.NewCmdStart())
+	cmd.AddCommand(status.NewCmdStatus())
 	cmd.AddCommand(stop.NewCmdStop())
 	cmd.AddCommand(update.NewCmdUpdate())
 	cmd.AddCommand(version.NewCmdVersion())
