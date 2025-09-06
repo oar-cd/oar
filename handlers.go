@@ -249,6 +249,7 @@ func handleStream(streamFunc func(uuid.UUID, chan<- string) error, streamType st
 
 		// Start streaming in a goroutine
 		go func() {
+			defer close(outputChan) // Close channel when streaming function completes
 			if err := streamFunc(projectID, outputChan); err != nil {
 				logOperationError(fmt.Sprintf("%s_stream", streamType), "handlers", err, "project_id", projectID)
 				select {

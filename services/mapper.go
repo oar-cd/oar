@@ -1,6 +1,10 @@
 package services
 
-import "github.com/ch00k/oar/models"
+import (
+	"log/slog"
+
+	"github.com/ch00k/oar/models"
+)
 
 type ProjectMapper struct {
 	encryption *EncryptionService
@@ -23,6 +27,11 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 		if err != nil {
 			// Log error but don't fail - project should still be usable
 			// This could happen if encryption key changed
+			slog.Error("Failed to decrypt Git authentication",
+				"project_id", p.ID,
+				"project_name", p.Name,
+				"auth_type", *p.GitAuthType,
+				"error", err)
 			gitAuth = nil
 		} else {
 			gitAuth = decryptedAuth

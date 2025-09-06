@@ -59,34 +59,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.showToast = async function(message, type = 'info') {
         const toast = document.createElement('div');
-        
+
         // Map types to colors and icons
         const typeConfig = {
-            'success': { 
-                borderColor: 'border-l-green-500', 
-                textColor: 'text-green-700', 
-                icon: 'check' 
+            'success': {
+                borderColor: 'border-l-green-500',
+                textColor: 'text-green-700',
+                icon: 'check'
             },
-            'error': { 
-                borderColor: 'border-l-red-500', 
-                textColor: 'text-red-700', 
-                icon: 'x' 
+            'error': {
+                borderColor: 'border-l-red-500',
+                textColor: 'text-red-700',
+                icon: 'x'
             },
-            'warning': { 
-                borderColor: 'border-l-yellow-500', 
-                textColor: 'text-yellow-700', 
-                icon: 'triangle-alert' 
+            'warning': {
+                borderColor: 'border-l-yellow-500',
+                textColor: 'text-yellow-700',
+                icon: 'triangle-alert'
             },
-            'info': { 
-                borderColor: 'border-l-blue-500', 
-                textColor: 'text-blue-700', 
-                icon: 'info' 
+            'info': {
+                borderColor: 'border-l-blue-500',
+                textColor: 'text-blue-700',
+                icon: 'info'
             }
         };
 
         const config = typeConfig[type];
         toast.className = `bg-white ${config.borderColor} border-l-4 px-4 py-3 rounded-md shadow-lg max-w-sm transform transition-all duration-300 translate-x-full opacity-0`;
-        
+
         // Create toast content with icon and message
         const iconHtml = await loadIcon(config.icon, 'icon-sm');
         toast.innerHTML = `
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modal) {
             // Stop logs streaming when any modal closes
             stopLogsStreaming();
-            
+
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
@@ -365,8 +365,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // All messages now come with proper type field
                                     const messageType = data.type;
                                     const displayMessage = data.message;
-                                    
-                                    console.log('Message type:', messageType, 'Message:', displayMessage);
 
                                     // Style based on message type
                                     let cssClass;
@@ -391,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // Auto-scroll to bottom
                                     outputElement.scrollTop = outputElement.scrollHeight;
                                     break;
-                                    
+
                                 case 'output':
                                     // Legacy fallback for any remaining 'output' type messages
                                     const legacyMessage = data.message;
@@ -498,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log(`${config.name} streaming was cancelled`);
                     return;
                 }
-                
+
                 console.error(`${config.name} streaming error:`, error);
                 elements.button.disabled = false;
                 elements.content.innerHTML += `\n<span class="deploy-text-frontend-error">ERROR: Connection to ${config.name.toLowerCase()} stream failed</span>\n`;
@@ -628,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Logs streaming was cancelled');
                 return;
             }
-            
+
             console.error('Logs streaming error:', error);
             const logsContent = document.getElementById('logs-content');
             if (logsContent) {

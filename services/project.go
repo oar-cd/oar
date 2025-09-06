@@ -227,7 +227,6 @@ func (s *ProjectService) DeployStreaming(
 	pull bool,
 	outputChan chan<- string,
 ) error {
-	defer close(outputChan)
 
 	project, commitHash, deployment, composeProject, err := s.prepareDeployment(projectID, pull)
 	if err != nil {
@@ -488,7 +487,6 @@ func (s *ProjectService) Stop(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-	defer close(outputChan)
 
 	// Get project
 	project, err := s.Get(projectID)
@@ -610,7 +608,6 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-	defer close(outputChan)
 
 	// Get projectID
 	project, err := s.Get(projectID)
