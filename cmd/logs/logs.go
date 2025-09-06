@@ -3,11 +3,9 @@ package logs
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/services"
+	"github.com/ch00k/oar/cmd/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -28,32 +26,10 @@ Press Ctrl+C to stop.`,
 }
 
 func runLogs(cmd *cobra.Command) error {
-	// Get the Oar data directory (where compose.yaml should be)
-	oarDir := services.GetDefaultDataDir()
-
-	// Check if compose.yaml exists
-	composeFile := filepath.Join(oarDir, "compose.yaml")
-	if _, err := os.Stat(composeFile); os.IsNotExist(err) {
-		return output.FprintError(
-			cmd,
-			"Oar compose.yaml not found at %s\nMake sure Oar is installed and running.",
-			composeFile,
-		)
-	}
-
-	// Create a minimal config for the docker compose operations
-	config := &services.Config{
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-	}
-
-	// Create a ComposeProject for the Oar service itself
-	oarComposeProject := &services.ComposeProject{
-		Name:         "oar",
-		WorkingDir:   oarDir,
-		ComposeFiles: []string{"compose.yaml"},
-		Variables:    []string{}, // No additional variables needed
-		Config:       config,
+	// Create ComposeProject for the Oar service
+	oarComposeProject, err := utils.CreateOarServiceComposeProject(cmd)
+	if err != nil {
+		return err
 	}
 
 	if err := output.FprintPlain(cmd, "Streaming logs from Oar service..."); err != nil {
