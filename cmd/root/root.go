@@ -8,6 +8,8 @@ import (
 	"github.com/ch00k/oar/cmd/logs"
 	"github.com/ch00k/oar/cmd/output"
 	"github.com/ch00k/oar/cmd/project"
+	"github.com/ch00k/oar/cmd/start"
+	"github.com/ch00k/oar/cmd/stop"
 	"github.com/ch00k/oar/cmd/update"
 	"github.com/ch00k/oar/cmd/version"
 	"github.com/ch00k/oar/internal/app"
@@ -39,8 +41,11 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Skip initialization for commands that don't need full app context
-			if cmd.Name() == "version" || cmd.Name() == "update" || cmd.Name() == "logs" {
-				return
+			skipInitCommands := []string{"version", "update", "logs", "start", "stop"}
+			for _, skipCmd := range skipInitCommands {
+				if cmd.Name() == skipCmd {
+					return
+				}
 			}
 
 			// Initialize configuration for CLI with data directory override
@@ -88,6 +93,8 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 
 	cmd.AddCommand(logs.NewCmdLogs())
 	cmd.AddCommand(project.NewCmdProject())
+	cmd.AddCommand(start.NewCmdStart())
+	cmd.AddCommand(stop.NewCmdStop())
 	cmd.AddCommand(update.NewCmdUpdate())
 	cmd.AddCommand(version.NewCmdVersion())
 	return cmd
