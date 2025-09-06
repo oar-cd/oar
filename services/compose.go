@@ -296,7 +296,15 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 				"message": scanner.Text(),
 			}
 			if jsonMsg, err := json.Marshal(msg); err == nil {
-				outputChan <- string(jsonMsg)
+				select {
+				case outputChan <- string(jsonMsg):
+				default:
+					// Channel is full or closed (likely client disconnected), skip this message
+					slog.Debug("Dropped Docker stdout message, channel unavailable",
+						"project_name", p.Name,
+						"message_type", "stdout")
+					return
+				}
 			}
 		}
 	}()
@@ -312,7 +320,15 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 				"message": scanner.Text(),
 			}
 			if jsonMsg, err := json.Marshal(msg); err == nil {
-				outputChan <- string(jsonMsg)
+				select {
+				case outputChan <- string(jsonMsg):
+				default:
+					// Channel is full or closed (likely client disconnected), skip this message
+					slog.Debug("Dropped Docker stderr message, channel unavailable",
+						"project_name", p.Name,
+						"message_type", "stderr")
+					return
+				}
 			}
 		}
 	}()
