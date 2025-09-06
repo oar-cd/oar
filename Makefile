@@ -37,7 +37,11 @@ server:
 generate: tailwind templ
 
 dockerimage:
-	docker build -t oar .
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION must be set. Usage: make dockerimage VERSION=1.2.3"; \
+		exit 1; \
+	fi
+	docker build --build-arg VERSION=$(VERSION) -t oar .
 
 up:
 	docker compose up
