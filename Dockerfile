@@ -23,7 +23,7 @@ RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.ServerVersion=${VERSION}" -o 
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache docker-cli-compose su-exec
+RUN apk add --no-cache docker-cli-compose netcat-openbsd
 
 WORKDIR /app
 
