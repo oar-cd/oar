@@ -7,8 +7,23 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 )
+
+type ContainerInfo struct {
+	Service    string `json:"Service"`
+	Name       string `json:"Name"`
+	State      string `json:"State"`
+	Status     string `json:"Status"`
+	RunningFor string `json:"RunningFor"`
+}
+
+type ComposeStatus struct {
+	Status     string
+	Containers []ContainerInfo
+	Uptime     string
+}
 
 type ComposeProject struct {
 	// Name is the name of the Docker Compose project.
@@ -408,4 +423,81 @@ func (p *ComposeProject) commandConfig() (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
+}
+
+func (p *ComposeProject) commandPs() (*exec.Cmd, error) {
+	cmd, err := p.prepareCommand("ps", []string{"--format", "json"})
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_ps",
+			"project_name", p.Name,
+			"error", err)
+		return nil, err
+	}
+
+	return cmd, nil
+}
+
+func (p *ComposeProject) Status() (*ComposeStatus, error) {
+	cmd, err := p.commandPs()
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := p.executeCommand(cmd)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "docker_compose",
+			"operation", "docker_compose_status",
+			"project_name", p.Name,
+			"error", err)
+		return nil, err
+	}
+
+	var containers []ContainerInfo
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		var container ContainerInfo
+		if err := json.Unmarshal([]byte(line), &container); err != nil {
+			slog.Error("Failed to parse container JSON",
+				"project_name", p.Name,
+				"line", line,
+				"error", err)
+			continue
+		}
+		containers = append(containers, container)
+	}
+
+	// Determine overall project status
+	projectStatus := "stopped"
+	uptime := ""
+	if len(containers) > 0 {
+		runningCount := 0
+		for _, container := range containers {
+			if container.State == "running" {
+				runningCount++
+				if uptime == "" {
+					uptime = strings.TrimSuffix(container.RunningFor, " ago")
+				}
+			}
+		}
+
+		if runningCount == len(containers) {
+			projectStatus = "running"
+		} else if runningCount > 0 {
+			projectStatus = "partial"
+		}
+	}
+
+	return &ComposeStatus{
+		Status:     projectStatus,
+		Containers: containers,
+		Uptime:     uptime,
+	}, nil
 }
