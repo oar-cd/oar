@@ -77,6 +77,9 @@ type Config struct {
 	// Encryption
 	EncryptionKey string
 
+	// Runtime environment
+	Containerized bool
+
 	// Environment provider for testing
 	env EnvProvider
 }
@@ -200,6 +203,11 @@ func (c *Config) loadFromEnv() {
 	}
 	if v := c.env.Getenv("OAR_ENCRYPTION_KEY"); v != "" {
 		c.EncryptionKey = v
+	}
+	if v := c.env.Getenv("OAR_CONTAINERIZED"); v != "" {
+		if containerized, err := strconv.ParseBool(v); err == nil {
+			c.Containerized = containerized
+		}
 	}
 }
 
