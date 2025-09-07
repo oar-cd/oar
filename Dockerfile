@@ -9,18 +9,15 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /build
 
-# Copy go mod files and download dependencies first (better caching)
+# Copy go mod files and download dependencies
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+RUN go mod download
 
 # Copy source code
 COPY . .
 
 # Build the binary with SQLite support and version
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 go build -ldflags="-s -w -X main.ServerVersion=${VERSION}" -o oar .
+RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.ServerVersion=${VERSION}" -o oar .
 
 # Runtime stage
 FROM alpine:latest
