@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
+	"github.com/gosimple/slug"
 )
 
 type ProjectStatus int
@@ -110,7 +111,10 @@ func (s *ProjectService) CreateFromTempClone(
 	project *Project,
 	tempClonePath string,
 ) (*Project, error) {
-	project.WorkingDir = filepath.Join(s.config.WorkspaceDir, project.ID.String())
+	// Create directory name: <project_id>-<normalized_project_name>
+	normalizedName := slug.Make(project.Name)
+	dirName := fmt.Sprintf("%s-%s", project.ID.String(), normalizedName)
+	project.WorkingDir = filepath.Join(s.config.WorkspaceDir, dirName)
 
 	gitDir, err := project.GitDir()
 	if err != nil {
@@ -587,9 +591,21 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 		return fmt.Errorf("failed to stop project before removal: %w", err)
 	}
 
-	// Remove project directory
-	if err := os.RemoveAll(project.WorkingDir); err != nil {
-		return fmt.Errorf("failed to remove project directory: %w", err)
+	// Rename project directory to indicate deletion instead of removing it
+	// This avoids issues with root-owned files from Docker containers
+	deletedDirName := fmt.Sprintf("deleted-%s", filepath.Base(project.WorkingDir))
+	deletedDirPath := filepath.Join(filepath.Dir(project.WorkingDir), deletedDirName)
+	if err := os.Rename(project.WorkingDir, deletedDirPath); err != nil {
+		slog.Warn("Failed to rename project directory, continuing with deletion",
+			"project_id", project.ID,
+			"from", project.WorkingDir,
+			"to", deletedDirPath,
+			"error", err)
+	} else {
+		slog.Info("Project directory renamed to indicate deletion",
+			"project_id", project.ID,
+			"from", project.WorkingDir,
+			"to", deletedDirPath)
 	}
 
 	// Delete project from database
