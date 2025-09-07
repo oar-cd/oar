@@ -217,11 +217,12 @@ func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cm
 	slog.Debug("Executing Docker Compose command",
 		"command", p.Config.DockerCommand,
 		"args", commandArgs,
-		"working_dir", p.WorkingDir)
+		"project_name", p.Name)
 
 	// Create command
 	cmd := exec.Command(p.Config.DockerCommand, commandArgs...)
-	cmd.Dir = p.WorkingDir
+	// Do not set cmd.Dir to avoid Docker resolving container paths as host paths.
+	// The compose files are already specified with absolute paths via --file flags.
 
 	// Inject variables if provided
 	if len(p.Variables) > 0 {
