@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -113,7 +114,11 @@ func getLatestRelease() (*GitHubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close() // nolint:errcheck
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("Failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
@@ -199,7 +204,11 @@ func downloadFile(url, filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() // nolint:errcheck
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("Failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
@@ -209,7 +218,11 @@ func downloadFile(url, filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close() // nolint:errcheck
+	defer func() {
+		if cerr := out.Close(); cerr != nil {
+			slog.Warn("Failed to close file", "file_path", filepath, "error", cerr)
+		}
+	}()
 
 	_, err = io.Copy(out, resp.Body)
 	return err
@@ -223,7 +236,11 @@ func restartDockerCompose(oarDir string) error {
 	if err != nil {
 		return err
 	}
-	defer os.Chdir(oldDir) // nolint:errcheck
+	defer func() {
+		if err := os.Chdir(oldDir); err != nil {
+			slog.Warn("Failed to restore working directory", "target_dir", oldDir, "error", err)
+		}
+	}()
 
 	if err := os.Chdir(oarDir); err != nil {
 		return fmt.Errorf("failed to change to oar directory: %w", err)

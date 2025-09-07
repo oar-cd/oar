@@ -1,12 +1,9 @@
 package main
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/services"
 	"github.com/google/uuid"
 )
 
@@ -14,41 +11,22 @@ import (
 
 // createProject handles project creation
 func createProject(r *http.Request) error {
-	// Extract form data
-	name := r.FormValue("name")
-	gitURL := r.FormValue("git_url")
-	composeFiles := r.FormValue("compose_files")
-	variables := r.FormValue("variables")
-
-	// Validate required fields
-	if name == "" || gitURL == "" || strings.TrimSpace(composeFiles) == "" {
-		return errors.New("name, Git URL, and Compose Files are required")
+	// Extract form data into request struct
+	req := &ProjectCreateRequest{
+		Name:         r.FormValue("name"),
+		GitURL:       r.FormValue("git_url"),
+		ComposeFiles: r.FormValue("compose_files"),
+		Variables:    r.FormValue("variables"),
+		GitAuth:      buildGitAuthConfig(r),
 	}
 
-	// Build GitAuthConfig
-	gitAuthConfig := buildGitAuthConfig(r)
-
-	// Parse compose files and variables into slices
-	var composeFileList []string
-	if composeFiles != "" {
-		composeFileList = strings.Split(strings.TrimSpace(composeFiles), "\n")
+	// Validate request
+	if err := validateProjectCreateRequest(req); err != nil {
+		return err
 	}
 
-	var variableList []string
-	if variables != "" {
-		variableList = strings.Split(strings.TrimSpace(variables), "\n")
-	}
-
-	// Create project struct
-	newProject := &services.Project{
-		ID:           uuid.New(),
-		Name:         name,
-		GitURL:       gitURL,
-		GitAuth:      gitAuthConfig,
-		ComposeFiles: composeFileList,
-		Variables:    variableList,
-		Status:       services.ProjectStatusStopped,
-	}
+	// Build project from request
+	newProject := buildProjectFromCreateRequest(req)
 
 	// Create project using service
 	projectService := app.GetProjectService()
@@ -63,28 +41,18 @@ func updateProject(r *http.Request) error {
 		return err
 	}
 
-	// Extract form data
-	name := r.FormValue("name")
-	composeFiles := r.FormValue("compose_files")
-	variables := r.FormValue("variables")
-
-	// Validate required fields
-	if name == "" || strings.TrimSpace(composeFiles) == "" {
-		return errors.New("name and Compose Files are required")
+	// Extract form data into request struct
+	req := &ProjectUpdateRequest{
+		ID:           projectID,
+		Name:         r.FormValue("name"),
+		ComposeFiles: r.FormValue("compose_files"),
+		Variables:    r.FormValue("variables"),
+		GitAuth:      buildGitAuthConfig(r),
 	}
 
-	// Build GitAuthConfig
-	gitAuthConfig := buildGitAuthConfig(r)
-
-	// Parse compose files and variables into slices
-	var composeFileList []string
-	if composeFiles != "" {
-		composeFileList = strings.Split(strings.TrimSpace(composeFiles), "\n")
-	}
-
-	var variableList []string
-	if variables != "" {
-		variableList = strings.Split(strings.TrimSpace(variables), "\n")
+	// Validate request
+	if err := validateProjectUpdateRequest(req); err != nil {
+		return err
 	}
 
 	// Get existing project
@@ -94,11 +62,8 @@ func updateProject(r *http.Request) error {
 		return err
 	}
 
-	// Update project fields
-	existingProject.Name = name
-	existingProject.GitAuth = gitAuthConfig
-	existingProject.ComposeFiles = composeFileList
-	existingProject.Variables = variableList
+	// Apply updates to existing project
+	applyProjectUpdateRequest(existingProject, req)
 
 	// Update project using service
 	return projectService.Update(existingProject)
