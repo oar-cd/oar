@@ -104,7 +104,7 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 	assert.Contains(t, cmd.Path, "docker") // Path may be full path like /usr/bin/docker
-	assert.Equal(t, tempDir, cmd.Dir)
+	assert.Equal(t, "", cmd.Dir)           // Working directory is no longer set to avoid host path resolution issues
 
 	// Verify command arguments
 	expectedArgs := []string{
@@ -398,7 +398,7 @@ func TestComposeProject_InvalidWorkingDirectory(t *testing.T) {
 	// Assertions
 	assert.NoError(t, err) // prepareCommand doesn't validate directory existence
 	assert.NotNil(t, cmd)
-	assert.Equal(t, "/non/existent/directory", cmd.Dir)
+	assert.Equal(t, "", cmd.Dir) // Working directory is no longer set to avoid host path resolution issues
 }
 
 // Tests for streaming operations with channels
