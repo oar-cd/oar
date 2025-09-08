@@ -1,229 +1,608 @@
 package output
 
-//import (
-//    "bytes"
-//    "os"
-//    "testing"
+import (
+	"bytes"
+	"io"
+	"testing"
+	"time"
 
-//    "github.com/fatih/color"
-//)
+	"github.com/ch00k/oar/services"
+	"github.com/fatih/color"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
 
-//func TestColorFunctions(t *testing.T) {
-//    tests := []struct {
-//        name          string
-//        colorsEnabled bool
-//        expectColored bool
-//    }{
-//        {
-//            name:          "colors disabled",
-//            colorsEnabled: false,
-//            expectColored: false,
-//        },
-//        {
-//            name:          "colors enabled",
-//            colorsEnabled: true,
-//            expectColored: true,
-//        },
-//    }
+func TestInitColors(t *testing.T) {
+	tests := []struct {
+		name            string
+		isColorDisabled bool
+		setNoColor      bool
+	}{
+		{
+			name:            "colors enabled",
+			isColorDisabled: false,
+			setNoColor:      false,
+		},
+		{
+			name:            "colors disabled by flag",
+			isColorDisabled: true,
+			setNoColor:      false,
+		},
+		{
+			name:            "colors disabled by NoColor",
+			isColorDisabled: false,
+			setNoColor:      true,
+		},
+	}
 
-//    for _, tt := range tests {
-//        t.Run(tt.name, func(t *testing.T) {
-//            // Save original NoColor state
-//            originalNoColor := color.NoColor
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Save original state
+			originalNoColor := color.NoColor
+			originalMaybeColorize := maybeColorize
 
-//            // Restore original NoColor state after test
-//            defer func() { color.NoColor = originalNoColor }()
+			// Set up test state
+			color.NoColor = tt.setNoColor
+			maybeColorize = nil
 
-//            // Set test state
-//            color.NoColor = !tt.colorsEnabled
+			// Test InitColors
+			InitColors(tt.isColorDisabled)
 
-//            // Re-initialize colors for this test
-//            InitColors(false)
+			// Verify maybeColorize was set
+			assert.NotNil(t, maybeColorize)
 
-//            // Test success color function
-//            successResult := maybeColorize(Success, "test message")
-//            if tt.expectColored {
-//                // Should contain ANSI color codes
-//                if len(successResult) <= len("test message") {
-//                    t.Errorf("Expected colored output to be longer than plain text")
-//                }
-//            } else {
-//                // Should be plain text
-//                if successResult != "test message" {
-//                    t.Errorf("Expected plain text, got: %q", successResult)
-//                }
-//            }
+			// Test the function works
+			result := maybeColorize(Success, "test %s", "message")
+			assert.Contains(t, result, "test message")
 
-//            // Test warning color function
-//            warningResult := maybeColorize(Warning, "test message")
-//            if tt.expectColored {
-//                // Should contain ANSI color codes
-//                if len(warningResult) <= len("test message") {
-//                    t.Errorf("Expected colored output to be longer than plain text")
-//                }
-//            } else {
-//                // Should be plain text
-//                if warningResult != "test message" {
-//                    t.Errorf("Expected plain text, got: %q", successResult)
-//                }
-//            }
+			// Restore original state
+			color.NoColor = originalNoColor
+			maybeColorize = originalMaybeColorize
+		})
+	}
+}
 
-//            // Test error color function
-//            errorResult := maybeColorize(Error, "error message")
-//            if tt.expectColored {
-//                // Should contain ANSI color codes
-//                if len(errorResult) <= len("error message") {
-//                    t.Errorf("Expected colored output to be longer than plain text")
-//                }
-//            } else {
-//                // Should be plain text
-//                if errorResult != "error message" {
-//                    t.Errorf("Expected plain text, got: %q", errorResult)
-//                }
-//            }
-//        })
-//    }
-//}
+func TestPrintMessage(t *testing.T) {
+	// Save original state
+	originalMaybeColorize := maybeColorize
 
-//func TestColorFunctionsWithFormatting(t *testing.T) {
-//    // Save original NoColor state
-//    originalNoColor := color.NoColor
+	tests := []struct {
+		name         string
+		kind         color.Attribute
+		template     string
+		args         []any
+		setColorizer bool
+		expected     string
+	}{
+		{
+			name:         "plain message with nil colorizer",
+			kind:         Plain,
+			template:     "Hello %s",
+			args:         []any{"World"},
+			setColorizer: false,
+			expected:     "Hello World\n",
+		},
+		{
+			name:         "plain message with colorizer",
+			kind:         Plain,
+			template:     "Plain %s",
+			args:         []any{"text"},
+			setColorizer: true,
+			expected:     "Plain text\n",
+		},
+		{
+			name:         "success message with colorizer",
+			kind:         Success,
+			template:     "Success %s",
+			args:         []any{"message"},
+			setColorizer: true,
+			expected:     "Success message", // Will have colors but we just check content
+		},
+		{
+			name:         "no args",
+			kind:         Plain,
+			template:     "Simple message",
+			args:         nil,
+			setColorizer: false,
+			expected:     "Simple message\n",
+		},
+	}
 
-//    // Restore original NoColor state after test
-//    defer func() { color.NoColor = originalNoColor }()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setColorizer {
+				maybeColorize = func(kind color.Attribute, tmpl string, a ...any) string {
+					return color.New(kind).SprintfFunc()(tmpl, a...)
+				}
+			} else {
+				maybeColorize = nil
+			}
 
-//    // Test with colors disabled for consistent output
-//    color.NoColor = true
+			result := PrintMessage(tt.kind, tt.template, tt.args...)
+			if tt.kind == Plain || !tt.setColorizer {
+				assert.Equal(t, tt.expected, result)
+			} else {
+				// For colored output, just check it contains the expected text
+				assert.Contains(t, result, "Success message")
+			}
+		})
+	}
 
-//    InitColors(false)
+	// Restore original state
+	maybeColorize = originalMaybeColorize
+}
 
-//    tests := []struct {
-//        name     string
-//        format   string
-//        args     []any
-//        expected string
-//    }{
-//        {
-//            name:     "simple string",
-//            format:   "hello",
-//            args:     nil,
-//            expected: "hello",
-//        },
-//        {
-//            name:     "format with string",
-//            format:   "hello %s",
-//            args:     []any{"world"},
-//            expected: "hello world",
-//        },
-//        {
-//            name:     "format with multiple args",
-//            format:   "project %s (ID: %s)",
-//            args:     []any{"test", "123"},
-//            expected: "project test (ID: 123)",
-//        },
-//        {
-//            name:     "format with integer",
-//            format:   "count: %d",
-//            args:     []any{42},
-//            expected: "count: 42",
-//        },
-//    }
+func TestPrintTable(t *testing.T) {
+	tests := []struct {
+		name        string
+		header      []string
+		data        [][]string
+		expectError bool
+	}{
+		{
+			name:   "simple table with header",
+			header: []string{"Column1", "Column2"},
+			data: [][]string{
+				{"Row1Col1", "Row1Col2"},
+				{"Row2Col1", "Row2Col2"},
+			},
+			expectError: false,
+		},
+		{
+			name:   "table without header",
+			header: []string{},
+			data: [][]string{
+				{"Value1", "Value2"},
+			},
+			expectError: false,
+		},
+		{
+			name:        "empty table",
+			header:      []string{"Header1", "Header2"},
+			data:        [][]string{},
+			expectError: false,
+		},
+	}
 
-//    for _, tt := range tests {
-//        t.Run(tt.name, func(t *testing.T) {
-//            successResult := maybeColorize(Success, tt.format, tt.args...)
-//            if successResult != tt.expected {
-//                t.Errorf("maybeColorize(Success) = %q, want %q", successResult, tt.expected)
-//            }
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := PrintTable(tt.header, tt.data)
 
-//            warningResult := maybeColorize(Warning, tt.format, tt.args...)
-//            if warningResult != tt.expected {
-//                t.Errorf("maybeColorize(Warning) = %q, want %q", successResult, tt.expected)
-//            }
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, result)
+				// Check that data appears in result
+				for _, row := range tt.data {
+					for _, cell := range row {
+						if cell != "" {
+							assert.Contains(t, result, cell)
+						}
+					}
+				}
+			}
+		})
+	}
+}
 
-//            errorResult := maybeColorize(Error, tt.format, tt.args...)
-//            if errorResult != tt.expected {
-//                t.Errorf("maybeColorize(Error) = %q, want %q", errorResult, tt.expected)
-//            }
-//        })
-//    }
-//}
+func TestPrintProjectDetails(t *testing.T) {
+	projectID := uuid.New()
+	createdAt := time.Date(2023, 1, 15, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2023, 1, 16, 14, 45, 0, 0, time.UTC)
 
-//func TestPrintFunctions(t *testing.T) {
-//    // Save original NoColor state
-//    originalNoColor := color.NoColor
+	tests := []struct {
+		name     string
+		project  *services.Project
+		short    bool
+		expected []string
+	}{
+		{
+			name: "detailed project with HTTP auth",
+			project: &services.Project{
+				ID:           projectID,
+				Name:         "test-project",
+				Status:       services.ProjectStatusRunning,
+				GitURL:       "https://github.com/test/repo",
+				WorkingDir:   "/tmp/projects/test-project",
+				ComposeFiles: []string{"docker-compose.yml", "docker-compose.prod.yml"},
+				Variables:    []string{"ENV=production", "PORT=8080"},
+				GitAuth: &services.GitAuthConfig{
+					HTTPAuth: &services.GitHTTPAuthConfig{
+						Username: "token",
+						Password: "github_pat_123456789",
+					},
+				},
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
+			},
+			short: false,
+			expected: []string{
+				"test-project",
+				"running",
+				"https://github.com/test/repo",
+				"HTTP",
+				"token",
+				"docker-compose.yml",
+				"docker-compose.prod.yml",
+			},
+		},
+		{
+			name: "short project details",
+			project: &services.Project{
+				ID:         projectID,
+				Name:       "short-project",
+				Status:     services.ProjectStatusStopped,
+				GitURL:     "https://github.com/test/short",
+				WorkingDir: "/tmp/projects/short-project",
+			},
+			short:    true,
+			expected: []string{"short-project", "stopped", "https://github.com/test/short"},
+		},
+		{
+			name: "project with SSH auth",
+			project: &services.Project{
+				ID:         projectID,
+				Name:       "ssh-project",
+				Status:     services.ProjectStatusError,
+				GitURL:     "git@github.com:test/repo.git",
+				WorkingDir: "/tmp/projects/ssh-project",
+				GitAuth: &services.GitAuthConfig{
+					SSHAuth: &services.GitSSHAuthConfig{
+						User:       "git",
+						PrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest key\n-----END OPENSSH PRIVATE KEY-----",
+					},
+				},
+				CreatedAt: createdAt,
+				UpdatedAt: updatedAt,
+			},
+			short:    false,
+			expected: []string{"ssh-project", "error", "git@github.com:test/repo.git", "SSH", "git"},
+		},
+	}
 
-//    // Restore original NoColor state after test
-//    defer func() { color.NoColor = originalNoColor }()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := PrintProjectDetails(tt.project, tt.short)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, result)
 
-//    // Test with colors disabled for consistent output
-//    color.NoColor = true
+			// Check that expected strings appear in result
+			for _, expected := range tt.expected {
+				assert.Contains(t, result, expected, "Expected %q to be in result", expected)
+			}
+		})
+	}
+}
 
-//    InitColors(false)
+func TestGetAuthenticationInfo(t *testing.T) {
+	tests := []struct {
+		name           string
+		project        *services.Project
+		expectedMethod string
+		expectedUser   string
+	}{
+		{
+			name: "no authentication",
+			project: &services.Project{
+				GitAuth: nil,
+			},
+			expectedMethod: "None",
+			expectedUser:   "",
+		},
+		{
+			name: "HTTP authentication",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					HTTPAuth: &services.GitHTTPAuthConfig{
+						Username: "testuser",
+						Password: "testpass",
+					},
+				},
+			},
+			expectedMethod: "HTTP",
+			expectedUser:   "testuser",
+		},
+		{
+			name: "SSH authentication",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					SSHAuth: &services.GitSSHAuthConfig{
+						User:       "git",
+						PrivateKey: "ssh-key",
+					},
+				},
+			},
+			expectedMethod: "SSH",
+			expectedUser:   "git",
+		},
+		{
+			name: "empty auth config",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{},
+			},
+			expectedMethod: "None",
+			expectedUser:   "",
+		},
+	}
 
-//    t.Run("printSuccess", func(t *testing.T) {
-//        // Capture stdout
-//        oldStdout := os.Stdout
-//        r, w, _ := os.Pipe()
-//        os.Stdout = w
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			method, user := getAuthenticationInfo(tt.project)
+			assert.Equal(t, tt.expectedMethod, method)
+			assert.Equal(t, tt.expectedUser, user)
+		})
+	}
+}
 
-//        PrintMessage(Success, "test success")
+func TestGetAuthenticationCredential(t *testing.T) {
+	tests := []struct {
+		name     string
+		project  *services.Project
+		expected string
+	}{
+		{
+			name: "no authentication",
+			project: &services.Project{
+				GitAuth: nil,
+			},
+			expected: "",
+		},
+		{
+			name: "HTTP auth with password",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					HTTPAuth: &services.GitHTTPAuthConfig{
+						Username: "user",
+						Password: "secret123456",
+					},
+				},
+			},
+			expected: "sec******456",
+		},
+		{
+			name: "HTTP auth with empty password",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					HTTPAuth: &services.GitHTTPAuthConfig{
+						Username: "user",
+						Password: "",
+					},
+				},
+			},
+			expected: "(not set)",
+		},
+		{
+			name: "SSH auth with key",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					SSHAuth: &services.GitSSHAuthConfig{
+						User:       "git",
+						PrivateKey: "some-ssh-key",
+					},
+				},
+			},
+			expected: "SSH Private Key (***masked***)",
+		},
+		{
+			name: "SSH auth with empty key",
+			project: &services.Project{
+				GitAuth: &services.GitAuthConfig{
+					SSHAuth: &services.GitSSHAuthConfig{
+						User:       "git",
+						PrivateKey: "",
+					},
+				},
+			},
+			expected: "(not set)",
+		},
+	}
 
-//        w.Close() // nolint: errcheck
-//        os.Stdout = oldStdout
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getAuthenticationCredential(tt.project)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
 
-//        var buf bytes.Buffer
-//        buf.ReadFrom(r) // nolint: errcheck
+func TestPrintProjectList(t *testing.T) {
+	projectID1 := uuid.New()
+	projectID2 := uuid.New()
+	createdAt := time.Date(2023, 1, 15, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2023, 1, 16, 14, 45, 0, 0, time.UTC)
 
-//        got := buf.String()
-//        want := "test success\n"
+	// Set up colors for testing
+	InitColors(false)
 
-//        if got != want {
-//            t.Errorf("printSuccess() = %q, want %q", got, want)
-//        }
-//    })
+	tests := []struct {
+		name     string
+		projects []*services.Project
+		expected []string
+	}{
+		{
+			name:     "empty project list",
+			projects: []*services.Project{},
+			expected: []string{"No projects found"},
+		},
+		{
+			name: "single project",
+			projects: []*services.Project{
+				{
+					ID:        projectID1,
+					Name:      "test-project",
+					Status:    services.ProjectStatusRunning,
+					GitURL:    "https://github.com/test/repo",
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
+			},
+			expected: []string{"test-project", "running", "https://github.com/test/repo"},
+		},
+		{
+			name: "multiple projects",
+			projects: []*services.Project{
+				{
+					ID:        projectID1,
+					Name:      "project-1",
+					Status:    services.ProjectStatusRunning,
+					GitURL:    "https://github.com/test/project1",
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
+				{
+					ID:        projectID2,
+					Name:      "project-2",
+					Status:    services.ProjectStatusStopped,
+					GitURL:    "https://github.com/test/project2",
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
+			},
+			expected: []string{"project-1", "running", "project-2", "stopped"},
+		},
+	}
 
-//    t.Run("printWarning", func(t *testing.T) {
-//        // Capture stdout
-//        oldStdout := os.Stdout
-//        r, w, _ := os.Pipe()
-//        os.Stdout = w
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := PrintProjectList(tt.projects)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, result)
 
-//        PrintMessage(Warning, "test warning")
+			// Check that expected strings appear in result
+			for _, expected := range tt.expected {
+				assert.Contains(t, result, expected, "Expected %q to be in result", expected)
+			}
+		})
+	}
+}
 
-//        w.Close() // nolint:errcheck
-//        os.Stdout = oldStdout
+func TestFormatProjectStatus(t *testing.T) {
+	// Set up colors for testing
+	InitColors(false)
 
-//        var buf bytes.Buffer
-//        buf.ReadFrom(r) // nolint:errcheck
+	tests := []struct {
+		name     string
+		status   string
+		contains string // We check contains rather than exact match due to color codes
+	}{
+		{
+			name:     "running status",
+			status:   "running",
+			contains: "running",
+		},
+		{
+			name:     "Running status (capitalized)",
+			status:   "Running",
+			contains: "Running",
+		},
+		{
+			name:     "stopped status",
+			status:   "stopped",
+			contains: "stopped",
+		},
+		{
+			name:     "error status",
+			status:   "error",
+			contains: "error",
+		},
+		{
+			name:     "unknown status",
+			status:   "unknown",
+			contains: "unknown",
+		},
+	}
 
-//        got := buf.String()
-//        want := "test warning\n"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatProjectStatus(tt.status)
+			assert.Contains(t, result, tt.contains)
+		})
+	}
 
-//        if got != want {
-//            t.Errorf("printWarning() = %q, want %q", got, want)
-//        }
-//    })
+	// Test with colors disabled
+	maybeColorize = nil
+	result := formatProjectStatus("running")
+	assert.Equal(t, "running", result)
+}
 
-//    t.Run("printError", func(t *testing.T) {
-//        // Capture stderr
-//        oldStdout := os.Stdout
-//        r, w, _ := os.Pipe()
-//        os.Stdout = w
+func TestNoColorFlag(t *testing.T) {
+	flag := &noColorFlag{}
 
-//        PrintMessage(Error, "test error")
+	// Test initial state
+	assert.False(t, flag.IsSet())
+	assert.Equal(t, "false", flag.String())
+	assert.Equal(t, "bool", flag.Type())
+	assert.True(t, flag.IsBoolFlag())
 
-//        w.Close() // nolint: errcheck
-//        os.Stdout = oldStdout
+	// Test setting the flag
+	err := flag.Set("true")
+	assert.NoError(t, err)
+	assert.True(t, flag.IsSet())
+	assert.Equal(t, "true", flag.String())
 
-//        var buf bytes.Buffer
-//        buf.ReadFrom(r) // nolint: errcheck
+	// Test setting with different value (should still set to true)
+	err = flag.Set("false")
+	assert.NoError(t, err)
+	assert.True(t, flag.IsSet()) // Still true because flag was set
+}
 
-//        got := buf.String()
-//        want := "test error\n"
+func TestFprintFunctions(t *testing.T) {
+	// Set up colors for testing
+	InitColors(false)
 
-//        if got != want {
-//            t.Errorf("printError() = %q, want %q", got, want)
-//        }
-//    })
-//}
+	buf := &bytes.Buffer{}
+
+	// Test Fprint
+	err := Fprint(buf, Success, "Test %s", "message")
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Test message")
+
+	// Test with mock command
+	mockCmd := &mockCommand{buf: &bytes.Buffer{}}
+
+	tests := []struct {
+		name     string
+		fn       func() error
+		expected string
+	}{
+		{
+			name:     "FprintPlain",
+			fn:       func() error { return FprintPlain(mockCmd, "Plain %s", "text") },
+			expected: "Plain text",
+		},
+		{
+			name:     "FprintSuccess",
+			fn:       func() error { return FprintSuccess(mockCmd, "Success %s", "text") },
+			expected: "Success text",
+		},
+		{
+			name:     "FprintWarning",
+			fn:       func() error { return FprintWarning(mockCmd, "Warning %s", "text") },
+			expected: "Warning text",
+		},
+		{
+			name:     "FprintError",
+			fn:       func() error { return FprintError(mockCmd, "Error %s", "text") },
+			expected: "Error text",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCmd.buf.Reset()
+			err := tt.fn()
+			assert.NoError(t, err)
+			assert.Contains(t, mockCmd.buf.String(), tt.expected)
+		})
+	}
+}
+
+// mockCommand implements the interface needed for FprintCmd functions
+type mockCommand struct {
+	buf *bytes.Buffer
+}
+
+func (m *mockCommand) OutOrStdout() io.Writer {
+	return m.buf
+}

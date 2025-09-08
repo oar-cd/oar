@@ -5,12 +5,14 @@ import (
 	"os"
 )
 
-func readLines(filePath string) ([]string, error) { // nolint:all
+func readLines(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close() //nolint:errcheck
+	defer func() {
+		_ = file.Close() // Ignore close errors in defer
+	}()
 
 	var lines []string
 	scanner := bufio.NewScanner(file)

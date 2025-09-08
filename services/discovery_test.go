@@ -12,7 +12,11 @@ func TestDiscovery_DiscoverComposeFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir) // nolint: errcheck
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Logf("Warning: failed to clean up temp directory: %v", err)
+		}
+	}()
 
 	// Create test files
 	testFiles := map[string]string{
@@ -37,9 +41,15 @@ version: 1.0
 	}
 
 	// Create subdirectories to test
-	os.MkdirAll(filepath.Join(tempDir, "subdir"), 0o755)       // nolint: errcheck
-	os.MkdirAll(filepath.Join(tempDir, ".git"), 0o755)         // nolint: errcheck
-	os.MkdirAll(filepath.Join(tempDir, "node_modules"), 0o755) // nolint: errcheck
+	if err := os.MkdirAll(filepath.Join(tempDir, "subdir"), 0o755); err != nil {
+		t.Fatalf("Failed to create subdir: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(tempDir, ".git"), 0o755); err != nil {
+		t.Fatalf("Failed to create .git directory: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(tempDir, "node_modules"), 0o755); err != nil {
+		t.Fatalf("Failed to create node_modules directory: %v", err)
+	}
 
 	// Write test files
 	for filename, content := range testFiles {

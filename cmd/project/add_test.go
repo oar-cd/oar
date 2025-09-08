@@ -44,7 +44,11 @@ func TestProjectAddHappy(t *testing.T) {
 			// Create temporary directory for test data
 			tempDir, err := os.MkdirTemp("", "oar-test-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tempDir) // nolint: errcheck
+			defer func() {
+				if err := os.RemoveAll(tempDir); err != nil {
+					t.Logf("Warning: failed to clean up temp directory: %v", err)
+				}
+			}()
 
 			// Setup a test git repository
 			repoDir := filepath.Join(tempDir, "test-git-repo")
