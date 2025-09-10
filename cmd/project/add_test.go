@@ -102,7 +102,22 @@ func TestProjectAddHappy(t *testing.T) {
 				t.FailNow()
 			}
 
-			createdProject, err := app.GetProjectService().GetByName(tt.options.name)
+			// Find the created project by listing all projects and finding by name
+			projects, err := app.GetProjectService().List()
+			if err != nil {
+				t.Fatalf("Failed to list projects: %v", err)
+			}
+
+			var createdProject *services.Project
+			for _, p := range projects {
+				if p.Name == tt.options.name {
+					createdProject = p
+					break
+				}
+			}
+			if createdProject == nil {
+				t.Fatalf("Created project with name %s not found in project list", tt.options.name)
+			}
 
 			// Verify results
 			assert.NoError(t, err, "Expected command to succeed")

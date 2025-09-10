@@ -31,14 +31,12 @@ type ComposeProjectInterface interface {
 type ProjectManager interface {
 	List() ([]*Project, error)
 	Get(id uuid.UUID) (*Project, error)
-	GetByName(name string) (*Project, error)
 	Create(project *Project) (*Project, error)
 	Update(project *Project) error
 	Remove(projectID uuid.UUID) error
 	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	DeployPiping(projectID uuid.UUID, pull bool) error
 	Start(projectID uuid.UUID) error
-	StartStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	Stop(projectID uuid.UUID) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	StopPiping(projectID uuid.UUID) error

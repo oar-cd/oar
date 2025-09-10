@@ -88,19 +88,6 @@ func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 	return project, nil
 }
 
-func (s *ProjectService) GetByName(name string) (*Project, error) {
-	project, err := s.projectRepository.FindByName(name)
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "service",
-			"operation", "get_project",
-			"project_name", name,
-			"error", err)
-		return nil, err // Pass through as-is
-	}
-	return project, nil
-}
-
 // Create creates a new project (backward compatibility)
 func (s *ProjectService) Create(project *Project) (*Project, error) {
 	return s.CreateFromTempClone(project, "")
@@ -402,45 +389,6 @@ func (s *ProjectService) Start(projectID uuid.UUID) error {
 		project.ID,
 		"output_length",
 		len(output),
-	)
-
-	project.Status = ProjectStatusRunning
-	return s.Update(project)
-}
-
-func (s *ProjectService) StartStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-	// Get project
-	project, err := s.Get(projectID)
-	if err != nil {
-		return fmt.Errorf("project not found: %w", err)
-	}
-
-	// Start Docker Compose
-	slog.Info(
-		"Starting Docker Compose project",
-		"project_id",
-		project.ID,
-		"project_name",
-		project.Name,
-	)
-
-	composeProject := NewComposeProject(project, s.config)
-
-	err = composeProject.UpStreaming(outputChan)
-	if err != nil {
-		slog.Error(
-			"Docker Compose up failed",
-			"project_id",
-			project.ID,
-			"error",
-			err,
-		)
-		return fmt.Errorf("failed to start project: %w", err)
-	}
-	slog.Info(
-		"Docker Compose project started",
-		"project_id",
-		project.ID,
 	)
 
 	project.Status = ProjectStatusRunning
