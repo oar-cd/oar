@@ -88,16 +88,13 @@ func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 	return project, nil
 }
 
-// Create creates a new project (backward compatibility)
+// Create creates a new project
 func (s *ProjectService) Create(project *Project) (*Project, error) {
-	return s.CreateFromTempClone(project, "")
-}
+	// Validate that ComposeFiles is not empty
+	if len(project.ComposeFiles) == 0 {
+		return nil, fmt.Errorf("compose files are required")
+	}
 
-// CreateFromTempClone creates a new project, optionally using a temp clone
-func (s *ProjectService) CreateFromTempClone(
-	project *Project,
-	tempClonePath string,
-) (*Project, error) {
 	// Create directory name: <project_id>-<normalized_project_name>
 	normalizedName := slug.Make(project.Name)
 	dirName := fmt.Sprintf("%s-%s", project.ID.String(), normalizedName)
@@ -114,72 +111,21 @@ func (s *ProjectService) CreateFromTempClone(
 		return nil, err
 	}
 
-	// Move temp clone to permanent location if provided
-	if tempClonePath != "" {
-		// Verify temp directory exists
-		if _, err := os.Stat(tempClonePath); os.IsNotExist(err) {
-			slog.Error("Service operation failed",
-				"layer", "service",
-				"operation", "create_project",
-				"project_id", project.ID,
-				"temp_path", tempClonePath,
-				"error", "temp directory not found")
-			return nil, err
-		}
-
-		// Ensure parent directory exists
-		if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
-			slog.Error("Service operation failed",
-				"layer", "service",
-				"operation", "create_project",
-				"project_id", project.ID,
-				"error", err)
-			return nil, err
-		}
-
-		// Move temp directory to permanent location
-		if err := os.Rename(tempClonePath, gitDir); err != nil {
-			// Clean up temp clone on error
-			if cleanupErr := os.RemoveAll(tempClonePath); cleanupErr != nil {
-				slog.Error("Failed to cleanup temp clone after move failure",
-					"layer", "service",
-					"operation", "create_project_cleanup",
-					"temp_path", tempClonePath,
-					"error", cleanupErr)
-			}
-			slog.Error("Service operation failed",
-				"layer", "service",
-				"operation", "create_project",
-				"project_id", project.ID,
-				"project_name", project.Name,
-				"temp_clone_path", tempClonePath,
-				"error", err)
-			return nil, err
-		}
-
-		slog.Info("Temp clone moved to project location",
-			"temp_path", tempClonePath,
+	// Clone repository
+	if err := s.gitService.Clone(project.GitURL, project.GitAuth, gitDir); err != nil {
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project",
 			"project_id", project.ID,
-			"git_dir", gitDir)
-	} else {
-		// Clone repository first (fallback for cases without discovery)
-		if err := s.gitService.Clone(project.GitURL, project.GitAuth, gitDir); err != nil {
-			slog.Error("Service operation failed",
-				"layer", "service",
-				"operation", "create_project",
-				"project_id", project.ID,
-				"project_name", project.Name,
-				"git_url", project.GitURL,
-				"error", err)
-			return nil, err
-		}
+			"project_name", project.Name,
+			"git_url", project.GitURL,
+			"error", err)
+		return nil, err
 	}
 
 	// Get commit info
 	commit, _ := s.gitService.GetLatestCommit(gitDir)
 	project.LastCommit = &commit
-
-	// TODO: Discover compose files is none are provided
 
 	// Save working directory for cleanup before repository call
 	workingDir := project.WorkingDir

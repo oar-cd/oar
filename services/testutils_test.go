@@ -11,6 +11,7 @@ import (
 
 	"github.com/fernet/fernet-go"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -85,7 +86,7 @@ func createTestProjectWithOptions(opts ProjectOptions) *Project {
 	if opts.WorkingDir != "" {
 		project.WorkingDir = opts.WorkingDir
 	}
-	if len(opts.ComposeFiles) > 0 {
+	if len(opts.ComposeFiles) > 0 || opts.OverrideComposeFiles {
 		project.ComposeFiles = opts.ComposeFiles
 	}
 	if len(opts.Variables) > 0 {
@@ -100,12 +101,13 @@ func createTestProjectWithOptions(opts ProjectOptions) *Project {
 
 // ProjectOptions provides customization options for test projects
 type ProjectOptions struct {
-	Name         string
-	GitURL       string
-	WorkingDir   string
-	ComposeFiles []string
-	Variables    []string
-	Status       ProjectStatus
+	Name                 string
+	GitURL               string
+	WorkingDir           string
+	ComposeFiles         []string
+	OverrideComposeFiles bool // Set to true to explicitly override ComposeFiles even when empty
+	Variables            []string
+	Status               ProjectStatus
 }
 
 // createTestDeployment creates a test deployment for domain layer testing
@@ -147,8 +149,8 @@ func createTestComposeProject() *ComposeProject {
 	return NewComposeProject(testProject, config)
 }
 
-// setupProjectService creates a project service with mock dependencies for testing
-func setupProjectService(
+// setupMockProjectService creates a project service with mock dependencies for testing
+func setupMockProjectService(
 	t *testing.T,
 ) (*ProjectService, *MockProjectRepository, *MockDeploymentRepository, *MockGitExecutor, string) {
 	tempDir := t.TempDir()
@@ -180,6 +182,47 @@ func setupProjectService(
 	}
 
 	return service, projectRepo, deploymentRepo, gitService, tempDir
+}
+
+// setupProjectService creates a project service with real Git and Docker dependencies for integration testing
+func setupProjectService(t *testing.T) (*ProjectService, string) {
+	// Create temporary directory for test data
+	tempDir := t.TempDir()
+	workspaceDir := filepath.Join(tempDir, "projects")
+
+	// Create workspace directory
+	err := os.MkdirAll(workspaceDir, 0o755)
+	require.NoError(t, err, "Failed to create workspace directory")
+
+	// Setup configuration for integration testing
+	config := &Config{
+		DataDir:       tempDir,
+		WorkspaceDir:  workspaceDir,
+		LogLevel:      "warn", // Reduce noise in tests
+		ColorEnabled:  false,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+		GitTimeout:    60 * time.Second, // Allow time for real git operations
+		Containerized: false,
+	}
+
+	// Setup test database
+	database := setupTestDB(t)
+
+	// Setup test encryption service
+	encryption := setupTestEncryption(t)
+
+	// Create repositories (not mocks for integration testing)
+	projectRepo := NewProjectRepository(database, encryption)
+	deploymentRepo := NewDeploymentRepository(database)
+
+	// Create Git service (not mock for integration testing)
+	gitService := NewGitService(config)
+
+	// Create ProjectService with real dependencies
+	service := NewProjectService(projectRepo, deploymentRepo, gitService, config)
+
+	return service, tempDir
 }
 
 // Utility functions

@@ -71,9 +71,9 @@ func TestProjectRepository_UpdateEmptyVariables(t *testing.T) {
 	createdProject, err := repo.Create(project)
 	require.NoError(t, err)
 
-	// Update with empty variables and files
+	// Update with empty variables (but keep ComposeFiles non-empty due to constraint)
 	createdProject.Variables = []string{}
-	createdProject.ComposeFiles = []string{}
+	createdProject.ComposeFiles = []string{"docker-compose.yml"} // Cannot be empty due to constraint
 
 	// Update the project
 	err = repo.Update(createdProject)
@@ -84,7 +84,7 @@ func TestProjectRepository_UpdateEmptyVariables(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, updatedProject.Variables, 0, "Variables should be empty")
-	assert.Len(t, updatedProject.ComposeFiles, 0, "ComposeFiles should be empty")
+	assert.Len(t, updatedProject.ComposeFiles, 1, "ComposeFiles should have one file (cannot be empty)")
 	assert.Equal(t, createdProject.Name, updatedProject.Name)
 	assert.Equal(t, createdProject.GitURL, updatedProject.GitURL)
 	assert.Equal(t, createdProject.WorkingDir, updatedProject.WorkingDir)

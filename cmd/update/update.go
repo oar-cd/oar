@@ -63,7 +63,7 @@ func runUpdate() error {
 		return nil
 	}
 
-	fmt.Print(output.PrintMessage(output.Plain, "Update available: %s → %s", currentVersion, release.TagName))
+	fmt.Print(output.PrintMessage(output.Plain, "Update available: %s -> %s", currentVersion, release.TagName))
 
 	// Update compose.yaml
 	if err := updateComposeFile(oarDir, release); err != nil {

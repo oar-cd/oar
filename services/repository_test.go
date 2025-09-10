@@ -538,9 +538,12 @@ func TestProjectRepository_InvalidStatusHandling(t *testing.T) {
 		BaseModel: models.BaseModel{
 			ID: uuid.New(),
 		},
-		Name:   "invalid-status-test",
-		GitURL: "https://github.com/test/repo.git",
-		Status: "invalid-status",
+		Name:         "invalid-status-test",
+		GitURL:       "https://github.com/test/repo.git",
+		Status:       "invalid-status",
+		ComposeFiles: "docker-compose.yml", // Required by constraint
+		Variables:    "",
+		WorkingDir:   "/tmp/test-project",
 	}
 
 	err := db.Create(invalidModel).Error

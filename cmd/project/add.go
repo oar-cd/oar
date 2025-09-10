@@ -66,6 +66,10 @@ Environment variables:
 		slog.Error("Failed to mark git-url flag as required", "error", err)
 		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic
 	}
+	if err := cmd.MarkFlagRequired("compose-file"); err != nil {
+		slog.Error("Failed to mark compose-file flag as required", "error", err)
+		panic(fmt.Sprintf("CLI setup error: %v", err)) // This is a setup error, should panic
+	}
 	return cmd
 }
 
