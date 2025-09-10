@@ -13,7 +13,7 @@ import (
 
 // Tests for ProjectService.List()
 func TestProjectService_List_Success(t *testing.T) {
-	service, repo, _, _, _ := setupProjectService(t)
+	service, repo, _, _, _ := setupMockProjectService(t)
 
 	// Add test projects to repository
 	project1 := createTestProjectWithOptions(ProjectOptions{Name: "project-1"})
@@ -31,7 +31,7 @@ func TestProjectService_List_Success(t *testing.T) {
 }
 
 func TestProjectService_List_Empty(t *testing.T) {
-	service, _, _, _, _ := setupProjectService(t)
+	service, _, _, _, _ := setupMockProjectService(t)
 
 	// Test
 	projects, err := service.List()
@@ -43,7 +43,7 @@ func TestProjectService_List_Empty(t *testing.T) {
 
 // Tests for ProjectService.Get()
 func TestProjectService_Get_Success(t *testing.T) {
-	service, repo, _, _, _ := setupProjectService(t)
+	service, repo, _, _, _ := setupMockProjectService(t)
 
 	// Add test project
 	testProject := createTestProject()
@@ -59,7 +59,7 @@ func TestProjectService_Get_Success(t *testing.T) {
 }
 
 func TestProjectService_Get_NotFound(t *testing.T) {
-	service, _, _, _, _ := setupProjectService(t)
+	service, _, _, _, _ := setupMockProjectService(t)
 
 	// Test with non-existent ID
 	nonExistentID := uuid.New()
@@ -73,7 +73,7 @@ func TestProjectService_Get_NotFound(t *testing.T) {
 
 // Tests for ProjectService.Create()
 func TestProjectService_Create_Success(t *testing.T) {
-	service, _, _, gitService, _ := setupProjectService(t)
+	service, _, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service mock
 	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
@@ -103,7 +103,7 @@ func TestProjectService_Create_Success(t *testing.T) {
 }
 
 func TestProjectService_Create_GitCloneFails(t *testing.T) {
-	service, _, _, gitService, _ := setupProjectService(t)
+	service, _, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service to fail
 	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
@@ -123,7 +123,7 @@ func TestProjectService_Create_GitCloneFails(t *testing.T) {
 }
 
 func TestProjectService_Create_DuplicateName(t *testing.T) {
-	service, repo, _, gitService, _ := setupProjectService(t)
+	service, repo, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service mock
 	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
@@ -149,69 +149,28 @@ func TestProjectService_Create_DuplicateName(t *testing.T) {
 	assert.Contains(t, err.Error(), "already exists")
 }
 
-// Tests for ProjectService.CreateFromTempClone()
-func TestProjectService_CreateFromTempClone_Success(t *testing.T) {
-	service, _, _, gitService, tempDir := setupProjectService(t)
+func TestProjectService_Create_EmptyComposeFiles(t *testing.T) {
+	service, _, _, _, _ := setupMockProjectService(t)
 
-	// Create a temp clone directory
-	tempClonePath := filepath.Join(tempDir, "temp-clone")
-	err := os.MkdirAll(filepath.Join(tempClonePath, ".git"), 0o755)
-	require.NoError(t, err)
-
-	// Create a mock compose file
-	err = os.WriteFile(filepath.Join(tempClonePath, "docker-compose.yml"), []byte("version: '3'"), 0o644)
-	require.NoError(t, err)
-
-	// Setup git service mock
-	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
-		return "def456", nil
-	}
-
-	// Test project
-	testProject := createTestProject()
+	// Test project with empty compose files
+	testProject := createTestProjectWithOptions(ProjectOptions{
+		Name:                 "test-project",
+		ComposeFiles:         []string{}, // Empty compose files
+		OverrideComposeFiles: true,       // Explicitly override to empty
+	})
 
 	// Test
-	createdProject, err := service.CreateFromTempClone(testProject, tempClonePath)
-
-	// Assertions
-	assert.NoError(t, err)
-	assert.NotNil(t, createdProject)
-	assert.Equal(t, testProject.Name, createdProject.Name)
-	assert.NotNil(t, createdProject.LastCommit)
-	assert.Equal(t, "def456", *createdProject.LastCommit)
-
-	// Verify temp directory was moved
-	_, err = os.Stat(tempClonePath)
-	assert.True(t, os.IsNotExist(err), "temp directory should be moved")
-
-	// Verify project directory exists
-	gitDir, err := createdProject.GitDir()
-	require.NoError(t, err)
-	_, err = os.Stat(gitDir)
-	assert.NoError(t, err, "project git directory should exist")
-}
-
-func TestProjectService_CreateFromTempClone_TempDirNotFound(t *testing.T) {
-	service, _, _, _, tempDir := setupProjectService(t)
-
-	// Use non-existent temp path
-	tempClonePath := filepath.Join(tempDir, "non-existent")
-
-	// Test project
-	testProject := createTestProject()
-
-	// Test
-	createdProject, err := service.CreateFromTempClone(testProject, tempClonePath)
+	createdProject, err := service.Create(testProject)
 
 	// Assertions
 	assert.Error(t, err)
 	assert.Nil(t, createdProject)
-	assert.True(t, os.IsNotExist(err))
+	assert.Contains(t, err.Error(), "compose files are required")
 }
 
 // Tests for ProjectService.Update()
 func TestProjectService_Update_Success(t *testing.T) {
-	service, repo, _, _, _ := setupProjectService(t)
+	service, repo, _, _, _ := setupMockProjectService(t)
 
 	// Add test project to repository
 	testProject := createTestProject()
@@ -235,7 +194,7 @@ func TestProjectService_Update_Success(t *testing.T) {
 }
 
 func TestProjectService_Update_NotFound(t *testing.T) {
-	service, _, _, _, _ := setupProjectService(t)
+	service, _, _, _, _ := setupMockProjectService(t)
 
 	// Test project not in repository
 	testProject := createTestProject()
@@ -301,7 +260,7 @@ func TestParseProjectStatus(t *testing.T) {
 
 // Integration test for project directory structure
 func TestProjectService_ProjectDirectoryStructure(t *testing.T) {
-	service, _, _, gitService, tempDir := setupProjectService(t)
+	service, _, _, gitService, tempDir := setupMockProjectService(t)
 
 	// Setup git service mock
 	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {

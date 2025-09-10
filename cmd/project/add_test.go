@@ -79,7 +79,7 @@ func TestProjectAddHappy(t *testing.T) {
 			require.NoError(t, err)
 
 			// Build args
-			args := []string{"--git-url", repoDir, "--name", tt.options.name}
+			args := []string{"--git-url", repoDir, "--name", tt.options.name, "--compose-file", "docker-compose.yml"}
 
 			var stdout, stderr bytes.Buffer
 			rootCmd := NewCmdProjectAdd()

@@ -475,3 +475,47 @@ func TestModels_CascadeOperations(t *testing.T) {
 	db.Model(&DeploymentModel{}).Where("project_id = ?", project.ID).Count(&count)
 	assert.Equal(t, int64(0), count, "Deployments should be deleted via CASCADE")
 }
+
+// Test database constraint for empty ComposeFiles
+func TestProjectModel_Create_EmptyComposeFiles_DatabaseConstraint(t *testing.T) {
+	db := setupTestDB(t)
+
+	// Create a project model with empty ComposeFiles directly
+	project := &ProjectModel{
+		BaseModel: BaseModel{
+			ID: uuid.New(),
+		},
+		Name:         "empty-compose-files-test",
+		GitURL:       "https://github.com/test/repo.git",
+		WorkingDir:   "/tmp/test-project",
+		ComposeFiles: "", // Empty string - should violate check constraint
+		Variables:    "",
+		Status:       "stopped",
+	}
+
+	// Try to insert directly into database
+	result := db.Create(project)
+
+	// Assertions - database should reject empty ComposeFiles
+	assert.Error(t, result.Error, "Database should reject empty ComposeFiles")
+	// The exact error message depends on the database, but it should mention the constraint
+	assert.Contains(t, result.Error.Error(), "constraint", "Error should mention constraint violation")
+}
+
+// Test database constraint prevents NULL ComposeFiles (via GORM behavior)
+func TestProjectModel_Create_NullComposeFiles_Prevention(t *testing.T) {
+	db := setupTestDB(t)
+
+	// Create a project model and try to set ComposeFiles to conceptually null
+	// Note: In Go, we can't set a string to actual SQL NULL, but we can test with empty string
+	project := createTestProjectModel()
+	project.Name = "null-compose-files-test"
+	project.ComposeFiles = "" // Empty string should violate our check constraint
+
+	// Try to insert
+	result := db.Create(project)
+
+	// Assertions - our check constraint should prevent empty strings
+	assert.Error(t, result.Error, "Database should reject empty ComposeFiles")
+	assert.Contains(t, result.Error.Error(), "constraint", "Error should mention constraint violation")
+}
