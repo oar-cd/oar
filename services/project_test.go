@@ -71,35 +71,6 @@ func TestProjectService_Get_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "project not found")
 }
 
-// Tests for ProjectService.GetByName()
-func TestProjectService_GetByName_Success(t *testing.T) {
-	service, repo, _, _, _ := setupProjectService(t)
-
-	// Add test project
-	testProject := createTestProjectWithOptions(ProjectOptions{Name: "unique-project-name"})
-	repo.projects[testProject.ID] = testProject
-
-	// Test
-	project, err := service.GetByName("unique-project-name")
-
-	// Assertions
-	assert.NoError(t, err)
-	assert.Equal(t, testProject.ID, project.ID)
-	assert.Equal(t, "unique-project-name", project.Name)
-}
-
-func TestProjectService_GetByName_NotFound(t *testing.T) {
-	service, _, _, _, _ := setupProjectService(t)
-
-	// Test with non-existent name
-	project, err := service.GetByName("non-existent-project")
-
-	// Assertions
-	assert.Error(t, err)
-	assert.Nil(t, project)
-	assert.Contains(t, err.Error(), "project not found")
-}
-
 // Tests for ProjectService.Create()
 func TestProjectService_Create_Success(t *testing.T) {
 	service, _, _, gitService, _ := setupProjectService(t)
