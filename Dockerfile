@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the binary with SQLite support and version
-RUN CGO_ENABLED=1 go build -ldflags="-s -w -X main.ServerVersion=${VERSION}" -o oar .
+RUN CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/oar-cd/oar/web/handlers.ServerVersion=${VERSION}" -o oar ./web
 
 # Runtime stage
 FROM alpine:latest
@@ -31,6 +31,6 @@ WORKDIR /app
 COPY --from=builder /build/oar .
 
 # Copy UI assets
-COPY --from=builder /build/frontend/assets ./frontend/assets
+COPY --from=builder /build/web/assets ./web/assets
 
 CMD ["./oar"]
