@@ -190,7 +190,7 @@ OAR_ENCRYPTION_KEY=%s
 `, envKey)
 
 	envFile := filepath.Join(tempDir, ".env")
-	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+	if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 		t.Fatalf("Failed to create test .env file: %v", err)
 	}
 
@@ -218,7 +218,7 @@ func TestConfig_EncryptionKeyEnvironmentOverridesEnvFile(t *testing.T) {
 	envContent := fmt.Sprintf("OAR_ENCRYPTION_KEY=%s\n", envFileKey)
 
 	envFile := filepath.Join(tempDir, ".env")
-	if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+	if err := os.WriteFile(envFile, []byte(envContent), 0o644); err != nil {
 		t.Fatalf("Failed to create test .env file: %v", err)
 	}
 

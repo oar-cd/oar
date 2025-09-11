@@ -1,8 +1,14 @@
 package logs
 
 import (
+	"bytes"
+	"errors"
+	"github.com/ch00k/oar/services"
 	"testing"
 
+	"github.com/ch00k/oar/cmd/utils"
+	"github.com/ch00k/oar/testing/mocks"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,4 +51,95 @@ func TestRunLogsConfiguration(t *testing.T) {
 	// Verify the RunE function is properly set (not nil)
 	// We don't call it to avoid runtime dependencies
 	assert.NotNil(t, cmd.RunE)
+}
+
+func TestRunLogs_Success(t *testing.T) {
+	// Create a mock compose project
+	mockCompose := &mocks.MockComposeProject{}
+	mockCompose.On("LogsPiping").Return(nil)
+
+	// Set up the mock function
+	utils.SetCreateOarServiceComposeProjectForTesting(
+		func(cmd *cobra.Command) (services.ComposeProjectInterface, error) {
+			return mockCompose, nil
+		},
+	)
+	defer utils.ResetCreateOarServiceComposeProjectForTesting()
+
+	// Create command and capture output
+	cmd := NewCmdLogs()
+	var output bytes.Buffer
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Execute the command
+	err := cmd.RunE(cmd, []string{})
+
+	// Verify success
+	assert.NoError(t, err)
+	mockCompose.AssertExpectations(t)
+
+	// Check output contains expected messages
+	outputStr := output.String()
+	assert.Contains(t, outputStr, "Streaming logs from Oar service...")
+	assert.Contains(t, outputStr, "Press Ctrl+C to stop")
+}
+
+func TestRunLogs_CreateComposeProjectError(t *testing.T) {
+	// Set up the mock function to return an error
+	expectedError := errors.New("compose project creation failed")
+	utils.SetCreateOarServiceComposeProjectForTesting(
+		func(cmd *cobra.Command) (services.ComposeProjectInterface, error) {
+			return nil, expectedError
+		},
+	)
+	defer utils.ResetCreateOarServiceComposeProjectForTesting()
+
+	// Create command
+	cmd := NewCmdLogs()
+	var output bytes.Buffer
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Execute the command
+	err := cmd.RunE(cmd, []string{})
+
+	// Verify error is returned
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+func TestRunLogs_LogsPipingError(t *testing.T) {
+	// Create a mock compose project that fails on LogsPiping
+	mockCompose := &mocks.MockComposeProject{}
+	logsError := errors.New("docker compose logs failed")
+	mockCompose.On("LogsPiping").Return(logsError)
+
+	// Set up the mock function
+	utils.SetCreateOarServiceComposeProjectForTesting(
+		func(cmd *cobra.Command) (services.ComposeProjectInterface, error) {
+			return mockCompose, nil
+		},
+	)
+	defer utils.ResetCreateOarServiceComposeProjectForTesting()
+
+	// Create command and capture output
+	cmd := NewCmdLogs()
+	var output bytes.Buffer
+	cmd.SetOut(&output)
+	cmd.SetErr(&output)
+
+	// Execute the command
+	err := cmd.RunE(cmd, []string{})
+
+	// Verify error is returned with proper wrapping
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get logs")
+	assert.Contains(t, err.Error(), "docker compose logs failed")
+	mockCompose.AssertExpectations(t)
+
+	// Check that starting messages were shown
+	outputStr := output.String()
+	assert.Contains(t, outputStr, "Streaming logs from Oar service...")
+	assert.Contains(t, outputStr, "Press Ctrl+C to stop")
 }

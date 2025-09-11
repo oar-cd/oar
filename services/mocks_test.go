@@ -6,6 +6,7 @@ import (
 
 	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 )
 
 // MockGitExecutor for testing
@@ -151,4 +152,188 @@ func (db *MockDB) UpdateDeployment(deployment *models.DeploymentModel) error {
 	}
 	db.deployments[deployment.ID] = deployment
 	return nil
+}
+
+// MockComposeProject implements ComposeProjectInterface for testing
+type MockComposeProject struct {
+	mock.Mock
+}
+
+func (m *MockComposeProject) Up() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockComposeProject) Down() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockComposeProject) Logs() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockComposeProject) GetConfig() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockComposeProject) Status() (*ComposeStatus, error) {
+	args := m.Called()
+	return args.Get(0).(*ComposeStatus), args.Error(1)
+}
+
+func (m *MockComposeProject) UpStreaming(outputChan chan<- string) error {
+	args := m.Called(outputChan)
+	return args.Error(0)
+}
+
+func (m *MockComposeProject) UpPiping() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockComposeProject) DownStreaming(outputChan chan<- string) error {
+	args := m.Called(outputChan)
+	return args.Error(0)
+}
+
+func (m *MockComposeProject) DownPiping() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockComposeProject) LogsStreaming(outputChan chan<- string) error {
+	args := m.Called(outputChan)
+	return args.Error(0)
+}
+
+func (m *MockComposeProject) LogsPiping() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+// MockProjectManager implements the ProjectManager interface for testing
+type MockProjectManager struct {
+	ListFunc             func() ([]*Project, error)
+	GetFunc              func(id uuid.UUID) (*Project, error)
+	CreateFunc           func(project *Project) (*Project, error)
+	UpdateFunc           func(project *Project) error
+	RemoveFunc           func(projectID uuid.UUID) error
+	DeployStreamingFunc  func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	DeployPipingFunc     func(projectID uuid.UUID, pull bool) error
+	StartFunc            func(projectID uuid.UUID) error
+	StopFunc             func(projectID uuid.UUID) error
+	StopStreamingFunc    func(projectID uuid.UUID, outputChan chan<- string) error
+	StopPipingFunc       func(projectID uuid.UUID) error
+	GetLogsStreamingFunc func(projectID uuid.UUID, outputChan chan<- string) error
+	GetLogsPipingFunc    func(projectID uuid.UUID) error
+	GetConfigFunc        func(projectID uuid.UUID) (string, error)
+	GetStatusFunc        func(projectID uuid.UUID) (*ComposeStatus, error)
+}
+
+func (m *MockProjectManager) List() ([]*Project, error) {
+	if m.ListFunc != nil {
+		return m.ListFunc()
+	}
+	return []*Project{}, nil
+}
+
+func (m *MockProjectManager) Get(id uuid.UUID) (*Project, error) {
+	if m.GetFunc != nil {
+		return m.GetFunc(id)
+	}
+	return &Project{ID: id}, nil
+}
+
+func (m *MockProjectManager) Create(project *Project) (*Project, error) {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(project)
+	}
+	return project, nil
+}
+
+func (m *MockProjectManager) Update(project *Project) error {
+	if m.UpdateFunc != nil {
+		return m.UpdateFunc(project)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) Remove(projectID uuid.UUID) error {
+	if m.RemoveFunc != nil {
+		return m.RemoveFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error {
+	if m.DeployStreamingFunc != nil {
+		return m.DeployStreamingFunc(projectID, pull, outputChan)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) DeployPiping(projectID uuid.UUID, pull bool) error {
+	if m.DeployPipingFunc != nil {
+		return m.DeployPipingFunc(projectID, pull)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) Start(projectID uuid.UUID) error {
+	if m.StartFunc != nil {
+		return m.StartFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) Stop(projectID uuid.UUID) error {
+	if m.StopFunc != nil {
+		return m.StopFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	if m.StopStreamingFunc != nil {
+		return m.StopStreamingFunc(projectID, outputChan)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) StopPiping(projectID uuid.UUID) error {
+	if m.StopPipingFunc != nil {
+		return m.StopPipingFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+	if m.GetLogsStreamingFunc != nil {
+		return m.GetLogsStreamingFunc(projectID, outputChan)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) GetLogsPiping(projectID uuid.UUID) error {
+	if m.GetLogsPipingFunc != nil {
+		return m.GetLogsPipingFunc(projectID)
+	}
+	return nil
+}
+
+func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
+	if m.GetConfigFunc != nil {
+		return m.GetConfigFunc(projectID)
+	}
+	return "mock config", nil
+}
+
+func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*ComposeStatus, error) {
+	if m.GetStatusFunc != nil {
+		return m.GetStatusFunc(projectID)
+	}
+	return &ComposeStatus{}, nil
 }
