@@ -2,7 +2,7 @@ name: oar
 
 services:
   oar:
-    image: ghcr.io/oar-cd/oar:0.0.15
+    image: ghcr.io/oar-cd/oar:0.0.16
     user: ${OAR_UID:-1000}:${OAR_GID:-1000}
     environment:
       OAR_HTTP_HOST: 0.0.0.0
