@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/services"
 	"github.com/google/uuid"
@@ -27,11 +26,8 @@ This operation will permanently delete:
 
 The project cannot be recovered after deletion.`,
 		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectRemove(cmd, args); err != nil {
-				utils.HandleCommandError("removing project", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectRemove(cmd, args)
 		},
 	}
 
@@ -46,8 +42,7 @@ The project cannot be recovered after deletion.`,
 func runProjectRemove(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		utils.HandleInvalidUUID("project remove", args[0])
-		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
+		return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 	}
 
 	// Get confirmation flags

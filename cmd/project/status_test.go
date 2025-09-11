@@ -1,0 +1,148 @@
+package project
+
+import (
+	"bytes"
+	"errors"
+	"testing"
+
+	"github.com/ch00k/oar/internal/app"
+	"github.com/ch00k/oar/services"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestNewCmdProjectStatus(t *testing.T) {
+	testProjectID := uuid.New()
+
+	tests := []struct {
+		name         string
+		args         []string
+		mockStatus   *services.ComposeStatus
+		mockError    error
+		expectError  bool
+		expectedText string
+	}{
+		{
+			name: "project running status",
+			args: []string{testProjectID.String()},
+			mockStatus: &services.ComposeStatus{
+				Status: "running",
+				Uptime: "2h 30m",
+				Containers: []services.ContainerInfo{
+					{Service: "web", Status: "Up 2 hours", State: "running"},
+					{Service: "db", Status: "Up 2 hours", State: "running"},
+				},
+			},
+			mockError:    nil,
+			expectError:  false,
+			expectedText: "Status: running",
+		},
+		{
+			name: "project stopped status",
+			args: []string{testProjectID.String()},
+			mockStatus: &services.ComposeStatus{
+				Status:     "stopped",
+				Containers: []services.ContainerInfo{},
+			},
+			mockError:    nil,
+			expectError:  false,
+			expectedText: "Status: stopped",
+		},
+		{
+			name: "project with failed containers",
+			args: []string{testProjectID.String()},
+			mockStatus: &services.ComposeStatus{
+				Status: "partially running",
+				Containers: []services.ContainerInfo{
+					{Service: "web", Status: "Up 1 hour", State: "running"},
+					{Service: "db", Status: "Exited (1) 10 minutes ago", State: "exited"},
+				},
+			},
+			mockError:    nil,
+			expectError:  false,
+			expectedText: "Status: partially running",
+		},
+		{
+			name:        "status error",
+			args:        []string{testProjectID.String()},
+			mockStatus:  nil,
+			mockError:   errors.New("failed to get project status"),
+			expectError: true,
+		},
+		{
+			name:        "invalid project ID",
+			args:        []string{"invalid-uuid"},
+			mockStatus:  nil,
+			mockError:   nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock
+			mockService := &MockProjectManager{
+				GetStatusFunc: func(projectID uuid.UUID) (*services.ComposeStatus, error) {
+					if tt.mockError != nil {
+						return nil, tt.mockError
+					}
+					return tt.mockStatus, nil
+				},
+			}
+			app.SetProjectServiceForTesting(mockService)
+
+			// Create command and capture output
+			cmd := NewCmdProjectStatus()
+			var stdout, stderr bytes.Buffer
+			cmd.SetOut(&stdout)
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(tt.args)
+
+			// Execute command
+			err := cmd.Execute()
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				stdoutStr := stdout.String()
+
+				if tt.expectedText != "" {
+					assert.Contains(t, stdoutStr, tt.expectedText)
+				}
+
+				if tt.mockStatus != nil {
+					// Verify uptime is shown for running projects
+					if tt.mockStatus.Status == "running" && tt.mockStatus.Uptime != "" {
+						assert.Contains(t, stdoutStr, "Uptime:")
+						assert.Contains(t, stdoutStr, tt.mockStatus.Uptime)
+					}
+
+					// Verify container information is shown
+					for _, container := range tt.mockStatus.Containers {
+						assert.Contains(t, stdoutStr, container.Service)
+						assert.Contains(t, stdoutStr, container.Status)
+						if container.State == "running" {
+							assert.Contains(t, stdoutStr, "[OK]")
+						} else {
+							assert.Contains(t, stdoutStr, "[ERROR]")
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestNewCmdProjectStatusCommand(t *testing.T) {
+	cmd := NewCmdProjectStatus()
+
+	// Test command configuration
+	assert.Equal(t, "status <project-id>", cmd.Use)
+	assert.Equal(t, "Show the status of a project's containers", cmd.Short)
+	assert.NotEmpty(t, cmd.Long)
+	assert.NotNil(t, cmd.RunE)
+
+	// Verify the command can be found by name
+	assert.Equal(t, "status", cmd.Name())
+}

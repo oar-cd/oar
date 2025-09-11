@@ -2,10 +2,8 @@ package project
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -18,11 +16,8 @@ func NewCmdProjectStatus() *cobra.Command {
 		Long: `Display the current status of all containers in a project.
 This shows whether the project is running, uptime, and individual container states.`,
 		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectStatus(cmd, args); err != nil {
-				utils.HandleCommandError("getting project status", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectStatus(cmd, args)
 		},
 	}
 
@@ -33,8 +28,7 @@ This shows whether the project is running, uptime, and individual container stat
 func runProjectStatus(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		utils.HandleInvalidUUID("project status", args[0])
-		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
+		return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 	}
 
 	// Get services

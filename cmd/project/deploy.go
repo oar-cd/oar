@@ -2,10 +2,8 @@ package project
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -18,11 +16,8 @@ func NewCmdProjectDeploy() *cobra.Command {
 		Long: `Pull the latest changes from Git and deploy the project using Docker Compose.
 This will update running containers with the latest configuration.`,
 		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectDeploy(cmd, args); err != nil {
-				utils.HandleCommandError("deploying project", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectDeploy(cmd, args)
 		},
 	}
 
@@ -34,8 +29,7 @@ This will update running containers with the latest configuration.`,
 func runProjectDeploy(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		utils.HandleInvalidUUID("project deploy", args[0])
-		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
+		return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 	}
 
 	// Get flags

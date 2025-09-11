@@ -1,8 +1,9 @@
 package project
 
 import (
+	"fmt"
+
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -13,34 +14,31 @@ func NewCmdProjectShow() *cobra.Command {
 		Use:   "show <project-id>",
 		Short: "Show detailed project information",
 		Long:  "Display comprehensive information about a project including configuration, deployment history, and current status.",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				if err := cmd.Help(); err != nil {
-					utils.HandleCommandError("showing help", err)
-				}
-				return
+				return cmd.Help()
 			}
 
 			projectID, err := uuid.Parse(args[0])
 			if err != nil {
-				utils.HandleInvalidUUID("project operation", args[0])
-				return
+				return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 			}
 
 			project, err := app.GetProjectService().Get(projectID)
 			if err != nil {
-				utils.HandleCommandError("retrieving project", err, "project_id", projectID)
-				return
+				return fmt.Errorf("failed to retrieve project %s: %w", projectID, err)
 			}
 
 			out, err := output.PrintProjectDetails(project, false)
 			if err != nil {
-				utils.HandleCommandError("printing project details table", err)
+				return fmt.Errorf("failed to format project details: %w", err)
 			}
 
 			if err := output.FprintPlain(cmd, "%s", out); err != nil {
-				utils.HandleCommandError("printing project details", err, "project_id", projectID)
+				return fmt.Errorf("failed to print project details: %w", err)
 			}
+
+			return nil
 		},
 	}
 }

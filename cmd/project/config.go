@@ -2,10 +2,8 @@ package project
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -18,11 +16,8 @@ func NewCmdProjectConfig() *cobra.Command {
 		Long: `Display the generated Docker Compose configuration for a project.
 This shows the final configuration after resolving all variables and includes.`,
 		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectConfig(cmd, args); err != nil {
-				utils.HandleCommandError("getting project configuration", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectConfig(cmd, args)
 		},
 	}
 
@@ -33,8 +28,7 @@ This shows the final configuration after resolving all variables and includes.`,
 func runProjectConfig(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		utils.HandleInvalidUUID("project config", args[0])
-		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
+		return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 	}
 
 	// Get services

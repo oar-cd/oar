@@ -2,10 +2,8 @@ package project
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
@@ -18,11 +16,8 @@ func NewCmdProjectStop() *cobra.Command {
 		Long: `Stop a running Docker Compose project.
 This will gracefully shut down all containers associated with the project.`,
 		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectStop(cmd, args); err != nil {
-				utils.HandleCommandError("stopping project", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectStop(cmd, args)
 		},
 	}
 
@@ -33,8 +28,7 @@ This will gracefully shut down all containers associated with the project.`,
 func runProjectStop(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		utils.HandleInvalidUUID("project stop", args[0])
-		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
+		return fmt.Errorf("invalid project ID '%s': must be a valid UUID", args[0])
 	}
 
 	// Get services

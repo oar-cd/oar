@@ -70,3 +70,8 @@ func GetDiscoveryService() *services.ProjectDiscoveryService {
 func GetGitService() services.GitExecutor {
 	return gitService
 }
+
+// SetProjectServiceForTesting allows overriding the project service for testing purposes
+func SetProjectServiceForTesting(service services.ProjectManager) {
+	projectService = service
+}
