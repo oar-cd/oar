@@ -1,4 +1,4 @@
-package project
+package mocks
 
 import (
 	"github.com/ch00k/oar/services"

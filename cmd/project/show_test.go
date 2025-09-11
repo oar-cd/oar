@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/services"
+
+	"github.com/ch00k/oar/internal/app"
+	"github.com/ch00k/oar/testing/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +64,7 @@ func TestNewCmdProjectShow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mock
-			mockService := &MockProjectManager{
+			mockService := &mocks.MockProjectManager{
 				GetFunc: func(id uuid.UUID) (*services.Project, error) {
 					if tt.mockError != nil {
 						return nil, tt.mockError

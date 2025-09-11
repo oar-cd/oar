@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
 	"github.com/ch00k/oar/internal/app"
 	"github.com/ch00k/oar/services"
 	"github.com/spf13/cobra"
@@ -48,11 +47,8 @@ Environment variables:
   # From file
   oar project add --git-url https://github.com/user/repo.git \
                   --compose-file compose.yml --env-file .env.production`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := runProjectAdd(cmd); err != nil {
-				utils.HandleCommandError("creating project", err)
-				os.Exit(1)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runProjectAdd(cmd)
 		},
 	}
 
