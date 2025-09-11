@@ -10,22 +10,23 @@ import (
 
 // MockGitExecutor for testing
 type MockGitExecutor struct {
-	CloneFunc              func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
-	PullFunc               func(auth *GitAuthConfig, workingDir string) error
+	CloneFunc              func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
+	PullFunc               func(gitBranch string, auth *GitAuthConfig, workingDir string) error
 	GetLatestCommitFunc    func(workingDir string) (string, error)
 	TestAuthenticationFunc func(gitURL string, gitAuth *GitAuthConfig) error
+	GetDefaultBranchFunc   func(gitURL string, gitAuth *GitAuthConfig) (string, error)
 }
 
-func (m *MockGitExecutor) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
+func (m *MockGitExecutor) Clone(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 	if m.CloneFunc != nil {
-		return m.CloneFunc(gitURL, gitAuth, workingDir)
+		return m.CloneFunc(gitURL, gitBranch, gitAuth, workingDir)
 	}
 	return nil
 }
 
-func (m *MockGitExecutor) Pull(gitAuth *GitAuthConfig, workingDir string) error {
+func (m *MockGitExecutor) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 	if m.PullFunc != nil {
-		return m.PullFunc(gitAuth, workingDir)
+		return m.PullFunc(gitBranch, gitAuth, workingDir)
 	}
 	return nil
 }
@@ -42,6 +43,13 @@ func (m *MockGitExecutor) TestAuthentication(gitURL string, gitAuth *GitAuthConf
 		return m.TestAuthenticationFunc(gitURL, gitAuth)
 	}
 	return nil
+}
+
+func (m *MockGitExecutor) GetDefaultBranch(gitURL string, gitAuth *GitAuthConfig) (string, error) {
+	if m.GetDefaultBranchFunc != nil {
+		return m.GetDefaultBranchFunc(gitURL, gitAuth)
+	}
+	return "main", nil // Default mock return value
 }
 
 // MockDockerComposeExecutor for testing

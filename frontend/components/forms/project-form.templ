@@ -10,6 +10,7 @@ type ProjectFormData struct {
 	ProjectID    string // Only used for edit mode
 	Name         string
 	GitURL       string
+	GitBranch    string
 	AuthMethod   string // "none", "http", "ssh"
 	Username     string
 	Password     string
@@ -59,6 +60,31 @@ templ ProjectForm(data ProjectFormData) {
 					class="form-input"
 					value={ data.GitURL }
 					required
+				/>
+			}
+		</div>
+		<!-- Git Branch (optional) -->
+		<div class="form-group">
+			<label for="git_branch" class="form-label">Git Branch</label>
+			if data.IsEdit {
+				<input
+					type="text"
+					id="git_branch"
+					name="git_branch"
+					class="form-input bg-gray-50 cursor-not-allowed"
+					value={ data.GitBranch }
+					readonly
+					title="Git branch cannot be changed when editing"
+					placeholder="(uses repository default)"
+				/>
+			} else {
+				<input
+					type="text"
+					id="git_branch"
+					name="git_branch"
+					class="form-input"
+					value={ data.GitBranch }
+					placeholder="(uses repository default if empty)"
 				/>
 			}
 		</div>

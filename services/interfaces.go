@@ -6,10 +6,11 @@ import (
 
 // GitExecutor defines the contract for Git operations
 type GitExecutor interface {
-	Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error
-	Pull(gitAuth *GitAuthConfig, workingDir string) error
+	Clone(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
+	Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
 	GetLatestCommit(workingDir string) (string, error)
 	TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error
+	GetDefaultBranch(gitURL string, gitAuth *GitAuthConfig) (string, error)
 }
 
 // ComposeProjectInterface defines the contract for Docker Compose operations
@@ -43,4 +44,5 @@ type ProjectManager interface {
 	GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	GetLogsPiping(projectID uuid.UUID) error
 	GetConfig(projectID uuid.UUID) (string, error)
+	GetStatus(projectID uuid.UUID) (*ComposeStatus, error)
 }

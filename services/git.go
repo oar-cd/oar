@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -114,9 +115,9 @@ func (s *GitService) createSSHAuth(config *GitSSHAuthConfig) (transport.AuthMeth
 	return ssh.NewPublicKeys(user, keyBytes, "") // Empty password for passwordless keys
 }
 
-// Clone clones a repository with optional authentication
-func (s *GitService) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
-	slog.Info("Cloning repository", "git_url", gitURL, "working_dir", workingDir)
+// Clone clones a repository with optional authentication and branch
+func (s *GitService) Clone(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+	slog.Info("Cloning repository", "git_url", gitURL, "git_branch", gitBranch, "working_dir", workingDir)
 
 	// Create authentication method
 	authMethod, err := s.createAuthMethod(gitAuth)
@@ -140,24 +141,30 @@ func (s *GitService) Clone(gitURL string, gitAuth *GitAuthConfig, workingDir str
 		Auth:         authMethod,
 	}
 
+	// If a specific branch is requested, set it in clone options
+	if gitBranch != "" {
+		cloneOptions.ReferenceName = plumbing.NewBranchReferenceName(gitBranch)
+	}
+
 	_, err = git.PlainCloneContext(ctx, workingDir, false, cloneOptions)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
 			"operation", "git_clone",
 			"git_url", gitURL,
+			"git_branch", gitBranch,
 			"working_dir", workingDir,
 			"error", err)
-		return err
+		return fmt.Errorf("failed to clone repository: %w", err)
 	}
 
-	slog.Info("Repository cloned successfully", "git_url", gitURL, "working_dir", workingDir)
+	slog.Info("Repository cloned successfully", "git_url", gitURL, "git_branch", gitBranch, "working_dir", workingDir)
 	return nil
 }
 
 // Pull pulls latest changes from remote with optional authentication
-func (s *GitService) Pull(gitAuth *GitAuthConfig, workingDir string) error {
-	slog.Debug("Pulling repository changes", "working_dir", workingDir)
+func (s *GitService) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+	slog.Debug("Pulling repository changes", "git_branch", gitBranch, "working_dir", workingDir)
 
 	// Create authentication method
 	authMethod, err := s.createAuthMethod(gitAuth)
@@ -199,20 +206,26 @@ func (s *GitService) Pull(gitAuth *GitAuthConfig, workingDir string) error {
 		Auth:         authMethod,
 	}
 
+	// If a specific branch is provided, set the reference name
+	if gitBranch != "" {
+		pullOptions.ReferenceName = plumbing.NewBranchReferenceName(gitBranch)
+	}
+
 	err = worktree.PullContext(ctx, pullOptions)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		slog.Error("Service operation failed",
 			"layer", "git",
 			"operation", "git_pull",
+			"git_branch", gitBranch,
 			"working_dir", workingDir,
 			"error", err)
 		return err
 	}
 
 	if err == git.NoErrAlreadyUpToDate {
-		slog.Debug("Repository already up to date", "working_dir", workingDir)
+		slog.Debug("Repository already up to date", "git_branch", gitBranch, "working_dir", workingDir)
 	} else {
-		slog.Info("Repository changes pulled successfully", "working_dir", workingDir)
+		slog.Info("Repository changes pulled successfully", "git_branch", gitBranch, "working_dir", workingDir)
 	}
 
 	return nil
@@ -286,4 +299,72 @@ func (s *GitService) testGitLsRemote(gitURL string, gitAuth *GitAuthConfig) erro
 	})
 
 	return err
+}
+
+// GetDefaultBranch determines the default branch of a remote Git repository
+func (s *GitService) GetDefaultBranch(gitURL string, gitAuth *GitAuthConfig) (string, error) {
+	slog.Info("Getting default branch", "git_url", gitURL)
+
+	// Create authentication method
+	authMethod, err := s.createAuthMethod(gitAuth)
+	if err != nil {
+		return "", fmt.Errorf("failed to create auth method: %w", err)
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
+	defer cancel()
+
+	// Use git ls-remote to list remote references
+	remote := git.NewRemote(nil, &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{gitURL},
+	})
+
+	refs, err := remote.ListContext(ctx, &git.ListOptions{
+		Auth: authMethod,
+	})
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "get_default_branch",
+			"git_url", gitURL,
+			"error", err)
+		return "", fmt.Errorf("failed to list remote references: %w", err)
+	}
+
+	// Look for HEAD reference to find default branch
+	for _, ref := range refs {
+		if ref.Name() == plumbing.HEAD {
+			// Check if this is a symbolic reference (HEAD -> refs/heads/main)
+			if ref.Type() == plumbing.SymbolicReference {
+				// Get the target reference name and extract branch name
+				target := ref.Target()
+				if target.IsBranch() {
+					branchName := target.Short()
+					slog.Info(
+						"Found default branch via symbolic reference",
+						"git_url",
+						gitURL,
+						"default_branch",
+						branchName,
+					)
+					return branchName, nil
+				}
+			} else {
+				// HEAD points directly to a commit, find which branch has the same hash
+				for _, otherRef := range refs {
+					if otherRef.Hash() == ref.Hash() && otherRef.Name().IsBranch() {
+						branchName := otherRef.Name().Short()
+						slog.Info("Found default branch via commit hash", "git_url", gitURL, "default_branch", branchName)
+						return branchName, nil
+					}
+				}
+			}
+		}
+	}
+
+	// Could not determine default branch
+	slog.Error("Could not determine default branch", "git_url", gitURL)
+	return "", fmt.Errorf("could not determine default branch for repository %s", gitURL)
 }

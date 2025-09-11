@@ -76,7 +76,7 @@ func TestProjectService_Create_Success(t *testing.T) {
 	service, _, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 		// Create a mock git repository
 		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
 	}
@@ -95,6 +95,7 @@ func TestProjectService_Create_Success(t *testing.T) {
 	assert.NotNil(t, createdProject)
 	assert.Equal(t, testProject.Name, createdProject.Name)
 	assert.Equal(t, testProject.GitURL, createdProject.GitURL)
+	assert.Equal(t, testProject.GitBranch, createdProject.GitBranch)
 	assert.NotEmpty(t, createdProject.WorkingDir)
 	assert.NotNil(t, createdProject.LastCommit)
 	assert.Equal(t, "abc123", *createdProject.LastCommit)
@@ -106,7 +107,7 @@ func TestProjectService_Create_GitCloneFails(t *testing.T) {
 	service, _, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service to fail
-	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 		return fmt.Errorf("git clone failed: repository not found")
 	}
 
@@ -126,7 +127,7 @@ func TestProjectService_Create_DuplicateName(t *testing.T) {
 	service, repo, _, gitService, _ := setupMockProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
 	}
 	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
@@ -263,7 +264,7 @@ func TestProjectService_ProjectDirectoryStructure(t *testing.T) {
 	service, _, _, gitService, tempDir := setupMockProjectService(t)
 
 	// Setup git service mock
-	gitService.CloneFunc = func(gitURL string, gitAuth *GitAuthConfig, workingDir string) error {
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 		// Create realistic git repository structure
 		gitDir := filepath.Join(workingDir, ".git")
 		err := os.MkdirAll(gitDir, 0o755)
@@ -316,4 +317,69 @@ func TestProjectService_ProjectDirectoryStructure(t *testing.T) {
 	// Check that compose file exists
 	_, err = os.Stat(filepath.Join(gitDir, "docker-compose.yml"))
 	assert.NoError(t, err)
+}
+
+func TestProjectService_Create_WithBranch(t *testing.T) {
+	service, _, _, gitService, _ := setupMockProjectService(t)
+
+	// Setup git service mock to verify branch parameter is passed correctly
+	var receivedBranch string
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+		receivedBranch = gitBranch
+		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
+	}
+	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
+		return "abc123", nil
+	}
+
+	// Create a test project with a specific branch
+	testProject := createTestProject()
+	testProject.GitBranch = "feature/test-branch"
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, createdProject)
+
+	// Verify branch was passed to git service
+	assert.Equal(t, "feature/test-branch", receivedBranch, "GitService.Clone should receive the correct branch")
+
+	// Verify project has correct branch
+	assert.Equal(t, "feature/test-branch", createdProject.GitBranch)
+}
+
+func TestProjectService_Create_WithEmptyBranch(t *testing.T) {
+	service, _, _, gitService, _ := setupMockProjectService(t)
+
+	// Setup git service mock to return default branch and verify detected branch is used
+	var receivedBranch string
+	gitService.GetDefaultBranchFunc = func(gitURL string, gitAuth *GitAuthConfig) (string, error) {
+		return "main", nil // Mock default branch detection
+	}
+	gitService.CloneFunc = func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+		receivedBranch = gitBranch
+		return os.MkdirAll(filepath.Join(workingDir, ".git"), 0o755)
+	}
+	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
+		return "abc123", nil
+	}
+
+	// Create a test project with empty branch (should detect and use default)
+	testProject := createTestProject()
+	testProject.GitBranch = ""
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, createdProject)
+
+	// Verify detected default branch was passed to git service
+	assert.Equal(t, "main", receivedBranch, "GitService.Clone should receive detected default branch")
+
+	// Verify project has detected default branch
+	assert.Equal(t, "main", createdProject.GitBranch)
 }

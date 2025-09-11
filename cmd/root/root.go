@@ -43,9 +43,13 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Skip initialization for commands that don't need full app context
 			skipInitCommands := []string{"version", "update", "logs", "start", "stop", "status"}
-			for _, skipCmd := range skipInitCommands {
-				if cmd.Name() == skipCmd {
-					return
+
+			// For root-level commands (parent is "oar"), skip initialization
+			if cmd.Parent() != nil && cmd.Parent().Name() == "oar" {
+				for _, skipCmd := range skipInitCommands {
+					if cmd.Name() == skipCmd {
+						return
+					}
 				}
 			}
 

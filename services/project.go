@@ -111,8 +111,33 @@ func (s *ProjectService) Create(project *Project) (*Project, error) {
 		return nil, err
 	}
 
+	// Detect default branch if none specified
+	if project.GitBranch == "" {
+		defaultBranch, err := s.gitService.GetDefaultBranch(project.GitURL, project.GitAuth)
+		if err != nil {
+			slog.Error("Service operation failed",
+				"layer", "service",
+				"operation", "create_project_get_default_branch",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"git_url", project.GitURL,
+				"error", err)
+			return nil, fmt.Errorf("failed to determine default branch: %w", err)
+		}
+		project.GitBranch = defaultBranch
+		slog.Info(
+			"Using detected default branch",
+			"project_id",
+			project.ID,
+			"git_url",
+			project.GitURL,
+			"default_branch",
+			defaultBranch,
+		)
+	}
+
 	// Clone repository
-	if err := s.gitService.Clone(project.GitURL, project.GitAuth, gitDir); err != nil {
+	if err := s.gitService.Clone(project.GitURL, project.GitBranch, project.GitAuth, gitDir); err != nil {
 		slog.Error("Service operation failed",
 			"layer", "service",
 			"operation", "create_project",
@@ -637,6 +662,48 @@ func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, error) {
 	return output, nil
 }
 
+// GetStatus gets the current status of a project's containers
+func (s *ProjectService) GetStatus(projectID uuid.UUID) (*ComposeStatus, error) {
+	// Get project
+	project, err := s.Get(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("project not found: %w", err)
+	}
+
+	// Get status using Docker Compose
+	slog.Debug(
+		"Getting Docker Compose status",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+	)
+
+	composeProject := NewComposeProject(project, s.config)
+
+	status, err := composeProject.Status()
+	if err != nil {
+		slog.Error(
+			"Failed to get status",
+			"project_id",
+			project.ID,
+			"error",
+			err,
+		)
+		return nil, fmt.Errorf("failed to get status: %w", err)
+	}
+	slog.Debug(
+		"Status retrieved successfully",
+		"project_id",
+		project.ID,
+		"project_name",
+		project.Name,
+		"status",
+		status.Status,
+	)
+	return status, nil
+}
+
 func (s *ProjectService) pullLatestChanges(project *Project) error {
 	slog.Debug("Pulling latest changes", "project_id", project.ID, "git_url", project.GitURL)
 
@@ -645,7 +712,7 @@ func (s *ProjectService) pullLatestChanges(project *Project) error {
 		return fmt.Errorf("failed to get git directory: %w", err)
 	}
 
-	if err = s.gitService.Pull(project.GitAuth, gitDir); err != nil {
+	if err = s.gitService.Pull(project.GitBranch, project.GitAuth, gitDir); err != nil {
 		slog.Error("Failed to pull changes", "project_id", project.ID, "error", err)
 		return fmt.Errorf("failed to pull changes: %w", err)
 	}

@@ -12,6 +12,7 @@ type Project struct {
 	ID           uuid.UUID
 	Name         string
 	GitURL       string
+	GitBranch    string         // Git branch to use (never empty, always set to default branch if not specified)
 	GitAuth      *GitAuthConfig // Git authentication configuration
 	WorkingDir   string
 	ComposeFiles []string
@@ -41,6 +42,7 @@ func NewProject(name, gitURL string, composeFiles []string, variables []string) 
 		ID:           uuid.New(),
 		Name:         name,
 		GitURL:       gitURL,
+		GitBranch:    "", // Default to repository's default branch
 		ComposeFiles: composeFiles,
 		Variables:    variables,
 		Status:       ProjectStatusStopped,

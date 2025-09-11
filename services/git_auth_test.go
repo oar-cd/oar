@@ -219,7 +219,7 @@ func TestGitService_Clone_WithAuth(t *testing.T) {
 	gitService := NewGitService(config)
 
 	// Test cloning public repo (no auth)
-	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", nil, cloneDir)
+	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", "", nil, cloneDir)
 	if err != nil {
 		t.Logf("Public repo clone failed (may not exist): %v", err)
 		// Don't fail the test - the public repo might not exist
@@ -246,13 +246,13 @@ func TestGitService_Pull_WithAuth(t *testing.T) {
 
 	// First clone a repo
 	cloneDir := filepath.Join(tempDir, "clone")
-	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", nil, cloneDir)
+	err := gitService.Clone("https://github.com/ch00k/oar-test-public.git", "", nil, cloneDir)
 	if err != nil {
 		t.Skipf("Cannot test pull - clone failed: %v", err)
 	}
 
 	// Test pulling with no auth
-	err = gitService.Pull(nil, cloneDir)
+	err = gitService.Pull("", nil, cloneDir)
 	// Don't assert success since remote repo might not exist
 	// Just ensure no panic and method is callable
 	t.Logf("Pull result: %v", err)

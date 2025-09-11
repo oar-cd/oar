@@ -20,23 +20,34 @@ func NewCmdProjectAdd() *cobra.Command {
 		Long: `Add a new Docker Compose project from a Git repository.
 Oar will clone the repository and manage it with Docker Compose.
 
+Basic usage:
+  # Use default branch
+  oar project add --git-url https://github.com/user/repo.git --compose-file compose.yml
+
+  # Use specific branch
+  oar project add --git-url https://github.com/user/repo.git \
+                  --branch feature/new-feature --compose-file compose.yml
+
 Authentication examples:
   # HTTP authentication (GitHub token, etc.)
   oar project add --git-url https://github.com/user/repo.git \
-                  --git-auth http --git-username token --git-password ghp_xxxxx
+                  --git-auth http --git-username token --git-password ghp_xxxxx \
+                  --compose-file compose.yml
 
-  # SSH authentication
+  # SSH authentication with specific branch
   oar project add --git-url git@github.com:user/repo.git \
-                  --git-auth ssh --git-username git --git-ssh-key-file ~/.ssh/id_rsa
+                  --git-auth ssh --git-username git --git-ssh-key-file ~/.ssh/id_rsa \
+                  --branch main --compose-file compose.yml
 
 Environment variables:
   # Individual variables
   oar project add --git-url https://github.com/user/repo.git \
+                  --compose-file compose.yml \
                   --env DATABASE_URL=postgres://... --env PORT=3000
 
   # From file
   oar project add --git-url https://github.com/user/repo.git \
-                  --env-file .env.production`,
+                  --compose-file compose.yml --env-file .env.production`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := runProjectAdd(cmd); err != nil {
 				utils.HandleCommandError("creating project", err)
@@ -48,6 +59,7 @@ Environment variables:
 	// Basic flags
 	cmd.Flags().StringP("git-url", "u", "", "Git repository URL")
 	cmd.Flags().StringP("name", "n", "", "Custom project name (auto-detected if not specified)")
+	cmd.Flags().StringP("branch", "b", "", "Git branch to use (uses repository default if not specified)")
 	cmd.Flags().
 		StringArrayP("compose-file", "f", nil, `Docker Compose file path, relative to repository root. Can be used multiple times: --compose-file compose.yml --compose-file docker-compose.override.yml`)
 
@@ -78,6 +90,7 @@ func runProjectAdd(cmd *cobra.Command) error {
 	// Get basic flag values
 	gitURL, _ := cmd.Flags().GetString("git-url")
 	name, _ := cmd.Flags().GetString("name")
+	branch, _ := cmd.Flags().GetString("branch")
 	composeFiles, _ := cmd.Flags().GetStringArray("compose-file")
 
 	// Build Git authentication config
@@ -94,6 +107,7 @@ func runProjectAdd(cmd *cobra.Command) error {
 
 	// Create project struct from CLI input
 	project := services.NewProject(name, gitURL, composeFiles, variables)
+	project.GitBranch = branch
 	project.GitAuth = gitAuth
 
 	// Call service
