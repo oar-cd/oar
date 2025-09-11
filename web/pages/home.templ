@@ -1,0 +1,30 @@
+package pages
+
+import (
+	"github.com/oar-cd/oar/web/components/base"
+	"github.com/oar-cd/oar/web/components/project"
+)
+
+// Home renders the main home page with project grid
+templ Home(version string) {
+	@base.Layout("Home", homeContent(), version)
+}
+
+// HomeWithProjects renders the home page with actual project data
+templ HomeWithProjects(projects []project.ProjectView, version string) {
+	@base.Layout("Home", homeContentWithProjects(projects), version)
+}
+
+// homeContent renders the main content area (empty state)
+templ homeContent() {
+	<div class="main-container">
+		@project.ProjectGrid([]project.ProjectView{}, false)
+	</div>
+}
+
+// homeContentWithProjects renders the main content area with projects
+templ homeContentWithProjects(projects []project.ProjectView) {
+	<div class="main-container">
+		@project.ProjectGrid(projects, len(projects) > 0)
+	</div>
+}

@@ -18,7 +18,7 @@ test_project/
 cmd/test/
 
 # CSS source files (only need compiled output.css)
-frontend/assets/css/input.css
+web/assets/css/input.css
 
 # Config files
 Dockerfile

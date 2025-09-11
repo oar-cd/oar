@@ -1,0 +1,75 @@
+package project
+
+import (
+	"github.com/oar-cd/oar/web/components/icons"
+	"github.com/google/uuid"
+	"time"
+)
+
+// ProjectGrid renders the main project grid container
+templ ProjectGrid(projects []ProjectView, hasProjects bool) {
+	<div id="project-grid">
+		if hasProjects {
+			<div class="project-grid">
+				for _, project := range projects {
+					@ProjectCard(project)
+				}
+			</div>
+		} else {
+			@EmptyState()
+		}
+	</div>
+}
+
+// EmptyState shows when no projects exist
+templ EmptyState() {
+	<div class="empty-state">
+		@icons.Layers("empty-state-icon")
+		<h3 class="empty-state-title">No projects yet</h3>
+		<p class="empty-state-description">
+			Get started by creating your first Docker Compose project.
+		</p>
+		<button
+			type="button"
+			class="btn-primary"
+			hx-get="/projects/create"
+			hx-target="#modal-container"
+			hx-swap="outerHTML"
+		>
+			Create Your First Project
+		</button>
+	</div>
+}
+
+// ProjectView represents the frontend view data for a project (simplified from backend Project)
+type ProjectView struct {
+	ID           uuid.UUID
+	Name         string
+	GitURL       string
+	GitBranch    string
+	GitAuth      *GitAuthConfig // Git authentication configuration
+	Status       string // "running", "stopped", "error" (string representation)
+	LastCommit   *string // Git commit SHA (first 8 chars)
+	ComposeFiles []string
+	Variables    []string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+// GitAuthConfig holds Git authentication configuration for a project
+type GitAuthConfig struct {
+	HTTPAuth *GitHTTPAuthConfig
+	SSHAuth  *GitSSHAuthConfig
+}
+
+// GitHTTPAuthConfig for HTTP basic authentication (GitHub tokens, etc.)
+type GitHTTPAuthConfig struct {
+	Username string // "token" for GitHub
+	Password string // actual token/password
+}
+
+// GitSSHAuthConfig for passwordless SSH key authentication
+type GitSSHAuthConfig struct {
+	PrivateKey string // PEM-encoded private key as string
+	User       string // SSH user (default: "git")
+}

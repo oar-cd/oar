@@ -1,0 +1,36 @@
+package modals
+
+import (
+	"github.com/oar-cd/oar/web/components/icons"
+	"github.com/oar-cd/oar/web/components/project"
+)
+
+// DeleteProjectModal renders the project deletion confirmation modal
+templ DeleteProjectModal(proj project.ProjectView) {
+	@BaseModal("Delete Project", deleteProjectBody(proj), deleteProjectFooter(proj))
+}
+
+// deleteProjectBody renders the modal body content
+templ deleteProjectBody(proj project.ProjectView) {
+	<div class="text-center">
+		<div class="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4">
+			@icons.Trash2("w-6 h-6 text-red-600")
+		</div>
+		<h3 class="text-lg font-medium text-gray-900 mb-2">
+			Delete Project
+		</h3>
+		<p class="text-sm text-gray-500 mb-4">
+			Are you sure you want to delete the project <strong class="text-gray-900">{ proj.Name }</strong>?
+			This action cannot be undone.
+		</p>
+		<div class="bg-gray-50 rounded-md p-3 mb-4">
+			<div class="text-xs text-gray-600 mb-1">Git Repository:</div>
+			<div class="text-sm font-mono text-gray-900 break-all">{ proj.GitURL }</div>
+		</div>
+	</div>
+}
+
+// deleteProjectFooter renders the modal footer with action buttons
+templ deleteProjectFooter(proj project.ProjectView) {
+	@CancelActionFooter("Delete Project", "btn-danger", "/projects/" + proj.ID.String(), "#project-grid", "outerHTML")
+}

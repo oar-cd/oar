@@ -1,0 +1,23 @@
+package modals
+
+import "github.com/oar-cd/oar/web/components/project"
+
+// DeployProjectModal renders the project deployment modal
+templ DeployProjectModal(proj project.ProjectView) {
+	@LargeModal("Deploy " + proj.Name, deployProjectBody(proj), StreamingActionFooter("Deploy", "deploy-btn", proj.ID.String()))
+}
+
+// deployProjectBody renders the modal body content
+templ deployProjectBody(proj project.ProjectView) {
+	<div class="mb-4">
+		<p class="text-sm text-gray-600 mb-4">
+			Deploy project "{ proj.Name }" using Docker Compose. The output will be shown in real-time below.
+		</p>
+	</div>
+
+	<div class="deploy-output-container">
+		<div id="deploy-output" class="deploy-code-block">
+			<pre id="deploy-content" class="streaming-output"><span class="deploy-text-info">Ready to deploy...</span></pre>
+		</div>
+	</div>
+}
