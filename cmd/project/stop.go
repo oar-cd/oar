@@ -33,7 +33,8 @@ This will gracefully shut down all containers associated with the project.`,
 func runProjectStop(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid project ID format: %s", args[0])
+		utils.HandleInvalidUUID("project stop", args[0])
+		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
 	}
 
 	// Get services
