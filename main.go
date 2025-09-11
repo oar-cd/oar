@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/logging"
-	"github.com/ch00k/oar/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/logging"
+	"github.com/oar-cd/oar/services"
 )
 
 // ServerVersion is set at build time via -ldflags

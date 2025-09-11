@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/services"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"

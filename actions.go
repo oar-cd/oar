@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/internal/app"
 )
 
 // Project action functions

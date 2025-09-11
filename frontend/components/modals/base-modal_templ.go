@@ -8,7 +8,7 @@ package modals
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/ch00k/oar/frontend/components/icons"
+import "github.com/oar-cd/oar/frontend/components/icons"
 
 // BaseModal renders the modal container with backdrop and close functionality
 func BaseModal(title string, body templ.Component, footer templ.Component) templ.Component {

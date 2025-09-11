@@ -3,11 +3,11 @@ package stop
 import (
 	"bytes"
 	"errors"
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/services"
 	"testing"
 
-	"github.com/ch00k/oar/cmd/utils"
-	"github.com/ch00k/oar/testing/mocks"
+	"github.com/oar-cd/oar/cmd/utils"
+	"github.com/oar-cd/oar/testing/mocks"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

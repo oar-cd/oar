@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ch00k/oar/cmd/output"
+	"github.com/oar-cd/oar/cmd/output"
 	"github.com/spf13/cobra"
 )
 
@@ -110,7 +110,7 @@ func writeVersion(versionFile, version string) error {
 }
 
 func getLatestRelease() (*GitHubRelease, error) {
-	resp, err := http.Get("https://api.github.com/repos/ch00k/oar/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/oar-cd/oar/releases/latest")
 	if err != nil {
 		return nil, err
 	}

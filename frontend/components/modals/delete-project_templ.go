@@ -9,8 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/ch00k/oar/frontend/components/icons"
-	"github.com/ch00k/oar/frontend/components/project"
+	"github.com/oar-cd/oar/frontend/components/icons"
+	"github.com/oar-cd/oar/frontend/components/project"
 )
 
 // DeleteProjectModal renders the project deletion confirmation modal

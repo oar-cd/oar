@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/cmd/output"
+	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
 )
 

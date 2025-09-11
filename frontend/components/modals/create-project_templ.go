@@ -8,7 +8,7 @@ package modals
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/ch00k/oar/frontend/components/forms"
+import "github.com/oar-cd/oar/frontend/components/forms"
 
 // CreateProjectModal renders the create project modal
 func CreateProjectModal() templ.Component {

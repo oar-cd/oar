@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/a-h/templ"
-	"github.com/ch00k/oar/frontend/components/modals"
-	"github.com/ch00k/oar/frontend/components/project"
-	"github.com/ch00k/oar/frontend/pages"
-	"github.com/ch00k/oar/internal/app"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/frontend/components/modals"
+	"github.com/oar-cd/oar/frontend/components/project"
+	"github.com/oar-cd/oar/frontend/pages"
+	"github.com/oar-cd/oar/internal/app"
 )
 
 // Route registration functions

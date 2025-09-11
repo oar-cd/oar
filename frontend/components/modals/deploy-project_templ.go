@@ -8,7 +8,7 @@ package modals
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/ch00k/oar/frontend/components/project"
+import "github.com/oar-cd/oar/frontend/components/project"
 
 // DeployProjectModal renders the project deployment modal
 func DeployProjectModal(proj project.ProjectView) templ.Component {

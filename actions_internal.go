@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ch00k/oar/services"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/services"
 )
 
 // ProjectCreateRequest represents the data needed to create a project

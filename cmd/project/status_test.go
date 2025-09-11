@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/services"
 
-	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/testing/mocks"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/testing/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

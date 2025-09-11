@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ch00k/oar/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 )
 

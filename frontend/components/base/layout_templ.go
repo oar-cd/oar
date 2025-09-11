@@ -8,7 +8,7 @@ package base
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/ch00k/oar/frontend/components/icons"
+import "github.com/oar-cd/oar/frontend/components/icons"
 
 func Layout(title string, content templ.Component, version string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -134,7 +134,7 @@ func Footer(version string) templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<footer class=\"site-footer\"><div class=\"footer-content\"><p>&copy; 2025 Oar. All rights reserved.</p><div class=\"footer-links\"><a href=\"https://github.com/Ch00k/oar\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"footer-link flex items-center space-x-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<footer class=\"site-footer\"><div class=\"footer-content\"><p>&copy; 2025 Oar. All rights reserved.</p><div class=\"footer-links\"><a href=\"https://github.com/oar-cd/oar\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"footer-link flex items-center space-x-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

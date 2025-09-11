@@ -3,9 +3,9 @@ package project
 import (
 	"fmt"
 
-	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/cmd/output"
+	"github.com/oar-cd/oar/internal/app"
 	"github.com/spf13/cobra"
 )
 

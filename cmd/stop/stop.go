@@ -4,8 +4,8 @@ package stop
 import (
 	"fmt"
 
-	"github.com/ch00k/oar/cmd/output"
-	"github.com/ch00k/oar/cmd/utils"
+	"github.com/oar-cd/oar/cmd/output"
+	"github.com/oar-cd/oar/cmd/utils"
 	"github.com/spf13/cobra"
 )
 
