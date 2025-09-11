@@ -12,7 +12,7 @@ cd "$OAR_DIR"
 
 # Get latest release information
 echo "Downloading latest Docker Compose configuration..."
-RELEASE_INFO=$(curl -sSL https://api.github.com/repos/ch00k/oar/releases/latest)
+RELEASE_INFO=$(curl -sSL https://api.github.com/repos/oar-cd/oar/releases/latest)
 LATEST_VERSION=$(echo "$RELEASE_INFO" | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
 COMPOSE_URL=$(echo "$RELEASE_INFO" | grep -o '"browser_download_url": "[^"]*compose\.yaml"' | cut -d'"' -f4)
 CLI_URL=$(echo "$RELEASE_INFO" | grep -o '"browser_download_url": "[^"]*oar-linux-amd64"' | cut -d'"' -f4)

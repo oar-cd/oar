@@ -62,7 +62,7 @@ jobs:
           sudo apt-get install -y gcc libc6-dev
 
       - name: Build CLI binary
-        run: CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/ch00k/oar/cmd/version.CLIVersion=${{ steps.version.outputs.version }}" -o oar-linux-amd64 ./cmd
+        run: CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/oar-cd/oar/cmd/version.CLIVersion=${{ steps.version.outputs.version }}" -o oar-linux-amd64 ./cmd
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

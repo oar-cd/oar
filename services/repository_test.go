@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	"github.com/ch00k/oar/services"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/services"
 )
 
 // MockProjectManager implements the ProjectManager interface for testing

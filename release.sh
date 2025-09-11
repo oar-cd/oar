@@ -48,7 +48,7 @@ fi
 read -p "Create release $NEW_VERSION? [y/N] " -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Updating compose.yaml..."
-    sed -i "s|image: ghcr.io/ch00k/oar:.*|image: ghcr.io/ch00k/oar:$NEW_VERSION|" compose.yaml
+    sed -i "s|image: ghcr.io/oar-cd/oar:.*|image: ghcr.io/oar-cd/oar:$NEW_VERSION|" compose.yaml
 
     echo "Committing changes..."
     git add compose.yaml

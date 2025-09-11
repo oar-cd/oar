@@ -4,8 +4,8 @@ package app
 import (
 	"os"
 
-	"github.com/ch00k/oar/db"
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/db"
+	"github.com/oar-cd/oar/services"
 	"gorm.io/gorm"
 )
 

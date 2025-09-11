@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/a-h/templ"
-	"github.com/ch00k/oar/frontend/components/project"
-	"github.com/ch00k/oar/internal/app"
-	"github.com/ch00k/oar/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/frontend/components/project"
+	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/services"
 )
 
 // Helper functions for common operations

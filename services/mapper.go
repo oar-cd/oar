@@ -3,7 +3,7 @@ package services
 import (
 	"log/slog"
 
-	"github.com/ch00k/oar/models"
+	"github.com/oar-cd/oar/models"
 )
 
 type ProjectMapper struct {

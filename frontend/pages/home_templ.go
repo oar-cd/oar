@@ -9,8 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/ch00k/oar/frontend/components/base"
-	"github.com/ch00k/oar/frontend/components/project"
+	"github.com/oar-cd/oar/frontend/components/base"
+	"github.com/oar-cd/oar/frontend/components/project"
 )
 
 // Home renders the main home page with project grid

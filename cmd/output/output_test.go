@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ch00k/oar/services"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 )
 

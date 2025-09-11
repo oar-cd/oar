@@ -8,8 +8,8 @@ package modals
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/ch00k/oar/frontend/components/forms"
-import "github.com/ch00k/oar/frontend/components/project"
+import "github.com/oar-cd/oar/frontend/components/forms"
+import "github.com/oar-cd/oar/frontend/components/project"
 
 // EditProjectModal renders the edit project modal
 func EditProjectModal(proj project.ProjectView) templ.Component {

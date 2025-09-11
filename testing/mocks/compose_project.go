@@ -2,7 +2,7 @@
 package mocks
 
 import (
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/mock"
 )
 

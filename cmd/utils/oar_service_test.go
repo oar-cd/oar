@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/ch00k/oar/services"
+	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )

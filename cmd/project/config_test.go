@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ch00k/oar/services"
-	"github.com/ch00k/oar/testing/mocks"
+	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/testing/mocks"
 
-	"github.com/ch00k/oar/internal/app"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/internal/app"
 	"github.com/stretchr/testify/assert"
 )
 

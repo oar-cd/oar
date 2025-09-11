@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/ch00k/oar/models"
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/models"
 	"gorm.io/gorm"
 )
 

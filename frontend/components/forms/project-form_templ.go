@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/ch00k/oar/frontend/components/icons"
+	"github.com/oar-cd/oar/frontend/components/icons"
 )
 
 // ProjectFormData holds the form data for project forms

@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"fmt"
-	"github.com/ch00k/oar/frontend/components/icons"
+	"github.com/oar-cd/oar/frontend/components/icons"
 	"strings"
 )
 

@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/ch00k/oar/internal/dbutil"
-	"github.com/ch00k/oar/models"
+	"github.com/oar-cd/oar/internal/dbutil"
+	"github.com/oar-cd/oar/models"
 )
 
 func InitDB(dataDir string) (*gorm.DB, error) {
