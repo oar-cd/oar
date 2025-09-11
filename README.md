@@ -1,3 +1,6 @@
+[![CI](https://github.com/oar-cd/oar/actions/workflows/ci.yml/badge.svg)](https://github.com/oar-cd/oar/actions/workflows/ci.yml)&nbsp;&nbsp;
+[![codecov](https://codecov.io/gh/oar-cd/oar/graph/badge.svg?token=N1Dyy2nFt5)](https://codecov.io/gh/oar-cd/oar)
+
 # Oar
 
 Self-hosted Docker Compose project management with GitOps workflows. All the benefits of declarative deployments without Kubernetes complexity.
