@@ -4,16 +4,13 @@ lint:
 	golangci-lint run --fix
 
 test:
-	gotestsum ./...
+	gotestsum --format testname ./...
 
 test_verbose:
 	gotestsum --format standard-verbose ./...
 
-test_verbose_two:
-	gotestsum ./... -- -v
-
 test_ci:
-	go run gotest.tools/gotestsum@latest -- -coverprofile=coverage.txt ./...
+	go run gotest.tools/gotestsum@latest --format testname -- -coverprofile=coverage.txt ./...
 
 templ:
 	templ generate
