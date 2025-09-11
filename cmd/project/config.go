@@ -33,7 +33,8 @@ This shows the final configuration after resolving all variables and includes.`,
 func runProjectConfig(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid project ID format: %s", args[0])
+		utils.HandleInvalidUUID("project config", args[0])
+		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
 	}
 
 	// Get services

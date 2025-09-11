@@ -33,7 +33,8 @@ This shows real-time logs from all services in the project.`,
 func runProjectLogs(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid project ID format: %s", args[0])
+		utils.HandleInvalidUUID("project logs", args[0])
+		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
 	}
 
 	// Get services

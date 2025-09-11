@@ -33,7 +33,8 @@ This shows whether the project is running, uptime, and individual container stat
 func runProjectStatus(cmd *cobra.Command, args []string) error {
 	projectID, err := uuid.Parse(args[0])
 	if err != nil {
-		return fmt.Errorf("invalid project ID format: %s", args[0])
+		utils.HandleInvalidUUID("project status", args[0])
+		return nil // This won't be reached due to os.Exit(1) in HandleInvalidUUID
 	}
 
 	// Get services

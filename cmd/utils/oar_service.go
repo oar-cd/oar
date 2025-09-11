@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -18,11 +19,12 @@ func CreateOarServiceComposeProject(cmd *cobra.Command) (*services.ComposeProjec
 	// Check if compose.yaml exists
 	composeFile := filepath.Join(oarDir, "compose.yaml")
 	if _, err := os.Stat(composeFile); os.IsNotExist(err) {
-		return nil, output.FprintError(
+		_ = output.FprintError(
 			cmd,
 			"Oar compose.yaml not found at %s\nMake sure Oar is installed.",
 			composeFile,
 		)
+		return nil, fmt.Errorf("oar compose.yaml not found at %s", composeFile)
 	}
 
 	// Create a minimal config for the docker compose operations
