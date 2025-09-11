@@ -15,6 +15,7 @@ func createProject(r *http.Request) error {
 	req := &ProjectCreateRequest{
 		Name:         r.FormValue("name"),
 		GitURL:       r.FormValue("git_url"),
+		GitBranch:    r.FormValue("git_branch"),
 		ComposeFiles: r.FormValue("compose_files"),
 		Variables:    r.FormValue("variables"),
 		GitAuth:      buildGitAuthConfig(r),

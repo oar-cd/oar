@@ -17,6 +17,7 @@ type ProjectModel struct {
 	BaseModel
 	Name               string  `gorm:"not null;unique"`
 	GitURL             string  `gorm:"not null"`
+	GitBranch          string  `gorm:"not null"`                           // Git branch (never empty, always set to default branch if not specified)
 	GitAuthType        *string `gorm:"type:varchar(20)"`                   // "http", "ssh", "oauth", etc.
 	GitAuthCredentials *string `gorm:"type:text"`                          // Encrypted JSON blob containing all auth data
 	WorkingDir         string  `gorm:"not null"`                           // directory where the project is cloned

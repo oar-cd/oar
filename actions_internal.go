@@ -12,6 +12,7 @@ import (
 type ProjectCreateRequest struct {
 	Name         string
 	GitURL       string
+	GitBranch    string
 	ComposeFiles string
 	Variables    string
 	GitAuth      *services.GitAuthConfig
@@ -73,6 +74,7 @@ func buildProjectFromCreateRequest(req *ProjectCreateRequest) *services.Project 
 		ID:           uuid.New(),
 		Name:         req.Name,
 		GitURL:       req.GitURL,
+		GitBranch:    req.GitBranch,
 		GitAuth:      req.GitAuth,
 		ComposeFiles: parseComposeFiles(req.ComposeFiles),
 		Variables:    parseVariables(req.Variables),

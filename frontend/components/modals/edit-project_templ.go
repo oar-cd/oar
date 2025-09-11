@@ -68,6 +68,7 @@ func editProjectBody(proj project.ProjectView) templ.Component {
 			ProjectID:    proj.ID.String(),
 			Name:         proj.Name,
 			GitURL:       proj.GitURL,
+			GitBranch:    proj.GitBranch,
 			AuthMethod:   getAuthMethodFromProject(proj),
 			Username:     getUsernameFromProject(proj),
 			Password:     getPasswordFromProject(proj),

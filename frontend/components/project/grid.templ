@@ -46,6 +46,7 @@ type ProjectView struct {
 	ID           uuid.UUID
 	Name         string
 	GitURL       string
+	GitBranch    string
 	GitAuth      *GitAuthConfig // Git authentication configuration
 	Status       string // "running", "stopped", "error" (string representation)
 	LastCommit   *string // Git commit SHA (first 8 chars)

@@ -80,6 +80,10 @@ body {
     @apply text-sm text-blue-600 hover:text-blue-800 break-all;
 }
 
+.project-branch {
+    @apply text-xs text-gray-600 font-medium mt-1;
+}
+
 .project-commit {
     @apply text-xs text-gray-500 font-mono mt-1;
 }

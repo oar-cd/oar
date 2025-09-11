@@ -123,8 +123,9 @@ func registerUtilityRoutes(r chi.Router) {
 
 		discoveryService := app.GetDiscoveryService()
 		gitAuthConfig := buildGitAuthConfig(r)
+		gitBranch := r.FormValue("git_branch") // Extract git branch from form
 
-		discoveryResponse, err := discoveryService.DiscoverFiles(gitURL, gitAuthConfig)
+		discoveryResponse, err := discoveryService.DiscoverFiles(gitURL, gitBranch, gitAuthConfig)
 		if err != nil {
 			logOperationError("discover", "main", err, "git_url", gitURL)
 			w.Header().Set("Content-Type", "text/html")

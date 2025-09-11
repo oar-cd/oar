@@ -1,4 +1,5 @@
-    Name  {{ .ProjectName }}
-  Status  stopped
- Git URL  {{ .ProjectGitURL }}
+       Name  {{ .ProjectName }}
+     Status  stopped
+    Git URL  {{ .ProjectGitURL }}
+ Git Branch  master
 

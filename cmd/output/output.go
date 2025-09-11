@@ -97,6 +97,7 @@ func PrintProjectDetails(project *services.Project, short bool) (string, error) 
 		{"Name", project.Name},
 		{"Status", formatProjectStatus(project.Status.String())},
 		{"Git URL", project.GitURL},
+		{"Git Branch", project.GitBranch},
 	}
 
 	if !short {
@@ -263,6 +264,7 @@ func PrintProjectList(projects []*services.Project) (string, error) {
 		"Name",
 		"Status",
 		"Git URL",
+		"Branch",
 		"Commit",
 		"Created At",
 		"Updated At",
@@ -278,11 +280,15 @@ func PrintProjectList(projects []*services.Project) (string, error) {
 		// Format commit as short hash (8 chars like web UI)
 		commit := formatCommitHash(project.LastCommitStr())
 
+		// Format branch for display
+		branch := project.GitBranch
+
 		data = append(data, []string{
 			project.ID.String(),
 			project.Name,
 			statusStr,
 			gitURL,
+			branch,
 			commit,
 			project.CreatedAt.Format("2006-01-02 15:04:05"),
 			project.UpdatedAt.Format("2006-01-02 15:04:05"),

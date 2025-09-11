@@ -30,7 +30,12 @@ templ ProjectCard(project ProjectView) {
 					{ truncateURL(project.GitURL, 50) }
 				</a>
 
-				<!-- Git commit SHA (8 chars) positioned under the URL -->
+				<!-- Git branch displayed under the URL -->
+				<div class="project-branch">
+					{ project.GitBranch }
+				</div>
+
+				<!-- Git commit SHA (8 chars) positioned under the branch -->
 				if project.LastCommit != nil {
 					<div class="project-commit">
 						{ shortCommit(*project.LastCommit) }
@@ -54,7 +59,7 @@ templ ProjectCard(project ProjectView) {
 
 // StatusPill renders the status indicator with unique ID for HTMX updates
 templ StatusPill(projectID, status string) {
-	<span 
+	<span
 		id={ fmt.Sprintf("status-pill-%s", projectID) }
 		class={ fmt.Sprintf("status-pill %s", getStatusClass(status)) }
 	>
@@ -130,3 +135,4 @@ func getStatusText(status string) string {
 		return "unknown"
 	}
 }
+

@@ -70,6 +70,7 @@ func convertProjectToView(p *services.Project) project.ProjectView {
 		ID:           p.ID,
 		Name:         p.Name,
 		GitURL:       p.GitURL,
+		GitBranch:    p.GitBranch,
 		GitAuth:      convertGitAuthConfig(p.GitAuth),
 		Status:       p.Status.String(),
 		LastCommit:   p.LastCommit,

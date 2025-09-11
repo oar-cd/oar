@@ -15,6 +15,7 @@ templ editProjectBody(proj project.ProjectView) {
 		ProjectID:    proj.ID.String(),
 		Name:         proj.Name,
 		GitURL:       proj.GitURL,
+		GitBranch:    proj.GitBranch,
 		AuthMethod:   getAuthMethodFromProject(proj),
 		Username:     getUsernameFromProject(proj),
 		Password:     getPasswordFromProject(proj),

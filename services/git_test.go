@@ -25,7 +25,7 @@ func TestGitService_Pull_InvalidRepo(t *testing.T) {
 	service := NewGitService(config)
 
 	// Test with non-existent directory
-	err := service.Pull(nil, "/non/existent/path")
+	err := service.Pull("", nil, "/non/existent/path")
 	if err == nil {
 		t.Errorf("Pull() expected error for non-existent repository")
 	}
@@ -40,7 +40,7 @@ func TestGitService_Clone_InvalidURL(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test with invalid URL
-	err := service.Clone("invalid-url", nil, tempDir)
+	err := service.Clone("invalid-url", "", nil, tempDir)
 	if err == nil {
 		t.Errorf("Clone() expected error for invalid URL")
 	}
@@ -133,5 +133,45 @@ func TestParseGitAuthType(t *testing.T) {
 				t.Errorf("ParseGitAuthType() = %v, want %v", got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestGitService_Clone_WithBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	tempDir := t.TempDir()
+
+	// Test with specific branch (this will fail but we're testing the interface)
+	err := service.Clone("invalid-url", "main", nil, tempDir)
+	if err == nil {
+		t.Errorf("Clone() expected error for invalid URL with branch")
+	}
+
+	// Test with empty branch (default branch)
+	err = service.Clone("invalid-url", "", nil, tempDir)
+	if err == nil {
+		t.Errorf("Clone() expected error for invalid URL with default branch")
+	}
+}
+
+func TestGitService_Pull_WithBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with specific branch
+	err := service.Pull("main", nil, "/non/existent/path")
+	if err == nil {
+		t.Errorf("Pull() expected error for non-existent repository with branch")
+	}
+
+	// Test with empty branch (default branch)
+	err = service.Pull("", nil, "/non/existent/path")
+	if err == nil {
+		t.Errorf("Pull() expected error for non-existent repository with default branch")
 	}
 }

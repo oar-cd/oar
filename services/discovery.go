@@ -49,13 +49,18 @@ func NewProjectDiscoveryService(
 }
 
 // DiscoverFiles clones repository to temp location and discovers compose files
-func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string, authConfig *GitAuthConfig) (*DiscoveryResponse, error) {
+func (s *ProjectDiscoveryService) DiscoverFiles(
+	gitURL string,
+	gitBranch string,
+	authConfig *GitAuthConfig,
+) (*DiscoveryResponse, error) {
 	if gitURL == "" {
 		return nil, fmt.Errorf("git URL is required")
 	}
 
 	slog.Info("Starting file discovery",
 		"git_url", gitURL,
+		"git_branch", gitBranch,
 		"has_auth", authConfig != nil)
 
 	// Create temporary directory for discovery
@@ -63,7 +68,7 @@ func (s *ProjectDiscoveryService) DiscoverFiles(gitURL string, authConfig *GitAu
 	tempDir := filepath.Join(s.config.TmpDir, "discovery-"+tempID)
 
 	// Clone repository to temp location with authentication
-	if err := s.gitService.Clone(gitURL, authConfig, tempDir); err != nil {
+	if err := s.gitService.Clone(gitURL, gitBranch, authConfig, tempDir); err != nil {
 		slog.Error("Service operation failed",
 			"layer", "service",
 			"operation", "discover_files",

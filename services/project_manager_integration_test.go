@@ -33,8 +33,9 @@ func TestProjectManager_Integration_CompleteLifecycle(t *testing.T) {
 		ID:           uuid.New(),
 		Name:         testProjectName,
 		GitURL:       testRepoURL,
+		GitBranch:    "main",                   // Use main branch for basic test
 		GitAuth:      nil,                      // Public repository, no auth needed
-		ComposeFiles: []string{"compose.yaml"}, // Required for project creation
+		ComposeFiles: []string{"compose.yaml"}, // Basic compose file in main branch
 	}
 
 	createdProject, err := projectManager.Create(project)
@@ -87,6 +88,35 @@ deployLoop:
 
 	// Wait a bit for containers to stabilize
 	time.Sleep(5 * time.Second)
+
+	// Step 2.5: Verify project status after deployment
+	t.Log("Step 2.5: Verifying project status after deployment...")
+
+	status, err := projectManager.GetStatus(createdProject.ID)
+	require.NoError(t, err, "Getting status should succeed")
+	require.NotNil(t, status, "Status should not be nil")
+
+	// Project should be running after deployment
+	assert.Equal(t, "running", status.Status, "Project should be running after deployment")
+	assert.NotEmpty(t, status.Uptime, "Should have uptime when running")
+
+	// Should have exactly 2 containers: web and redis
+	assert.Len(t, status.Containers, 2, "Should have exactly 2 containers (web, redis)")
+
+	// Verify expected services are present
+	serviceNames := make([]string, len(status.Containers))
+	for i, container := range status.Containers {
+		serviceNames[i] = container.Service
+		assert.Equal(t, "running", container.State, "Container %s should be in running state", container.Service)
+		assert.Contains(t, container.Name, testProjectName, "Container name should contain project name")
+		assert.NotEmpty(t, container.Status, "Container should have status description")
+		assert.NotEmpty(t, container.RunningFor, "Container should have running duration")
+	}
+	assert.Contains(t, serviceNames, "web", "Should have web service")
+	assert.Contains(t, serviceNames, "redis", "Should have redis service")
+
+	t.Logf("Project status verified: %s with uptime %s", status.Status, status.Uptime)
+	t.Logf("Containers verified: %v", serviceNames)
 
 	// Step 3: Get project configuration
 	t.Log("Step 3: Getting project configuration...")
@@ -184,14 +214,29 @@ stopLoop:
 	assert.Greater(t, len(stopMessages), 0, "Should receive stop messages")
 	t.Logf("Project stopped successfully with %d output messages", len(stopMessages))
 
-	// Step 6: Verify project is stopped by getting updated project info
-	t.Log("Step 6: Verifying project status...")
+	// Step 6: Verify project is stopped by checking container status
+	t.Log("Step 6: Verifying project status after stopping...")
 
-	updatedProject, err := projectManager.Get(createdProject.ID)
-	require.NoError(t, err, "Getting project should succeed")
+	stoppedStatus, err := projectManager.GetStatus(createdProject.ID)
+	require.NoError(t, err, "Getting status should succeed")
+	require.NotNil(t, stoppedStatus, "Status should not be nil")
 
-	// Project status should be stopped (if status tracking is implemented)
-	t.Logf("Project status: %s", updatedProject.Status.String())
+	// Project should be stopped after stopping
+	assert.Equal(t, "stopped", stoppedStatus.Status, "Project should be stopped after stop operation")
+	assert.Empty(t, stoppedStatus.Uptime, "Should have no uptime when stopped")
+
+	// All containers should be stopped or removed
+	for _, container := range stoppedStatus.Containers {
+		assert.NotEqual(
+			t,
+			"running",
+			container.State,
+			"Container %s should not be running after stop",
+			container.Service,
+		)
+	}
+
+	t.Logf("Project status verified after stop: %s", stoppedStatus.Status)
 
 	// Step 7: Remove the project
 	t.Log("Step 7: Removing project...")
@@ -220,4 +265,338 @@ stopLoop:
 	}
 
 	t.Logf("Complete project lifecycle test passed")
+}
+
+// TestProjectManager_Integration_MergeStrategy tests the merge strategy with multiple Compose files
+// using the -f flag to combine multiple compose files
+func TestProjectManager_Integration_MergeStrategy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	service, _ := setupProjectService(t)
+	projectManager := ProjectManager(service)
+
+	testRepoURL := "https://github.com/oar-cd/test-project.git"
+	testProjectName := "test-project-merge-strategy"
+
+	t.Log("Testing merge strategy with multiple compose files...")
+
+	project := &Project{
+		ID:        uuid.New(),
+		Name:      testProjectName,
+		GitURL:    testRepoURL,
+		GitBranch: "compose-files-merge", // Use compose-files-merge branch
+		GitAuth:   nil,
+		// Using multiple compose files for merge strategy
+		ComposeFiles: []string{"compose.yaml", "compose.override.yaml"},
+	}
+
+	createdProject, err := projectManager.Create(project)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	// Deploy the project
+	outputChan := make(chan string, 100)
+	deployDone := make(chan error, 1)
+
+	go func() {
+		defer close(outputChan)
+		deployDone <- projectManager.DeployStreaming(createdProject.ID, false, outputChan)
+	}()
+
+	timeout := time.After(60 * time.Second)
+
+deployLoop:
+	for {
+		select {
+		case msg, ok := <-outputChan:
+			if !ok {
+				break deployLoop
+			}
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+		case err := <-deployDone:
+			require.NoError(t, err, "Deployment should succeed")
+			break deployLoop
+		case <-timeout:
+			t.Fatal("Deployment timed out")
+		}
+	}
+
+	// Verify project status after deployment (merge strategy should have web, redis, db)
+	t.Log("Verifying merge strategy project status...")
+
+	status, err := projectManager.GetStatus(createdProject.ID)
+	require.NoError(t, err, "Getting status should succeed")
+	require.NotNil(t, status, "Status should not be nil")
+
+	// Project should be running
+	assert.Equal(t, "running", status.Status, "Project should be running after deployment")
+
+	// Should have exactly 3 containers: web, redis, db
+	assert.Len(t, status.Containers, 3, "Should have exactly 3 containers (web, redis, db)")
+
+	// Verify expected services are present
+	serviceNames := make([]string, len(status.Containers))
+	for i, container := range status.Containers {
+		serviceNames[i] = container.Service
+		assert.Equal(t, "running", container.State, "Container %s should be running", container.Service)
+	}
+	assert.Contains(t, serviceNames, "web", "Should have web service")
+	assert.Contains(t, serviceNames, "redis", "Should have redis service")
+	assert.Contains(t, serviceNames, "db", "Should have db service")
+
+	t.Logf("Merge strategy status verified: %v", serviceNames)
+
+	// Verify merged configuration
+	config, err := projectManager.GetConfig(createdProject.ID)
+	require.NoError(t, err, "Getting config should succeed")
+	require.NotEmpty(t, config, "Config should not be empty")
+
+	// Config should show merged result from both files
+	assert.Contains(t, config, "services:", "Config should contain services section")
+	t.Logf("Merge strategy configuration verified (%d characters)", len(config))
+
+	// Cleanup
+	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	require.NoError(t, err, "Stopping should succeed")
+
+	err = projectManager.Remove(createdProject.ID)
+	require.NoError(t, err, "Project removal should succeed")
+
+	t.Logf("Merge strategy test completed successfully")
+}
+
+// TestProjectManager_Integration_ExtendStrategy tests the extend strategy where one compose file extends another
+func TestProjectManager_Integration_ExtendStrategy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	service, _ := setupProjectService(t)
+	projectManager := ProjectManager(service)
+
+	testRepoURL := "https://github.com/oar-cd/test-project.git"
+	testProjectName := "test-project-extend-strategy"
+
+	t.Log("Testing extend strategy with compose files...")
+
+	project := &Project{
+		ID:        uuid.New(),
+		Name:      testProjectName,
+		GitURL:    testRepoURL,
+		GitBranch: "compose-files-extend", // Use compose-files-extend branch
+		GitAuth:   nil,
+		// Using compose file that extends another
+		ComposeFiles: []string{"compose.yaml"},
+	}
+
+	createdProject, err := projectManager.Create(project)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	// Deploy the project
+	outputChan := make(chan string, 100)
+	deployDone := make(chan error, 1)
+
+	go func() {
+		defer close(outputChan)
+		deployDone <- projectManager.DeployStreaming(createdProject.ID, false, outputChan)
+	}()
+
+	timeout := time.After(60 * time.Second)
+
+deployLoop:
+	for {
+		select {
+		case msg, ok := <-outputChan:
+			if !ok {
+				break deployLoop
+			}
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+		case err := <-deployDone:
+			require.NoError(t, err, "Deployment should succeed")
+			break deployLoop
+		case <-timeout:
+			t.Fatal("Deployment timed out")
+		}
+	}
+
+	// Verify extended configuration
+	config, err := projectManager.GetConfig(createdProject.ID)
+	require.NoError(t, err, "Getting config should succeed")
+	require.NotEmpty(t, config, "Config should not be empty")
+
+	assert.Contains(t, config, "services:", "Config should contain services section")
+	t.Logf("Extend strategy configuration verified (%d characters)", len(config))
+
+	// Cleanup
+	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	require.NoError(t, err, "Stopping should succeed")
+
+	err = projectManager.Remove(createdProject.ID)
+	require.NoError(t, err, "Project removal should succeed")
+
+	t.Logf("Extend strategy test completed successfully")
+}
+
+// TestProjectManager_Integration_IncludeStrategy tests the include strategy where compose files include others
+func TestProjectManager_Integration_IncludeStrategy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	service, _ := setupProjectService(t)
+	projectManager := ProjectManager(service)
+
+	testRepoURL := "https://github.com/oar-cd/test-project.git"
+	testProjectName := "test-project-include-strategy"
+
+	t.Log("Testing include strategy with compose files...")
+
+	project := &Project{
+		ID:        uuid.New(),
+		Name:      testProjectName,
+		GitURL:    testRepoURL,
+		GitBranch: "compose-files-include", // Use compose-files-include branch
+		GitAuth:   nil,
+		// Using compose file that includes others
+		ComposeFiles: []string{"compose.yaml"},
+	}
+
+	createdProject, err := projectManager.Create(project)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	// Deploy the project
+	outputChan := make(chan string, 100)
+	deployDone := make(chan error, 1)
+
+	go func() {
+		defer close(outputChan)
+		deployDone <- projectManager.DeployStreaming(createdProject.ID, false, outputChan)
+	}()
+
+	timeout := time.After(60 * time.Second)
+
+deployLoop:
+	for {
+		select {
+		case msg, ok := <-outputChan:
+			if !ok {
+				break deployLoop
+			}
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+		case err := <-deployDone:
+			require.NoError(t, err, "Deployment should succeed")
+			break deployLoop
+		case <-timeout:
+			t.Fatal("Deployment timed out")
+		}
+	}
+
+	// Verify included configuration
+	config, err := projectManager.GetConfig(createdProject.ID)
+	require.NoError(t, err, "Getting config should succeed")
+	require.NotEmpty(t, config, "Config should not be empty")
+
+	assert.Contains(t, config, "services:", "Config should contain services section")
+	t.Logf("Include strategy configuration verified (%d characters)", len(config))
+
+	// Cleanup
+	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	require.NoError(t, err, "Stopping should succeed")
+
+	err = projectManager.Remove(createdProject.ID)
+	require.NoError(t, err, "Project removal should succeed")
+
+	t.Logf("Include strategy test completed successfully")
+}
+
+// TestProjectManager_Integration_Variables tests compose file interpolation and service configuration variables
+func TestProjectManager_Integration_Variables(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	service, _ := setupProjectService(t)
+	projectManager := ProjectManager(service)
+
+	testRepoURL := "https://github.com/oar-cd/test-project.git"
+	testProjectName := "test-project-variables"
+
+	t.Log("Testing compose file with variables and interpolation...")
+
+	project := &Project{
+		ID:        uuid.New(),
+		Name:      testProjectName,
+		GitURL:    testRepoURL,
+		GitBranch: "compose-files-interpolation", // Use compose-files-interpolation branch
+		GitAuth:   nil,
+		// Using compose file that uses variable interpolation
+		ComposeFiles: []string{"compose.yaml"},
+		// Environment variables for compose file interpolation
+		Variables: []string{
+			"APP_VERSION=latest",
+			"BACKEND_PORT=3000",
+			"DEBUG_MODE=true",
+			"NODE_ENV=development",
+			"DB_NAME=testapp",
+			"DB_USER=testuser",
+			"DB_PASS=testpass",
+			"CUSTOM_VALUE=test-value-123",
+		},
+	}
+
+	createdProject, err := projectManager.Create(project)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	// Deploy the project
+	outputChan := make(chan string, 100)
+	deployDone := make(chan error, 1)
+
+	go func() {
+		defer close(outputChan)
+		deployDone <- projectManager.DeployStreaming(createdProject.ID, false, outputChan)
+	}()
+
+	timeout := time.After(60 * time.Second)
+
+deployLoop:
+	for {
+		select {
+		case msg, ok := <-outputChan:
+			if !ok {
+				break deployLoop
+			}
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+		case err := <-deployDone:
+			require.NoError(t, err, "Deployment should succeed")
+			break deployLoop
+		case <-timeout:
+			t.Fatal("Deployment timed out")
+		}
+	}
+
+	// Verify variable interpolation worked
+	config, err := projectManager.GetConfig(createdProject.ID)
+	require.NoError(t, err, "Getting config should succeed")
+	require.NotEmpty(t, config, "Config should not be empty")
+
+	// Config should show interpolated values
+	assert.Contains(t, config, "services:", "Config should contain services section")
+	assert.Contains(t, config, "3000", "Config should contain interpolated port value")
+	assert.Contains(t, config, "latest", "Config should contain interpolated version value")
+	assert.Contains(t, config, "test-value-123", "Config should contain interpolated custom value")
+	t.Logf("Variable interpolation verified in configuration (%d characters)", len(config))
+
+	// Cleanup
+	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	require.NoError(t, err, "Stopping should succeed")
+
+	err = projectManager.Remove(createdProject.ID)
+	require.NoError(t, err, "Project removal should succeed")
+
+	t.Logf("Variables test completed successfully")
 }
