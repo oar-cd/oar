@@ -35,6 +35,7 @@ func createTestProjectModel() *ProjectModel {
 		},
 		Name:         "test-project",
 		GitURL:       "https://github.com/test/repo.git",
+		GitBranch:    "main",
 		WorkingDir:   "/tmp/test-project",
 		ComposeFiles: "docker-compose.yml",
 		Variables:    "KEY1=value1",

@@ -18,6 +18,7 @@ func TestProjectRepository_ClearVariables(t *testing.T) {
 	project := &Project{
 		Name:         "test-clear-vars",
 		GitURL:       "https://github.com/test/repo.git",
+		GitBranch:    "main",
 		WorkingDir:   "/tmp/test",
 		ComposeFiles: []string{"docker-compose.yml"},
 		Variables:    []string{"VAR1=value1", "VAR2=value2", "VAR3=value3"},
@@ -61,6 +62,7 @@ func TestProjectRepository_UpdateEmptyVariables(t *testing.T) {
 	project := &Project{
 		Name:         "test-update-empty",
 		GitURL:       "https://github.com/test/repo.git",
+		GitBranch:    "main",
 		WorkingDir:   "/tmp/test",
 		ComposeFiles: []string{"docker-compose.yml", "docker-compose.override.yml"},
 		Variables:    []string{"VAR1=value1", "VAR2=value2"},

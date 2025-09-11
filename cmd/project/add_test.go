@@ -134,3 +134,93 @@ func TestProjectAddHappy(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectAddValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		args          []string
+		expectedError string
+	}{
+		{
+			name: "Empty name should fail",
+			args: []string{
+				"--git-url",
+				"https://github.com/test/repo.git",
+				"--name",
+				"",
+				"--compose-file",
+				"docker-compose.yml",
+			},
+			expectedError: "name is required",
+		},
+		{
+			name: "Whitespace-only name should fail",
+			args: []string{
+				"--git-url",
+				"https://github.com/test/repo.git",
+				"--name",
+				"   \t\n   ",
+				"--compose-file",
+				"docker-compose.yml",
+			},
+			expectedError: "name is required",
+		},
+		{
+			name:          "Empty git URL should fail",
+			args:          []string{"--git-url", "", "--name", "test-project", "--compose-file", "docker-compose.yml"},
+			expectedError: "git URL is required",
+		},
+		{
+			name: "Whitespace-only git URL should fail",
+			args: []string{
+				"--git-url",
+				"   \t\n   ",
+				"--name",
+				"test-project",
+				"--compose-file",
+				"docker-compose.yml",
+			},
+			expectedError: "git URL is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create temporary directory for test data
+			tempDir, err := os.MkdirTemp("", "oar-test-validation-*")
+			require.NoError(t, err)
+			defer func() {
+				if err := os.RemoveAll(tempDir); err != nil {
+					t.Logf("Warning: failed to clean up temp directory: %v", err)
+				}
+			}()
+
+			// Set encryption key for testing
+			t.Setenv("OAR_ENCRYPTION_KEY", "cw_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4=") // Test key
+
+			// Initialize the app with test data directory
+			config, err := services.NewConfigForCLI(tempDir)
+			require.NoError(t, err)
+			err = app.InitializeWithConfig(config)
+			require.NoError(t, err)
+
+			var stdout, stderr bytes.Buffer
+			rootCmd := NewCmdProjectAdd()
+			rootCmd.SetOut(&stdout)
+			rootCmd.SetErr(&stderr)
+			rootCmd.SetArgs(tt.args)
+
+			// Execute command and expect it to fail
+			err = rootCmd.Execute()
+
+			// Verify command failed with expected error
+			assert.Error(t, err, "Expected command to fail")
+			assert.Contains(
+				t,
+				err.Error(),
+				tt.expectedError,
+				"Error message should contain expected validation message",
+			)
+		})
+	}
+}

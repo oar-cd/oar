@@ -29,10 +29,10 @@ type ProjectUpdateRequest struct {
 
 // validateProjectCreateRequest validates a project creation request
 func validateProjectCreateRequest(req *ProjectCreateRequest) error {
-	if req.Name == "" {
+	if strings.TrimSpace(req.Name) == "" {
 		return errors.New("name is required")
 	}
-	if req.GitURL == "" {
+	if strings.TrimSpace(req.GitURL) == "" {
 		return errors.New("git URL is required")
 	}
 	if strings.TrimSpace(req.ComposeFiles) == "" {
@@ -43,7 +43,7 @@ func validateProjectCreateRequest(req *ProjectCreateRequest) error {
 
 // validateProjectUpdateRequest validates a project update request
 func validateProjectUpdateRequest(req *ProjectUpdateRequest) error {
-	if req.Name == "" {
+	if strings.TrimSpace(req.Name) == "" {
 		return errors.New("name is required")
 	}
 	if strings.TrimSpace(req.ComposeFiles) == "" {

@@ -35,9 +35,29 @@ func TestValidateProjectCreateRequest(t *testing.T) {
 			errorMsg:    "name is required",
 		},
 		{
+			name: "empty name",
+			req: &ProjectCreateRequest{
+				Name:         "   ",
+				GitURL:       "https://github.com/test/repo",
+				ComposeFiles: "docker-compose.yml",
+			},
+			expectError: true,
+			errorMsg:    "name is required",
+		},
+		{
 			name: "missing git URL",
 			req: &ProjectCreateRequest{
 				Name:         "test-project",
+				ComposeFiles: "docker-compose.yml",
+			},
+			expectError: true,
+			errorMsg:    "git URL is required",
+		},
+		{
+			name: "empty git URL",
+			req: &ProjectCreateRequest{
+				Name:         "test-project",
+				GitURL:       "   ",
 				ComposeFiles: "docker-compose.yml",
 			},
 			expectError: true,
@@ -104,10 +124,30 @@ func TestValidateProjectUpdateRequest(t *testing.T) {
 			errorMsg:    "name is required",
 		},
 		{
+			name: "empty name",
+			req: &ProjectUpdateRequest{
+				ID:           uuid.New(),
+				Name:         "   ",
+				ComposeFiles: "docker-compose.yml",
+			},
+			expectError: true,
+			errorMsg:    "name is required",
+		},
+		{
 			name: "missing compose files",
 			req: &ProjectUpdateRequest{
 				ID:   uuid.New(),
 				Name: "updated-project",
+			},
+			expectError: true,
+			errorMsg:    "compose files are required",
+		},
+		{
+			name: "empty compose files",
+			req: &ProjectUpdateRequest{
+				ID:           uuid.New(),
+				Name:         "updated-project",
+				ComposeFiles: "   ",
 			},
 			expectError: true,
 			errorMsg:    "compose files are required",

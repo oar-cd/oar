@@ -540,6 +540,7 @@ func TestProjectRepository_InvalidStatusHandling(t *testing.T) {
 		},
 		Name:         "invalid-status-test",
 		GitURL:       "https://github.com/test/repo.git",
+		GitBranch:    "main",
 		Status:       "invalid-status",
 		ComposeFiles: "docker-compose.yml", // Required by constraint
 		Variables:    "",
