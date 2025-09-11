@@ -169,6 +169,70 @@ func TestProjectService_Create_EmptyComposeFiles(t *testing.T) {
 	assert.Contains(t, err.Error(), "compose files are required")
 }
 
+func TestProjectService_Create_EmptyName(t *testing.T) {
+	service, _, _, _, _ := setupMockProjectService(t)
+
+	// Test project with empty name
+	testProject := createTestProject()
+	testProject.Name = ""
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, createdProject)
+	assert.Contains(t, err.Error(), "name is required")
+}
+
+func TestProjectService_Create_WhitespaceOnlyName(t *testing.T) {
+	service, _, _, _, _ := setupMockProjectService(t)
+
+	// Test project with whitespace-only name
+	testProject := createTestProject()
+	testProject.Name = "   \t\n   "
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, createdProject)
+	assert.Contains(t, err.Error(), "name is required")
+}
+
+func TestProjectService_Create_EmptyGitURL(t *testing.T) {
+	service, _, _, _, _ := setupMockProjectService(t)
+
+	// Test project with empty git URL
+	testProject := createTestProject()
+	testProject.GitURL = ""
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, createdProject)
+	assert.Contains(t, err.Error(), "git URL is required")
+}
+
+func TestProjectService_Create_WhitespaceOnlyGitURL(t *testing.T) {
+	service, _, _, _, _ := setupMockProjectService(t)
+
+	// Test project with whitespace-only git URL
+	testProject := createTestProject()
+	testProject.GitURL = "   \t\n   "
+
+	// Test
+	createdProject, err := service.Create(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Nil(t, createdProject)
+	assert.Contains(t, err.Error(), "git URL is required")
+}
+
 // Tests for ProjectService.Update()
 func TestProjectService_Update_Success(t *testing.T) {
 	service, repo, _, _, _ := setupMockProjectService(t)
@@ -206,6 +270,78 @@ func TestProjectService_Update_NotFound(t *testing.T) {
 	// Assertions
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "project not found")
+}
+
+func TestProjectService_Update_EmptyName(t *testing.T) {
+	service, repo, _, _, _ := setupMockProjectService(t)
+
+	// Add test project to repository
+	testProject := createTestProject()
+	repo.projects[testProject.ID] = testProject
+
+	// Modify project with empty name
+	testProject.Name = ""
+
+	// Test
+	err := service.Update(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name is required")
+}
+
+func TestProjectService_Update_WhitespaceOnlyName(t *testing.T) {
+	service, repo, _, _, _ := setupMockProjectService(t)
+
+	// Add test project to repository
+	testProject := createTestProject()
+	repo.projects[testProject.ID] = testProject
+
+	// Modify project with whitespace-only name
+	testProject.Name = "   \t\n   "
+
+	// Test
+	err := service.Update(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "name is required")
+}
+
+func TestProjectService_Update_EmptyGitURL(t *testing.T) {
+	service, repo, _, _, _ := setupMockProjectService(t)
+
+	// Add test project to repository
+	testProject := createTestProject()
+	repo.projects[testProject.ID] = testProject
+
+	// Modify project with empty git URL
+	testProject.GitURL = ""
+
+	// Test
+	err := service.Update(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "git URL is required")
+}
+
+func TestProjectService_Update_EmptyComposeFiles(t *testing.T) {
+	service, repo, _, _, _ := setupMockProjectService(t)
+
+	// Add test project to repository
+	testProject := createTestProject()
+	repo.projects[testProject.ID] = testProject
+
+	// Modify project with empty compose files
+	testProject.ComposeFiles = []string{}
+
+	// Test
+	err := service.Update(testProject)
+
+	// Assertions
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "compose files are required")
 }
 
 // Tests for ProjectStatus enum

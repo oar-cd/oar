@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
@@ -90,7 +91,13 @@ func (s *ProjectService) Get(id uuid.UUID) (*Project, error) {
 
 // Create creates a new project
 func (s *ProjectService) Create(project *Project) (*Project, error) {
-	// Validate that ComposeFiles is not empty
+	// Validate required fields
+	if strings.TrimSpace(project.Name) == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+	if strings.TrimSpace(project.GitURL) == "" {
+		return nil, fmt.Errorf("git URL is required")
+	}
 	if len(project.ComposeFiles) == 0 {
 		return nil, fmt.Errorf("compose files are required")
 	}
@@ -181,6 +188,16 @@ func (s *ProjectService) Create(project *Project) (*Project, error) {
 }
 
 func (s *ProjectService) Update(project *Project) error {
+	// Validate required fields
+	if strings.TrimSpace(project.Name) == "" {
+		return fmt.Errorf("name is required")
+	}
+	if strings.TrimSpace(project.GitURL) == "" {
+		return fmt.Errorf("git URL is required")
+	}
+	if len(project.ComposeFiles) == 0 {
+		return fmt.Errorf("compose files are required")
+	}
 	return s.projectRepository.Update(project)
 }
 

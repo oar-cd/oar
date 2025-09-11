@@ -54,40 +54,46 @@ func TestProjectModel_Create_UniqueNameConstraint(t *testing.T) {
 func TestProjectModel_Create_FieldValidation(t *testing.T) {
 	db := setupTestDB(t)
 
-	// Note: SQLite with GORM doesn't enforce NOT NULL constraints on empty strings
-	// This test documents the current behavior rather than ideal validation
+	// Test field validation with check constraints
 	tests := []struct {
 		name        string
 		modifyModel func(*ProjectModel)
 		expectError bool
 	}{
 		{
-			name: "empty name allowed by SQLite",
+			name: "empty name violates check constraint",
 			modifyModel: func(p *ProjectModel) {
 				p.Name = ""
 			},
-			expectError: false, // SQLite allows empty strings even with NOT NULL
+			expectError: true, // Check constraint prevents empty strings
 		},
 		{
-			name: "empty git URL allowed by SQLite",
+			name: "empty git URL violates check constraint",
 			modifyModel: func(p *ProjectModel) {
 				p.GitURL = ""
 			},
-			expectError: false,
+			expectError: true, // Check constraint prevents empty strings
 		},
 		{
-			name: "empty working directory allowed by SQLite",
+			name: "empty git branch violates check constraint",
+			modifyModel: func(p *ProjectModel) {
+				p.GitBranch = ""
+			},
+			expectError: true, // Check constraint prevents empty strings
+		},
+		{
+			name: "empty working directory violates check constraint",
 			modifyModel: func(p *ProjectModel) {
 				p.WorkingDir = ""
 			},
-			expectError: false,
+			expectError: true, // Check constraint prevents empty strings
 		},
 		{
-			name: "empty status allowed by SQLite",
+			name: "empty status violates check constraint",
 			modifyModel: func(p *ProjectModel) {
 				p.Status = ""
 			},
-			expectError: false,
+			expectError: true, // Check constraint prevents empty strings
 		},
 		{
 			name: "all required fields present",
