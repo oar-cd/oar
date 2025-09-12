@@ -121,6 +121,18 @@ func RegisterUtilityRoutes(r chi.Router) {
 			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("HX-Trigger-After-Settle", "discoverError")
 			w.WriteHeader(http.StatusOK)
+			// Return the original textarea to prevent it from disappearing
+			currentComposeFiles := r.FormValue("compose_files")
+			if _, err := fmt.Fprintf(w, `<textarea
+				id="compose_files"
+				name="compose_files"
+				class="form-textarea"
+				rows="3"
+				placeholder="docker-compose.yml"
+				required
+			>%s</textarea>`, currentComposeFiles); err != nil {
+				handlers.LogOperationError("discover_write_error", "main", err)
+			}
 			return
 		}
 
@@ -134,6 +146,18 @@ func RegisterUtilityRoutes(r chi.Router) {
 			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("HX-Trigger-After-Settle", "discoverError")
 			w.WriteHeader(http.StatusOK)
+			// Return the original textarea to prevent it from disappearing
+			currentComposeFiles := r.FormValue("compose_files")
+			if _, err := fmt.Fprintf(w, `<textarea
+				id="compose_files"
+				name="compose_files"
+				class="form-textarea"
+				rows="3"
+				placeholder="docker-compose.yml"
+				required
+			>%s</textarea>`, currentComposeFiles); err != nil {
+				handlers.LogOperationError("discover_write_error", "main", err)
+			}
 			return
 		}
 
