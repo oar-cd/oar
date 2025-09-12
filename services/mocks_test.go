@@ -11,11 +11,13 @@ import (
 
 // MockGitExecutor for testing
 type MockGitExecutor struct {
-	CloneFunc              func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
-	PullFunc               func(gitBranch string, auth *GitAuthConfig, workingDir string) error
-	GetLatestCommitFunc    func(workingDir string) (string, error)
-	TestAuthenticationFunc func(gitURL string, gitAuth *GitAuthConfig) error
-	GetDefaultBranchFunc   func(gitURL string, gitAuth *GitAuthConfig) (string, error)
+	CloneFunc                 func(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
+	PullFunc                  func(gitBranch string, auth *GitAuthConfig, workingDir string) error
+	FetchFunc                 func(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
+	GetLatestCommitFunc       func(workingDir string) (string, error)
+	GetRemoteLatestCommitFunc func(workingDir string, gitBranch string) (string, error)
+	TestAuthenticationFunc    func(gitURL string, gitAuth *GitAuthConfig) error
+	GetDefaultBranchFunc      func(gitURL string, gitAuth *GitAuthConfig) (string, error)
 }
 
 func (m *MockGitExecutor) Clone(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
@@ -32,11 +34,25 @@ func (m *MockGitExecutor) Pull(gitBranch string, gitAuth *GitAuthConfig, working
 	return nil
 }
 
+func (m *MockGitExecutor) Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+	if m.FetchFunc != nil {
+		return m.FetchFunc(gitBranch, gitAuth, workingDir)
+	}
+	return nil
+}
+
 func (m *MockGitExecutor) GetLatestCommit(workingDir string) (string, error) {
 	if m.GetLatestCommitFunc != nil {
 		return m.GetLatestCommitFunc(workingDir)
 	}
 	return "mock-commit-hash", nil
+}
+
+func (m *MockGitExecutor) GetRemoteLatestCommit(workingDir string, gitBranch string) (string, error) {
+	if m.GetRemoteLatestCommitFunc != nil {
+		return m.GetRemoteLatestCommitFunc(workingDir, gitBranch)
+	}
+	return "mock-remote-commit-hash", nil
 }
 
 func (m *MockGitExecutor) TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error {

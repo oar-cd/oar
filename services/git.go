@@ -256,6 +256,91 @@ func (s *GitService) GetLatestCommit(workingDir string) (string, error) {
 	return ref.Hash().String(), nil
 }
 
+// Fetch fetches the latest changes from remote without merging
+func (s *GitService) Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+	slog.Debug("Fetching from Git repository", "git_branch", gitBranch, "working_dir", workingDir)
+
+	repo, err := git.PlainOpen(workingDir)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_fetch",
+			"git_branch", gitBranch,
+			"working_dir", workingDir,
+			"error", err)
+		return err
+	}
+
+	authMethod, err := s.createAuthMethod(gitAuth)
+	if err != nil {
+		return fmt.Errorf("failed to create auth method: %w", err)
+	}
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
+	defer cancel()
+
+	fetchOptions := &git.FetchOptions{
+		Auth: authMethod,
+	}
+
+	// If a specific branch is provided, fetch only that branch
+	if gitBranch != "" {
+		fetchOptions.RefSpecs = []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", gitBranch, gitBranch)),
+		}
+	}
+
+	err = repo.FetchContext(ctx, fetchOptions)
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_fetch",
+			"git_branch", gitBranch,
+			"working_dir", workingDir,
+			"error", err)
+		return err
+	}
+
+	if err == git.NoErrAlreadyUpToDate {
+		slog.Debug("Repository already up to date", "git_branch", gitBranch, "working_dir", workingDir)
+	} else {
+		slog.Info("Repository fetched successfully", "git_branch", gitBranch, "working_dir", workingDir)
+	}
+
+	return nil
+}
+
+// GetRemoteLatestCommit returns the latest commit hash from the remote branch
+func (s *GitService) GetRemoteLatestCommit(workingDir string, gitBranch string) (string, error) {
+	repo, err := git.PlainOpen(workingDir)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_get_remote_commit",
+			"git_branch", gitBranch,
+			"working_dir", workingDir,
+			"error", err)
+		return "", err
+	}
+
+	// Get remote reference for the branch
+	remoteBranchName := fmt.Sprintf("refs/remotes/origin/%s", gitBranch)
+	ref, err := repo.Reference(plumbing.ReferenceName(remoteBranchName), true)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_get_remote_commit",
+			"git_branch", gitBranch,
+			"working_dir", workingDir,
+			"remote_ref", remoteBranchName,
+			"error", err)
+		return "", err
+	}
+
+	return ref.Hash().String(), nil
+}
+
 // TestAuthentication tests Git authentication using ls-remote operation
 // This is more resistant to credential caching than clone operations
 func (s *GitService) TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error {

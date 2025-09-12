@@ -175,3 +175,67 @@ func TestGitService_Pull_WithBranch(t *testing.T) {
 		t.Errorf("Pull() expected error for non-existent repository with default branch")
 	}
 }
+
+func TestGitService_Fetch_InvalidRepo(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with non-existent directory
+	err := service.Fetch("main", nil, "/non/existent/path")
+	if err == nil {
+		t.Errorf("Fetch() expected error for non-existent repository")
+	}
+}
+
+func TestGitService_Fetch_WithBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with specific branch
+	err := service.Fetch("main", nil, "/non/existent/path")
+	if err == nil {
+		t.Errorf("Fetch() expected error for non-existent repository with branch")
+	}
+
+	// Test with empty branch (default branch)
+	err = service.Fetch("", nil, "/non/existent/path")
+	if err == nil {
+		t.Errorf("Fetch() expected error for non-existent repository with default branch")
+	}
+}
+
+func TestGitService_GetRemoteLatestCommit_InvalidRepo(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with non-existent directory
+	_, err := service.GetRemoteLatestCommit("/non/existent/path", "main")
+	if err == nil {
+		t.Errorf("GetRemoteLatestCommit() expected error for non-existent repository")
+	}
+}
+
+func TestGitService_GetRemoteLatestCommit_WithBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with specific branch
+	_, err := service.GetRemoteLatestCommit("/non/existent/path", "main")
+	if err == nil {
+		t.Errorf("GetRemoteLatestCommit() expected error for non-existent repository with branch")
+	}
+
+	// Test with empty branch (should still fail on non-existent repo)
+	_, err = service.GetRemoteLatestCommit("/non/existent/path", "")
+	if err == nil {
+		t.Errorf("GetRemoteLatestCommit() expected error for non-existent repository with empty branch")
+	}
+}

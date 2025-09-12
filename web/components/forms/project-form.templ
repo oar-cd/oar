@@ -6,17 +6,18 @@ import (
 
 // ProjectFormData holds the form data for project forms
 type ProjectFormData struct {
-	IsEdit       bool
-	ProjectID    string // Only used for edit mode
-	Name         string
-	GitURL       string
-	GitBranch    string
-	AuthMethod   string // "none", "http", "ssh"
-	Username     string
-	Password     string
-	PrivateKey   string
-	ComposeFiles string
-	Variables    string
+	IsEdit         bool
+	ProjectID      string // Only used for edit mode
+	Name           string
+	GitURL         string
+	GitBranch      string
+	AuthMethod     string // "none", "http", "ssh"
+	Username       string
+	Password       string
+	PrivateKey     string
+	ComposeFiles   string
+	Variables      string
+	WatcherEnabled bool
 }
 
 // ProjectForm renders the project form with all required fields
@@ -170,6 +171,19 @@ templ ProjectForm(data ProjectFormData) {
 				rows="3"
 				placeholder="KEY1=value1&#10;KEY2=value2"
 			>{ data.Variables }</textarea>
+		</div>
+		<!-- Watcher configuration -->
+		<div class="form-group">
+			<label class="flex items-center cursor-pointer">
+				<input
+					type="checkbox"
+					id="watcher_enabled"
+					name="watcher_enabled"
+					class="mr-2"
+					checked?={ data.WatcherEnabled }
+				/>
+				<span class="text-sm font-medium text-gray-700">Automatic deployment</span>
+			</label>
 		</div>
 	</form>
 }

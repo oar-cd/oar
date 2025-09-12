@@ -8,7 +8,9 @@ import (
 type GitExecutor interface {
 	Clone(gitURL string, gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
 	Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
+	Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error
 	GetLatestCommit(workingDir string) (string, error)
+	GetRemoteLatestCommit(workingDir string, gitBranch string) (string, error)
 	TestAuthentication(gitURL string, gitAuth *GitAuthConfig) error
 	GetDefaultBranch(gitURL string, gitAuth *GitAuthConfig) (string, error)
 }

@@ -9,18 +9,19 @@ import (
 )
 
 type Project struct {
-	ID           uuid.UUID
-	Name         string
-	GitURL       string
-	GitBranch    string         // Git branch to use (never empty, always set to default branch if not specified)
-	GitAuth      *GitAuthConfig // Git authentication configuration
-	WorkingDir   string
-	ComposeFiles []string
-	Variables    []string // Variables in .env format, one per string
-	Status       ProjectStatus
-	LastCommit   *string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID             uuid.UUID
+	Name           string
+	GitURL         string
+	GitBranch      string         // Git branch to use (never empty, always set to default branch if not specified)
+	GitAuth        *GitAuthConfig // Git authentication configuration
+	WorkingDir     string
+	ComposeFiles   []string
+	Variables      []string // Variables in .env format, one per string
+	Status         ProjectStatus
+	LastCommit     *string
+	WatcherEnabled bool // Enable automatic deployments on git changes
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 func (p *Project) GitDir() (string, error) {
@@ -39,13 +40,14 @@ func (p *Project) LastCommitStr() string {
 
 func NewProject(name, gitURL string, composeFiles []string, variables []string) Project {
 	return Project{
-		ID:           uuid.New(),
-		Name:         name,
-		GitURL:       gitURL,
-		GitBranch:    "", // Default to repository's default branch
-		ComposeFiles: composeFiles,
-		Variables:    variables,
-		Status:       ProjectStatusStopped,
+		ID:             uuid.New(),
+		Name:           name,
+		GitURL:         gitURL,
+		GitBranch:      "", // Default to repository's default branch
+		ComposeFiles:   composeFiles,
+		Variables:      variables,
+		Status:         ProjectStatusStopped,
+		WatcherEnabled: true, // Default to enabled
 	}
 }
 

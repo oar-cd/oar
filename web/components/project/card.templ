@@ -9,9 +9,22 @@ import (
 // ProjectCard renders an individual project card with all details and actions
 templ ProjectCard(project ProjectView) {
 	<div class="project-card">
-		<!-- Status pill positioned in top-right corner -->
+		<!-- Status pill and watcher indicator positioned in top-right corner -->
 		<div class="project-status">
-			@StatusPill(project.ID.String(), project.Status)
+			<div class="flex items-center gap-1">
+				@StatusPill(project.ID.String(), project.Status)
+				<div class="watcher-indicator flex items-center">
+					if project.WatcherEnabled {
+						<div title="Automatic deployment enabled" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+							@icons.Eye("icon-sm")
+						</div>
+					} else {
+						<div title="Automatic deployment disabled" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+							@icons.EyeOff("icon-sm")
+						</div>
+					}
+				</div>
+			</div>
 		</div>
 
 		<div class="project-card-header">

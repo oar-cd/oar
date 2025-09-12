@@ -10,21 +10,23 @@ import (
 
 // ProjectCreateRequest represents the data needed to create a project
 type ProjectCreateRequest struct {
-	Name         string
-	GitURL       string
-	GitBranch    string
-	ComposeFiles string
-	Variables    string
-	GitAuth      *services.GitAuthConfig
+	Name           string
+	GitURL         string
+	GitBranch      string
+	ComposeFiles   string
+	Variables      string
+	GitAuth        *services.GitAuthConfig
+	WatcherEnabled bool
 }
 
 // ProjectUpdateRequest represents the data needed to update a project
 type ProjectUpdateRequest struct {
-	ID           uuid.UUID
-	Name         string
-	ComposeFiles string
-	Variables    string
-	GitAuth      *services.GitAuthConfig
+	ID             uuid.UUID
+	Name           string
+	ComposeFiles   string
+	Variables      string
+	GitAuth        *services.GitAuthConfig
+	WatcherEnabled bool
 }
 
 // validateProjectCreateRequest validates a project creation request
@@ -71,14 +73,15 @@ func parseVariables(variables string) []string {
 // buildProjectFromCreateRequest converts create request to Project struct
 func buildProjectFromCreateRequest(req *ProjectCreateRequest) *services.Project {
 	return &services.Project{
-		ID:           uuid.New(),
-		Name:         req.Name,
-		GitURL:       req.GitURL,
-		GitBranch:    req.GitBranch,
-		GitAuth:      req.GitAuth,
-		ComposeFiles: parseComposeFiles(req.ComposeFiles),
-		Variables:    parseVariables(req.Variables),
-		Status:       services.ProjectStatusStopped,
+		ID:             uuid.New(),
+		Name:           req.Name,
+		GitURL:         req.GitURL,
+		GitBranch:      req.GitBranch,
+		GitAuth:        req.GitAuth,
+		ComposeFiles:   parseComposeFiles(req.ComposeFiles),
+		Variables:      parseVariables(req.Variables),
+		Status:         services.ProjectStatusStopped,
+		WatcherEnabled: req.WatcherEnabled,
 	}
 }
 
@@ -88,4 +91,5 @@ func applyProjectUpdateRequest(project *services.Project, req *ProjectUpdateRequ
 	project.GitAuth = req.GitAuth
 	project.ComposeFiles = parseComposeFiles(req.ComposeFiles)
 	project.Variables = parseVariables(req.Variables)
+	project.WatcherEnabled = req.WatcherEnabled
 }
