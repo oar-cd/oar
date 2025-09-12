@@ -48,7 +48,8 @@ fi
 read -p "Create release $NEW_VERSION? [y/N] " -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Updating compose.yaml..."
-    sed -i "s|image: ghcr.io/oar-cd/oar:.*|image: ghcr.io/oar-cd/oar:$NEW_VERSION|" compose.yaml
+    sed -i "s|image: ghcr.io/oar-cd/oar-web:.*|image: ghcr.io/oar-cd/oar-web:$NEW_VERSION|" compose.yaml
+    sed -i "s|image: ghcr.io/oar-cd/oar-watcher:.*|image: ghcr.io/oar-cd/oar-watcher:$NEW_VERSION|" compose.yaml
 
     echo "Committing changes..."
     git add compose.yaml
@@ -62,7 +63,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     echo "Release $NEW_VERSION created successfully!"
     echo "Docker build will start automatically via GitHub Actions."
-    echo "Monitor at: https://github.com/$(gh repo view --json owner,name -q '.owner.login + "/" + .name')/actions"
+    echo "Monitor at: https://github.com/oar-cd/oar/actions"
 else
     echo "Release cancelled"
 fi
