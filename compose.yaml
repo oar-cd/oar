@@ -1,8 +1,8 @@
 name: oar
 
 services:
-  oar:
-    image: ghcr.io/oar-cd/oar:0.0.17
+  web:
+    image: ghcr.io/oar-cd/oar-web:0.0.17
     user: ${OAR_UID:-1000}:${OAR_GID:-1000}
     environment:
       OAR_HTTP_HOST: 0.0.0.0
@@ -21,4 +21,21 @@ services:
       interval: 2s
       timeout: 1s
       retries: 10
+    restart: unless-stopped
+
+  watcher:
+    image: ghcr.io/oar-cd/oar-watcher:0.0.17
+    user: ${OAR_UID:-1000}:${OAR_GID:-1000}
+    environment:
+      OAR_LOG_LEVEL: info
+      OAR_DATA_DIR: /data
+      OAR_CONTAINERIZED: true
+      OAR_POLL_INTERVAL: ${OAR_POLL_INTERVAL:-5m}
+      OAR_ENCRYPTION_KEY: ${OAR_ENCRYPTION_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    depends_on:
+      web:
+        condition: service_healthy
     restart: unless-stopped

@@ -39,18 +39,19 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 	}
 
 	return &Project{
-		ID:           p.ID,
-		Name:         p.Name,
-		GitURL:       p.GitURL,
-		GitBranch:    p.GitBranch,
-		GitAuth:      gitAuth,
-		WorkingDir:   p.WorkingDir,
-		ComposeFiles: parseFiles(p.ComposeFiles),
-		Variables:    parseFiles(p.Variables),
-		Status:       status,
-		LastCommit:   p.LastCommit,
-		CreatedAt:    p.CreatedAt,
-		UpdatedAt:    p.UpdatedAt,
+		ID:             p.ID,
+		Name:           p.Name,
+		GitURL:         p.GitURL,
+		GitBranch:      p.GitBranch,
+		GitAuth:        gitAuth,
+		WorkingDir:     p.WorkingDir,
+		ComposeFiles:   parseFiles(p.ComposeFiles),
+		Variables:      parseFiles(p.Variables),
+		Status:         status,
+		LastCommit:     p.LastCommit,
+		WatcherEnabled: p.WatcherEnabled,
+		CreatedAt:      p.CreatedAt,
+		UpdatedAt:      p.UpdatedAt,
 	}
 }
 
@@ -59,14 +60,15 @@ func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
 		BaseModel: models.BaseModel{
 			ID: p.ID,
 		},
-		Name:         p.Name,
-		GitURL:       p.GitURL,
-		GitBranch:    p.GitBranch,
-		WorkingDir:   p.WorkingDir,
-		ComposeFiles: serializeFiles(p.ComposeFiles),
-		Variables:    serializeFiles(p.Variables),
-		Status:       p.Status.String(),
-		LastCommit:   p.LastCommit,
+		Name:           p.Name,
+		GitURL:         p.GitURL,
+		GitBranch:      p.GitBranch,
+		WorkingDir:     p.WorkingDir,
+		ComposeFiles:   serializeFiles(p.ComposeFiles),
+		Variables:      serializeFiles(p.Variables),
+		Status:         p.Status.String(),
+		LastCommit:     p.LastCommit,
+		WatcherEnabled: p.WatcherEnabled,
 	}
 
 	// Encrypt authentication data if present

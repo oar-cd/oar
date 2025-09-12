@@ -15,12 +15,13 @@ import (
 func CreateProject(r *http.Request) error {
 	// Extract form data into request struct
 	req := &ProjectCreateRequest{
-		Name:         r.FormValue("name"),
-		GitURL:       r.FormValue("git_url"),
-		GitBranch:    r.FormValue("git_branch"),
-		ComposeFiles: r.FormValue("compose_files"),
-		Variables:    r.FormValue("variables"),
-		GitAuth:      handlers.BuildGitAuthConfig(r),
+		Name:           r.FormValue("name"),
+		GitURL:         r.FormValue("git_url"),
+		GitBranch:      r.FormValue("git_branch"),
+		ComposeFiles:   r.FormValue("compose_files"),
+		Variables:      r.FormValue("variables"),
+		GitAuth:        handlers.BuildGitAuthConfig(r),
+		WatcherEnabled: r.FormValue("watcher_enabled") == "on",
 	}
 
 	// Validate request
@@ -46,11 +47,12 @@ func UpdateProject(r *http.Request) error {
 
 	// Extract form data into request struct
 	req := &ProjectUpdateRequest{
-		ID:           projectID,
-		Name:         r.FormValue("name"),
-		ComposeFiles: r.FormValue("compose_files"),
-		Variables:    r.FormValue("variables"),
-		GitAuth:      handlers.BuildGitAuthConfig(r),
+		ID:             projectID,
+		Name:           r.FormValue("name"),
+		ComposeFiles:   r.FormValue("compose_files"),
+		Variables:      r.FormValue("variables"),
+		GitAuth:        handlers.BuildGitAuthConfig(r),
+		WatcherEnabled: r.FormValue("watcher_enabled") == "on",
 	}
 
 	// Validate request

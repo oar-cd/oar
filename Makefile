@@ -1,4 +1,4 @@
-.PHONY: lint test test_ci templ templ_watch web_server tailwind tailwind_watch generate docker_image dev build_cli release release_patch release_minor release_major
+.PHONY: lint test test_ci templ templ_watch web watcher tailwind tailwind_watch generate docker_image_web docker_image_watcher air-web air-watcher air-all dev build_cli release release_patch release_minor release_major
 
 lint:
 	golangci-lint run --fix
@@ -26,27 +26,46 @@ tailwind_watch:
 
 generate: tailwind templ
 
-air:
+air-web:
 	air \
-	--build.cmd "go build -o tmp/bin/main ./web" \
-	--build.bin "tmp/bin/main" \
+	--build.cmd "go build -o tmp/bin/web ./web" \
+	--build.bin "tmp/bin/web" \
 	--build.delay "100" \
-	--build.exclude_dir "cmd,dev_oar_data_dir" \
+	--build.exclude_dir "cmd,dev_oar_data_dir,watcher" \
 	--build.include_ext "go" \
 	--build.stop_on_error "false" \
 	--misc.clean_on_exit true
 
-web_server:
+air-watcher:
+	air \
+	--build.cmd "go build -o tmp/bin/watcher ./watcher" \
+	--build.bin "tmp/bin/watcher" \
+	--build.delay "100" \
+	--build.exclude_dir "cmd,dev_oar_data_dir,web" \
+	--build.include_ext "go" \
+	--build.stop_on_error "false" \
+	--misc.clean_on_exit true
+
+air-all:
+	make -j2 air-web air-watcher
+
+web:
 	go run ./web
 
-docker_image:
-	docker build --build-arg VERSION=dev-$(shell git rev-parse --short HEAD) -t oar .
+watcher:
+	go run ./watcher
+
+docker_image_web:
+	docker build --build-arg VERSION=dev-$(shell git rev-parse --short HEAD) -t oar-web -f web/Dockerfile .
+
+docker_image_watcher:
+	docker build --build-arg VERSION=dev-$(shell git rev-parse --short HEAD) -t oar-watcher -f watcher/Dockerfile .
 
 build_cli:
 	CGO_ENABLED=1 go build -ldflags="-X github.com/oar-cd/oar/cmd/version.CLIVersion=dev-$(shell git rev-parse --short HEAD)" -o oar-cli ./cmd
 
 dev:
-	make -j3 tailwind_watch templ_watch air
+	make -j4 tailwind_watch templ_watch air-web air-watcher
 
 release:
 	@echo "Available release types:"

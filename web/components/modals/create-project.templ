@@ -10,7 +10,8 @@ templ CreateProjectModal() {
 // createProjectBody renders the modal body content
 templ createProjectBody() {
 	@forms.ProjectForm(forms.ProjectFormData{
-		IsEdit: false,
+		IsEdit:         false,
+		WatcherEnabled: true, // Default to enabled for new projects
 	})
 }
 

@@ -7,7 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME_WEB: ${{ github.repository }}-web
+  IMAGE_NAME_WATCHER: ${{ github.repository }}-watcher
 
 jobs:
   build:
@@ -26,11 +27,20 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Extract metadata
-        id: meta
+      - name: Extract web metadata
+        id: meta-web
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+
+      - name: Extract watcher metadata
+        id: meta-watcher
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WATCHER }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
@@ -42,12 +52,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push web Docker image
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          file: web/Dockerfile
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+
+      - name: Build and push watcher Docker image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ steps.meta-watcher.outputs.tags }}
+          labels: ${{ steps.meta-watcher.outputs.labels }}
+          file: watcher/Dockerfile
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
 

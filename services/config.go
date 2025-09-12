@@ -74,6 +74,9 @@ type Config struct {
 	// Git
 	GitTimeout time.Duration
 
+	// Watcher
+	PollInterval time.Duration
+
 	// Encryption
 	EncryptionKey string
 
@@ -163,6 +166,7 @@ func (c *Config) setDefaults() {
 	c.HTTPHost = "127.0.0.1"
 	c.HTTPPort = 8080
 	c.GitTimeout = 5 * time.Minute
+	c.PollInterval = 5 * time.Minute
 	// Don't set default encryption key - it must be provided explicitly
 }
 
@@ -199,6 +203,11 @@ func (c *Config) loadFromEnv() {
 	if v := c.env.Getenv("OAR_GIT_TIMEOUT"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.GitTimeout = d
+		}
+	}
+	if v := c.env.Getenv("OAR_POLL_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			c.PollInterval = d
 		}
 	}
 	if v := c.env.Getenv("OAR_ENCRYPTION_KEY"); v != "" {
@@ -253,6 +262,11 @@ func (c *Config) validate() error {
 	// Validate timeout
 	if c.GitTimeout <= 0 {
 		return fmt.Errorf("git timeout must be positive, got: %v", c.GitTimeout)
+	}
+
+	// Validate poll interval
+	if c.PollInterval <= 0 {
+		return fmt.Errorf("poll interval must be positive, got: %v", c.PollInterval)
 	}
 
 	// Validate Docker command is not empty

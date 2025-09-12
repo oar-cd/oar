@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // MockEnvProvider implements EnvProvider for testing
@@ -113,6 +114,9 @@ func TestNewConfigForWebApp(t *testing.T) {
 	if config.HTTPPort != 8080 {
 		t.Errorf("NewConfigForWebApp() HTTPPort = %v, want 8080", config.HTTPPort)
 	}
+	if config.PollInterval != 5*time.Minute {
+		t.Errorf("NewConfigForWebApp() PollInterval = %v, want 5m", config.PollInterval)
+	}
 }
 
 func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
@@ -120,6 +124,7 @@ func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
 	envVars := map[string]string{
 		"OAR_HTTP_PORT":      "3000",
 		"OAR_HTTP_HOST":      "0.0.0.0",
+		"OAR_POLL_INTERVAL":  "2m",
 		"XDG_DATA_HOME":      "/custom/data",
 		"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
 	}
@@ -138,6 +143,9 @@ func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
 	}
 	if config.DataDir != "/custom/data/oar" {
 		t.Errorf("NewConfigForWebApp() DataDir = %v, want /custom/data/oar", config.DataDir)
+	}
+	if config.PollInterval != 2*time.Minute {
+		t.Errorf("NewConfigForWebApp() PollInterval = %v, want 2m", config.PollInterval)
 	}
 }
 
