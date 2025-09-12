@@ -75,9 +75,15 @@ func (r *projectRepository) Create(project *Project) (*Project, error) {
 func (r *projectRepository) Update(project *Project) error {
 	model := r.mapper.ToModel(project)
 
-	// Use Select to explicitly update all fields, including empty strings
+	// Use Select to explicitly update all fields except CreatedAt, including empty strings
 	// This ensures that clearing variables (empty string) actually updates the database
-	return r.db.Model(&models.ProjectModel{}).Where("id = ?", model.ID).Select("*").Updates(model).Error
+	// CreatedAt should never be updated after initial creation
+	return r.db.Model(&models.ProjectModel{}).
+		Where("id = ?", model.ID).
+		Select("*").
+		Omit("created_at").
+		Updates(model).
+		Error
 }
 
 func (r *projectRepository) Delete(id uuid.UUID) error {

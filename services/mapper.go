@@ -58,7 +58,9 @@ func (m *ProjectMapper) ToDomain(p *models.ProjectModel) *Project {
 func (m *ProjectMapper) ToModel(p *Project) *models.ProjectModel {
 	model := &models.ProjectModel{
 		BaseModel: models.BaseModel{
-			ID: p.ID,
+			ID:        p.ID,
+			CreatedAt: p.CreatedAt,
+			UpdatedAt: p.UpdatedAt,
 		},
 		Name:           p.Name,
 		GitURL:         p.GitURL,

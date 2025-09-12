@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Helper function to update result indicators
-    async function updateResultIndicator(resultId, iconName, className, message, showToast = true) {
+    async function updateResultIndicator(resultId, iconName, className, message, shouldShowToast = true) {
         const resultElement = document.getElementById(resultId);
         if (resultElement) {
             const iconHtml = await loadIcon(iconName, 'icon-sm');
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             resultElement.className = `result-indicator ${className}`;
             resultElement.classList.remove('hidden');
         }
-        if (showToast) {
+        if (shouldShowToast) {
             showToast(message, className === 'success' ? 'success' : 'error');
         }
     }

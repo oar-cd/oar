@@ -290,6 +290,22 @@ func TestBuildProjectFromCreateRequest_EmptyFields(t *testing.T) {
 	assert.Nil(t, project.GitAuth)
 }
 
+func TestBuildProjectFromCreateRequest_WatcherDisabled(t *testing.T) {
+	req := &ProjectCreateRequest{
+		Name:           "test-project",
+		GitURL:         "https://github.com/test/repo",
+		ComposeFiles:   "docker-compose.yml",
+		WatcherEnabled: false, // Explicitly disabled
+	}
+
+	project := buildProjectFromCreateRequest(req)
+
+	assert.Equal(t, "test-project", project.Name)
+	assert.Equal(t, "https://github.com/test/repo", project.GitURL)
+	assert.Equal(t, []string{"docker-compose.yml"}, project.ComposeFiles)
+	assert.False(t, project.WatcherEnabled) // Should be false
+}
+
 func TestApplyProjectUpdateRequest(t *testing.T) {
 	// Create original project
 	originalProject := &services.Project{
