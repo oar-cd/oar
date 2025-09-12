@@ -22,8 +22,8 @@ RUN CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/oar-cd/oar/web/handlers
 # Runtime stage
 FROM alpine:latest
 
-# Install runtime dependencies (git for repository operations, docker-cli-compose for deployments)
-RUN apk add --no-cache docker-cli-compose git
+# Install runtime dependencies
+RUN apk add --no-cache docker-cli-compose
 
 WORKDIR /app
 

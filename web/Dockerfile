@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the binary with SQLite support and version
-RUN CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/oar-cd/oar/web/handlers.ServerVersion=${VERSION}" -o oar ./web
+RUN CGO_ENABLED=1 go build -ldflags="-s -w -X github.com/oar-cd/oar/web/handlers.ServerVersion=${VERSION}" -o oar-web ./web
 
 # Runtime stage
 FROM alpine:latest
@@ -28,9 +28,9 @@ RUN apk add --no-cache docker-cli-compose netcat-openbsd
 WORKDIR /app
 
 # Copy binary from build stage
-COPY --from=builder /build/oar .
+COPY --from=builder /build/oar-web .
 
 # Copy UI assets
 COPY --from=builder /build/web/assets ./web/assets
 
-CMD ["./oar"]
+CMD ["./oar-web"]
