@@ -2,7 +2,7 @@ name: oar
 
 services:
   web:
-    image: ghcr.io/oar-cd/oar-web:0.0.17
+    image: ghcr.io/oar-cd/oar-web:0.0.18
     user: ${OAR_UID:-1000}:${OAR_GID:-1000}
     environment:
       OAR_HTTP_HOST: 0.0.0.0
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   watcher:
-    image: ghcr.io/oar-cd/oar-watcher:0.0.17
+    image: ghcr.io/oar-cd/oar-watcher:0.0.18
     user: ${OAR_UID:-1000}:${OAR_GID:-1000}
     environment:
       OAR_LOG_LEVEL: info
