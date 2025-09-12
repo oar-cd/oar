@@ -50,11 +50,10 @@ func createTestDeploymentModel(projectID uuid.UUID) *DeploymentModel {
 		BaseModel: BaseModel{
 			ID: uuid.New(),
 		},
-		ProjectID:   projectID,
-		CommitHash:  "def456",
-		CommandLine: "docker-compose up -d",
-		Status:      "success",
-		Output:      "Container started successfully",
+		ProjectID:  projectID,
+		CommitHash: "def456",
+		Status:     "success",
+		Output:     "Container started successfully",
 	}
 }
 

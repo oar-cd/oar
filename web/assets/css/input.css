@@ -196,6 +196,10 @@ body {
     @apply relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6;
 }
 
+.modal-panel-medium {
+    @apply relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-6 sm:w-full sm:max-w-2xl sm:p-7;
+}
+
 .modal-panel-large {
     @apply relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-4 sm:w-full sm:max-w-4xl sm:p-8;
 }
@@ -214,6 +218,11 @@ body {
 
 .modal-body {
     @apply mb-6;
+}
+
+.modal-body-scrollable {
+    @apply mb-6 overflow-y-auto;
+    max-height: 70vh;
 }
 
 .modal-footer {
@@ -449,4 +458,56 @@ body {
 /* Show SSH fields when SSH radio is checked anywhere in the container */
 .auth-container:has(input[name='auth_method'][value='ssh']:checked) .auth-ssh {
     @apply block;
+}
+
+/* Deployments Modal Table */
+.deployments-container {
+    @apply min-h-[300px];
+}
+
+.deployments-table-container {
+    @apply overflow-x-auto;
+}
+
+.deployments-table {
+    @apply w-full border-collapse border-spacing-0;
+}
+
+.deployments-table thead th {
+    @apply bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+}
+
+.deployments-table tbody td {
+    @apply px-4 py-2 text-sm border-b border-gray-100;
+}
+
+/* Removed row hover effect to allow button hover to show
+.deployments-table tbody tr:hover {
+    @apply bg-gray-50;
+} */
+
+/* Deployment Status Pills */
+.deployment-status {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-sm font-medium;
+}
+
+.deployment-status-completed {
+    @apply bg-green-100 text-green-800;
+}
+
+.deployment-status-started {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.deployment-status-failed {
+    @apply bg-red-100 text-red-800;
+}
+
+.deployment-status-unknown {
+    @apply bg-gray-100 text-gray-800;
+}
+
+/* Deployment output button hover effect */
+.deployment-output-btn:hover {
+    @apply bg-gray-50;
 }

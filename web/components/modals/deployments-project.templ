@@ -1,0 +1,104 @@
+package modals
+
+import (
+	"fmt"
+	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/web/components/project"
+	"github.com/oar-cd/oar/web/components/icons"
+)
+
+// DeploymentsProjectModal renders the project deployments modal
+templ DeploymentsProjectModal(proj project.ProjectView, deployments []*services.Deployment) {
+	<div class="modal" id="modal-container">
+		<div class="modal-backdrop"></div>
+		<div class="modal-container">
+			<div class="modal-panel-medium">
+				<div class="modal-header">
+					<h3 class="modal-title">{ proj.Name + " deployments" }</h3>
+					<button
+						type="button"
+						class="modal-close"
+						onclick="closeModal('modal-container')"
+					>
+						@icons.X("w-5 h-5")
+					</button>
+				</div>
+				<div class="modal-body-scrollable">
+					@deploymentsProjectBody(proj, deployments)
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+// deploymentsProjectBody renders the modal body content
+templ deploymentsProjectBody(proj project.ProjectView, deployments []*services.Deployment) {
+	<div class="deployments-container">
+		if len(deployments) == 0 {
+			<div class="text-center text-gray-500 py-8">
+				<p>No deployments found for this project.</p>
+			</div>
+		} else {
+			<div class="deployments-table-container">
+				<table class="deployments-table">
+					<thead>
+						<tr>
+							<th>Status</th>
+							<th>Commit</th>
+							<th>Created At</th>
+							<th>Output</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, deployment := range deployments {
+							<tr>
+								<td>
+									<span class={ fmt.Sprintf("deployment-status %s", getDeploymentStatusClass(deployment.Status.String())) }>
+										{ deployment.Status.String() }
+									</span>
+								</td>
+								<td class="font-mono text-sm text-gray-500">
+									if len(deployment.CommitHash) > 8 {
+										{ deployment.CommitHash[:8] }
+									} else {
+										{ deployment.CommitHash }
+									}
+								</td>
+								<td class="text-sm text-gray-600">
+									{ deployment.CreatedAt.Format("2006-01-02 15:04:05") }
+								</td>
+								<td class="align-middle">
+									<button
+										type="button"
+										class="deployment-output-btn text-gray-600 hover:text-gray-800 p-1 rounded inline-flex items-center"
+										data-deployment-id={ deployment.ID.String() }
+										data-deployment-output={ deployment.Output }
+										title="View deployment output"
+									>
+										@icons.Icon("scroll-text", "w-5 h-5")
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+func getDeploymentStatusClass(status string) string {
+	switch status {
+	case "completed":
+		return "deployment-status-completed"
+	case "started":
+		return "deployment-status-started"
+	case "failed":
+		return "deployment-status-failed"
+	case "unknown":
+		return "deployment-status-unknown"
+	default:
+		return "deployment-status-unknown"
+	}
+}
+

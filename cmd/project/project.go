@@ -18,5 +18,6 @@ func NewCmdProject() *cobra.Command {
 	cmd.AddCommand(NewCmdProjectStatus())
 	cmd.AddCommand(NewCmdProjectConfig())
 	cmd.AddCommand(NewCmdProjectLogs())
+	cmd.AddCommand(NewCmdProjectDeployments())
 	return cmd
 }

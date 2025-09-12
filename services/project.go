@@ -2,6 +2,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -206,28 +207,77 @@ func (s *ProjectService) DeployStreaming(
 	pull bool,
 	outputChan chan<- string,
 ) error {
-
 	project, commitHash, deployment, composeProject, err := s.prepareDeployment(projectID, pull)
 	if err != nil {
 		return err
 	}
 
-	// Streaming-specific messages
-	if pull {
-		outputChan <- `{"type":"info","message":"Pulling latest changes from Git...","source":"oar"}`
-		if err := s.pullLatestChanges(project); err != nil {
-			outputChan <- fmt.Sprintf(`{"type":"error","message":"Failed to pull latest changes: %v"}`, err)
-			return err
+	// Create a buffer to capture clean output for the deployment record
+	var outputBuffer strings.Builder
+
+	// Helper function to capture clean message and send JSON to channel
+	captureAndSendJSON := func(cleanMsg, msgType, source string) {
+		// Store clean message for database
+		outputBuffer.WriteString(cleanMsg + "\n")
+
+		// Create JSON message for web UI
+		msgData := map[string]string{
+			"type":    msgType,
+			"message": cleanMsg,
 		}
-		outputChan <- `{"type":"success","message":"Git pull completed successfully"}`
+		if source != "" {
+			msgData["source"] = source
+		}
+
+		if jsonMsg, err := json.Marshal(msgData); err == nil {
+			outputChan <- string(jsonMsg)
+		}
 	}
 
-	outputChan <- `{"type":"info","message":"Starting Docker Compose deployment...","source":"oar"}`
+	// Streaming-specific messages
+	if pull {
+		captureAndSendJSON("Pulling latest changes from Git...", "info", "oar")
+		if err := s.pullLatestChanges(project); err != nil {
+			errMsg := fmt.Sprintf("Failed to pull latest changes: %v", err)
+			captureAndSendJSON(errMsg, "error", "oar")
+			return err
+		}
+		captureAndSendJSON("Git pull completed successfully", "success", "oar")
+	}
+
+	captureAndSendJSON("Starting Docker Compose deployment...", "info", "oar")
+
+	// Create a capturing channel that forwards to the original channel
+	capturingChan := make(chan string, 100) // buffered channel
+	done := make(chan bool)
+
+	go func() {
+		defer func() { done <- true }()
+		for msg := range capturingChan {
+			// msg is now clean output from Docker, store it and wrap in JSON
+			outputBuffer.WriteString(msg + "\n")
+
+			// Wrap in JSON for web UI
+			msgData := map[string]string{
+				"type":    "docker",
+				"message": msg,
+			}
+			if jsonMsg, err := json.Marshal(msgData); err == nil {
+				outputChan <- string(jsonMsg)
+			}
+		}
+	}()
 
 	// Execute deployment with streaming
-	err = composeProject.UpStreaming(outputChan)
+	err = composeProject.UpStreaming(capturingChan)
+	close(capturingChan) // Signal that we're done sending to the capturing channel
+	<-done               // Wait for the goroutine to finish processing all messages
+
+	// Store the captured output in the deployment record
+	deployment.Output = outputBuffer.String()
+
 	if err != nil {
-		return s.handleDeploymentError(project.ID, err)
+		return s.handleDeploymentError(&deployment, err)
 	}
 
 	// Complete deployment
@@ -235,33 +285,38 @@ func (s *ProjectService) DeployStreaming(
 		return err
 	}
 
-	// Send unified message with both display text and project state
-	outputChan <- fmt.Sprintf(`{"type":"success","message":"Docker Compose deployment completed successfully","projectState":{"status":"running","lastCommit":"%s"}}`, commitHash)
+	// Send success message
+	captureAndSendJSON("Docker Compose deployment completed successfully", "success", "oar")
 
 	return nil
 }
 
 func (s *ProjectService) DeployPiping(projectID uuid.UUID, pull bool) error {
-	project, commitHash, deployment, composeProject, err := s.prepareDeployment(projectID, pull)
-	if err != nil {
-		return err
-	}
+	// Create a local channel to capture streaming output
+	outputChan := make(chan string, 100)
+	done := make(chan bool)
 
-	// Handle git pull for piping (no JSON messages needed)
-	if pull {
-		if err := s.pullLatestChanges(project); err != nil {
-			return fmt.Errorf("failed to pull latest changes: %w", err)
+	// Start a goroutine to consume JSON messages and display clean messages to terminal
+	go func() {
+		defer func() { done <- true }()
+		for msg := range outputChan {
+			// Extract clean message from JSON
+			var msgData map[string]string
+			if err := json.Unmarshal([]byte(msg), &msgData); err == nil {
+				// Display clean message to terminal
+				fmt.Println(msgData["message"])
+			}
 		}
-	}
+	}()
 
-	// Execute deployment with direct piping
-	err = composeProject.UpPiping()
-	if err != nil {
-		return s.handleDeploymentError(project.ID, err)
-	}
+	// Use DeployStreaming internally (it now stores clean output in database)
+	err := s.DeployStreaming(projectID, pull, outputChan)
 
-	// Complete deployment
-	return s.completeDeployment(project, commitHash, deployment)
+	// Close channel and wait for goroutine to finish
+	close(outputChan)
+	<-done
+
+	return err
 }
 
 // prepareDeployment handles the common setup logic for both streaming and piping deployments
@@ -291,11 +346,19 @@ func (s *ProjectService) prepareDeployment(
 	}
 
 	deployment := NewDeployment(projectID, commitHash)
+	deployment.Status = DeploymentStatusStarted
+
+	// Create deployment record immediately
+	if err := s.deploymentRepository.Create(&deployment); err != nil {
+		return nil, "", Deployment{}, nil, fmt.Errorf("failed to create deployment record: %w", err)
+	}
 
 	// Log deployment start
 	slog.Debug("Starting Docker Compose deployment",
 		"project_id", project.ID,
 		"project_name", project.Name,
+		"deployment_id", deployment.ID,
+		"commit_hash", commitHash,
 		"compose_files", project.ComposeFiles,
 		"pull", pull)
 
@@ -305,10 +368,27 @@ func (s *ProjectService) prepareDeployment(
 }
 
 // handleDeploymentError handles deployment errors consistently
-func (s *ProjectService) handleDeploymentError(projectID uuid.UUID, err error) error {
+func (s *ProjectService) handleDeploymentError(deployment *Deployment, err error) error {
+	// Update deployment record as failed and append error info to output
+	deployment.Status = DeploymentStatusFailed
+
+	// Append error information to the existing output
+	if deployment.Output != "" {
+		deployment.Output += "\n"
+	}
+	deployment.Output += fmt.Sprintf("ERROR: %v", err)
+
+	if updateErr := s.deploymentRepository.Update(deployment); updateErr != nil {
+		slog.Error("Failed to update deployment record as failed",
+			"deployment_id", deployment.ID,
+			"project_id", deployment.ProjectID,
+			"error", updateErr)
+	}
+
 	slog.Error(
 		"Docker Compose up failed",
-		"project_id", projectID,
+		"project_id", deployment.ProjectID,
+		"deployment_id", deployment.ID,
 		"error", err,
 	)
 	return fmt.Errorf("failed to start project: %w", err)
@@ -329,7 +409,7 @@ func (s *ProjectService) completeDeployment(project *Project, commitHash string,
 	project.LastCommit = &commitHash
 
 	// TODO: Transaction
-	if err := s.deploymentRepository.Create(&deployment); err != nil {
+	if err := s.deploymentRepository.Update(&deployment); err != nil {
 		return fmt.Errorf("failed to update deployment record: %w", err)
 	}
 
@@ -338,49 +418,6 @@ func (s *ProjectService) completeDeployment(project *Project, commitHash string,
 	}
 
 	return nil
-}
-
-func (s *ProjectService) Start(projectID uuid.UUID) error {
-	// Get project
-	project, err := s.Get(projectID)
-	if err != nil {
-		return fmt.Errorf("project not found: %w", err)
-	}
-
-	// Start Docker Compose
-	slog.Info(
-		"Starting Docker Compose project",
-		"project_id",
-		project.ID,
-		"project_name",
-		project.Name,
-	)
-
-	composeProject := NewComposeProject(project, s.config)
-
-	output, err := composeProject.Up()
-	if err != nil {
-		slog.Error(
-			"Docker Compose up failed",
-			"project_id",
-			project.ID,
-			"error",
-			err,
-			"output",
-			output,
-		)
-		return fmt.Errorf("failed to start project: %w", err)
-	}
-	slog.Info(
-		"Docker Compose project started",
-		"project_id",
-		project.ID,
-		"output_length",
-		len(output),
-	)
-
-	project.Status = ProjectStatusRunning
-	return s.Update(project)
 }
 
 func (s *ProjectService) Stop(projectID uuid.UUID) error {
@@ -427,7 +464,6 @@ func (s *ProjectService) Stop(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-
 	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -445,8 +481,46 @@ func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- st
 
 	composeProject := NewComposeProject(project, s.config)
 
-	outputChan <- `{"type":"info","message":"Starting Docker Compose shutdown...","source":"oar"}`
-	err = composeProject.DownStreaming(outputChan)
+	// Helper function to send JSON-wrapped messages
+	sendJSON := func(msgType, message, source string) {
+		msgData := map[string]string{
+			"type":    msgType,
+			"message": message,
+		}
+		if source != "" {
+			msgData["source"] = source
+		}
+
+		if jsonMsg, err := json.Marshal(msgData); err == nil {
+			outputChan <- string(jsonMsg)
+		}
+	}
+
+	sendJSON("info", "Starting Docker Compose shutdown...", "oar")
+
+	// Create a capturing channel that forwards to the original channel
+	capturingChan := make(chan string, 100) // buffered channel
+	done := make(chan bool)
+
+	go func() {
+		defer func() { done <- true }()
+		for msg := range capturingChan {
+			// Wrap Docker output in JSON for web UI
+			msgData := map[string]string{
+				"type":    "docker",
+				"message": msg,
+			}
+			if jsonMsg, err := json.Marshal(msgData); err == nil {
+				outputChan <- string(jsonMsg)
+			}
+		}
+	}()
+
+	// Execute stop with streaming
+	err = composeProject.DownStreaming(capturingChan)
+	close(capturingChan) // Signal that we're done sending to the capturing channel
+	<-done               // Wait for the goroutine to finish processing all messages
+
 	if err != nil {
 		slog.Error(
 			"Docker Compose down failed",
@@ -470,7 +544,7 @@ func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- st
 	}
 
 	// Send unified message with both display text and project state
-	outputChan <- `{"type":"success","message":"Docker Compose shutdown completed successfully","projectState":{"status":"stopped"}}`
+	sendJSON("success", "Docker Compose shutdown completed successfully", "")
 
 	return nil
 }
@@ -560,7 +634,6 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 }
 
 func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-
 	// Get projectID
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -578,7 +651,29 @@ func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<-
 
 	composeProject := NewComposeProject(project, s.config)
 
-	err = composeProject.LogsStreaming(outputChan)
+	// Create a capturing channel that forwards to the original channel
+	capturingChan := make(chan string, 100) // buffered channel
+	done := make(chan bool)
+
+	go func() {
+		defer func() { done <- true }()
+		for msg := range capturingChan {
+			// Wrap Docker log output in JSON for web UI
+			msgData := map[string]string{
+				"type":    "docker",
+				"message": msg,
+			}
+			if jsonMsg, err := json.Marshal(msgData); err == nil {
+				outputChan <- string(jsonMsg)
+			}
+		}
+	}()
+
+	// Execute logs with streaming
+	err = composeProject.LogsStreaming(capturingChan)
+	close(capturingChan) // Signal that we're done sending to the capturing channel
+	<-done               // Wait for the goroutine to finish processing all messages
+
 	if err != nil {
 		slog.Error(
 			"Failed to stream logs",
@@ -736,6 +831,31 @@ func (s *ProjectService) pullLatestChanges(project *Project) error {
 
 	slog.Debug("Git pull completed", "project_id", project.ID)
 	return nil
+}
+
+// ListDeployments lists all deployments for a specific project
+func (s *ProjectService) ListDeployments(projectID uuid.UUID) ([]*Deployment, error) {
+	// First verify the project exists
+	_, err := s.Get(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("project not found: %w", err)
+	}
+
+	deployments, err := s.deploymentRepository.ListByProjectID(projectID)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "list_deployments",
+			"project_id", projectID,
+			"error", err)
+		return nil, fmt.Errorf("failed to list deployments: %w", err)
+	}
+
+	slog.Debug("Listed deployments for project",
+		"project_id", projectID,
+		"deployment_count", len(deployments))
+
+	return deployments, nil
 }
 
 // NewProjectService creates a new ProjectService with dependency injection

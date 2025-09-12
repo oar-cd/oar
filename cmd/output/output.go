@@ -303,6 +303,47 @@ func PrintProjectList(projects []*services.Project) (string, error) {
 	return table, nil
 }
 
+func PrintDeploymentList(deployments []*services.Deployment, projectName string) (string, error) {
+	if len(deployments) == 0 {
+		return PrintMessage(Plain, "No deployments found for project '%s'.", projectName), nil
+	}
+
+	header := []string{
+		"ID",
+		"Status",
+		"Commit",
+		"Created At",
+		"Updated At",
+	}
+	var data [][]string
+	for _, deployment := range deployments {
+		// Format status with color coding
+		statusStr := formatDeploymentStatus(deployment.Status.String())
+
+		// Format commit hash (8 chars like git)
+		commit := formatCommitHash(deployment.CommitHash)
+
+		// Format timestamps
+		createdAt := deployment.CreatedAt.Format("2006-01-02 15:04:05")
+		updatedAt := deployment.UpdatedAt.Format("2006-01-02 15:04:05")
+
+		data = append(data, []string{
+			deployment.ID.String(),
+			statusStr,
+			commit,
+			createdAt,
+			updatedAt,
+		})
+	}
+
+	table, err := PrintTable(header, data)
+	if err != nil {
+		return "", fmt.Errorf("printing deployment list table: %w", err)
+	}
+
+	return table, nil
+}
+
 // formatProjectStatus applies color coding to project status
 func formatProjectStatus(status string) string {
 	// If colors are not initialized, return plain status
@@ -316,6 +357,25 @@ func formatProjectStatus(status string) string {
 	case "stopped":
 		return maybeColorize(Warning, status)
 	case "error":
+		return maybeColorize(Error, status)
+	default:
+		return maybeColorize(Plain, status)
+	}
+}
+
+// formatDeploymentStatus applies color coding to deployment status
+func formatDeploymentStatus(status string) string {
+	// If colors are not initialized, return plain status
+	if maybeColorize == nil {
+		return status
+	}
+
+	switch strings.ToLower(status) {
+	case "completed":
+		return maybeColorize(Success, status)
+	case "started":
+		return maybeColorize(Warning, status)
+	case "failed":
 		return maybeColorize(Error, status)
 	default:
 		return maybeColorize(Plain, status)

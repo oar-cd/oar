@@ -62,7 +62,7 @@ templ ProjectCard(project ProjectView) {
 			@ActionButton("deploy", "Deploy", "rocket", "btn-link-primary", fmt.Sprintf("/projects/%s/deploy", project.ID.String()))
 			@ActionButton("stop", "Stop", "circle-stop", "btn-link-warning", fmt.Sprintf("/projects/%s/stop", project.ID.String()))
 			@ActionButton("edit", "Edit", "square-pen", "btn-link", fmt.Sprintf("/projects/%s/edit", project.ID.String()))
-			@ActionButtonDisabled("deployments", "Deployments", "list-checks")
+			@ActionButton("deployments", "Deployments", "list-checks", "btn-link", fmt.Sprintf("/projects/%s/deployments", project.ID.String()))
 			@ActionButton("logs", "Logs", "scroll-text", "btn-link", fmt.Sprintf("/projects/%s/logs", project.ID.String()))
 			@ActionButton("config", "Configuration", "settings", "btn-link", fmt.Sprintf("/projects/%s/config", project.ID.String()))
 			@ActionButton("delete", "Delete", "trash-2", "btn-link-danger", fmt.Sprintf("/projects/%s/delete", project.ID.String()))

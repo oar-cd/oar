@@ -641,6 +641,50 @@ document.addEventListener('DOMContentLoaded', function() {
         stopLogsStreaming();
     });
 
+    // Event delegation for deployment output buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.deployment-output-btn')) {
+            const button = e.target.closest('.deployment-output-btn');
+            const deploymentId = button.getAttribute('data-deployment-id');
+            const output = button.getAttribute('data-deployment-output');
+            showDeploymentOutput(deploymentId, output);
+        }
+    });
+
+    // Show deployment output in a popup
+    window.showDeploymentOutput = function(deploymentId, output) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-60 overflow-y-auto';
+        overlay.innerHTML = `
+            <div class="fixed inset-0 bg-gray-500/75 transition-opacity"></div>
+            <div class="flex min-h-full items-center justify-center p-4 text-center">
+                <div class="relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-4 sm:w-full sm:max-w-2xl sm:p-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Deployment Output</h3>
+                        <button type="button" class="text-gray-400 hover:text-gray-600 focus:outline-none" onclick="this.closest('.fixed').remove()">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="deployment-output-container">
+                        <pre class="bg-gray-800 text-gray-300 p-4 rounded-lg font-mono text-xs overflow-x-auto overflow-y-auto whitespace-pre-wrap" style="max-height: 400px;">${output ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'No output available'}</pre>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Close on background click
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay || e.target.classList.contains('bg-gray-500/75')) {
+                overlay.remove();
+            }
+        });
+    };
+
     // Global keyboard shortcuts
     document.addEventListener('keydown', function(event) {
         // Modals can only be closed with X button, not Escape key
