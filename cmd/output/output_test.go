@@ -598,6 +598,162 @@ func TestFprintFunctions(t *testing.T) {
 	}
 }
 
+func TestPrintDeploymentList(t *testing.T) {
+	deploymentID1 := uuid.New()
+	deploymentID2 := uuid.New()
+	deploymentID3 := uuid.New()
+	createdAt := time.Date(2023, 1, 15, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2023, 1, 16, 14, 45, 0, 0, time.UTC)
+
+	// Set up colors for testing
+	InitColors(false)
+
+	tests := []struct {
+		name        string
+		deployments []*services.Deployment
+		projectName string
+		expected    []string
+	}{
+		{
+			name:        "empty deployment list",
+			deployments: []*services.Deployment{},
+			projectName: "test-project",
+			expected:    []string{"No deployments found for project 'test-project'."},
+		},
+		{
+			name: "single deployment",
+			deployments: []*services.Deployment{
+				{
+					ID:         deploymentID1,
+					Status:     services.DeploymentStatusCompleted,
+					CommitHash: "abc123def456",
+					CreatedAt:  createdAt,
+					UpdatedAt:  updatedAt,
+				},
+			},
+			projectName: "test-project",
+			expected: []string{
+				"ID",
+				"STATUS",
+				"COMMIT",
+				"CREATED AT",
+				"UPDATED AT",
+				deploymentID1.String(),
+				"completed",
+				"abc123de",
+				"2023-01-15 10:30:00",
+				"2023-01-16 14:45:00",
+			},
+		},
+		{
+			name: "multiple deployments with different statuses",
+			deployments: []*services.Deployment{
+				{
+					ID:         deploymentID1,
+					Status:     services.DeploymentStatusCompleted,
+					CommitHash: "abc123def456",
+					CreatedAt:  createdAt,
+					UpdatedAt:  updatedAt,
+				},
+				{
+					ID:         deploymentID2,
+					Status:     services.DeploymentStatusStarted,
+					CommitHash: "def456ghi789",
+					CreatedAt:  createdAt,
+					UpdatedAt:  updatedAt,
+				},
+				{
+					ID:         deploymentID3,
+					Status:     services.DeploymentStatusFailed,
+					CommitHash: "ghi789jkl012",
+					CreatedAt:  createdAt,
+					UpdatedAt:  updatedAt,
+				},
+			},
+			projectName: "test-project",
+			expected: []string{
+				"ID",
+				"STATUS",
+				"COMMIT",
+				"CREATED AT",
+				"UPDATED AT",
+				deploymentID1.String(),
+				"completed",
+				"abc123de",
+				"2023-01-15 10:30:00",
+				"2023-01-16 14:45:00",
+				deploymentID2.String(),
+				"started",
+				"def456gh",
+				"2023-01-15 10:30:00",
+				"2023-01-16 14:45:00",
+				deploymentID3.String(),
+				"failed",
+				"ghi789jk",
+				"2023-01-15 10:30:00",
+				"2023-01-16 14:45:00",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := PrintDeploymentList(test.deployments, test.projectName)
+
+			assert.NoError(t, err)
+			for _, expectedStr := range test.expected {
+				assert.Contains(t, result, expectedStr)
+			}
+		})
+	}
+}
+
+func TestFormatDeploymentStatus(t *testing.T) {
+	// Set up colors for testing
+	InitColors(false)
+
+	tests := []struct {
+		name     string
+		status   string
+		expected string
+	}{
+		{
+			name:     "completed status",
+			status:   "completed",
+			expected: "completed",
+		},
+		{
+			name:     "started status",
+			status:   "started",
+			expected: "started",
+		},
+		{
+			name:     "failed status",
+			status:   "failed",
+			expected: "failed",
+		},
+		{
+			name:     "unknown status",
+			status:   "unknown",
+			expected: "unknown",
+		},
+		{
+			name:     "case insensitive - COMPLETED",
+			status:   "COMPLETED",
+			expected: "COMPLETED",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := formatDeploymentStatus(test.status)
+
+			// Since colors are disabled, result should be the same as input
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
 // mockCommand implements the interface needed for FprintCmd functions
 type mockCommand struct {
 	buf *bytes.Buffer

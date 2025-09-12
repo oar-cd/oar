@@ -314,6 +314,24 @@ func (m *MockDeploymentRepository) Create(deployment *Deployment) error {
 	if deployment.ID == uuid.Nil {
 		deployment.ID = uuid.New()
 	}
+	// Simulate GORM's automatic timestamp setting
+	now := time.Now()
+	if deployment.CreatedAt.IsZero() {
+		deployment.CreatedAt = now
+	}
+	deployment.UpdatedAt = now
+
+	m.deployments[deployment.ID] = deployment
+	return nil
+}
+
+func (m *MockDeploymentRepository) Update(deployment *Deployment) error {
+	if _, exists := m.deployments[deployment.ID]; !exists {
+		return errors.New("deployment not found")
+	}
+	// Simulate GORM's automatic UpdatedAt setting
+	deployment.UpdatedAt = time.Now()
+
 	m.deployments[deployment.ID] = deployment
 	return nil
 }

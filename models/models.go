@@ -36,11 +36,10 @@ func (ProjectModel) TableName() string {
 
 type DeploymentModel struct {
 	BaseModel
-	ProjectID   uuid.UUID `gorm:"not null;index"`
-	CommitHash  string    `gorm:"not null"`
-	CommandLine string    `gorm:"not null"`  // Command executed for deployment
-	Status      string    `gorm:"not null"`  // in_progress, success, failed
-	Output      string    `gorm:"type:text"` // Command output/logs
+	ProjectID  uuid.UUID `gorm:"not null;index"`
+	CommitHash string    `gorm:"not null;check:commit_hash <> ''"`
+	Status     string    `gorm:"not null;check:status <> ''"` // in_progress, success, failed
+	Output     string    `gorm:"type:text"`                   // Command output/logs
 
 	Project ProjectModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
 }

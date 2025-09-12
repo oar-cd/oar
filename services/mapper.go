@@ -100,24 +100,26 @@ func (m *DeploymentMapper) ToDomain(d *models.DeploymentModel) *Deployment {
 	}
 
 	return &Deployment{
-		ID:          d.ID,
-		ProjectID:   d.ProjectID,
-		CommitHash:  d.CommitHash,
-		CommandLine: d.CommandLine,
-		Status:      status,
-		Output:      d.Output,
+		ID:         d.ID,
+		ProjectID:  d.ProjectID,
+		CommitHash: d.CommitHash,
+		Status:     status,
+		Output:     d.Output,
+		CreatedAt:  d.CreatedAt,
+		UpdatedAt:  d.UpdatedAt,
 	}
 }
 
 func (m *DeploymentMapper) ToModel(d *Deployment) *models.DeploymentModel {
 	return &models.DeploymentModel{
 		BaseModel: models.BaseModel{
-			ID: d.ID,
+			ID:        d.ID,
+			CreatedAt: d.CreatedAt,
+			UpdatedAt: d.UpdatedAt,
 		},
-		ProjectID:   d.ProjectID,
-		CommitHash:  d.CommitHash,
-		CommandLine: d.CommandLine,
-		Status:      d.Status.String(),
-		Output:      d.Output,
+		ProjectID:  d.ProjectID,
+		CommitHash: d.CommitHash,
+		Status:     d.Status.String(),
+		Output:     d.Output,
 	}
 }

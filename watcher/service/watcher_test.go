@@ -52,11 +52,6 @@ func (m *MockProjectManager) DeployPiping(projectID uuid.UUID, pull bool) error 
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) Start(projectID uuid.UUID) error {
-	args := m.Called(projectID)
-	return args.Error(0)
-}
-
 func (m *MockProjectManager) Stop(projectID uuid.UUID) error {
 	args := m.Called(projectID)
 	return args.Error(0)
@@ -90,6 +85,11 @@ func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeStatus, error) {
 	args := m.Called(projectID)
 	return args.Get(0).(*services.ComposeStatus), args.Error(1)
+}
+
+func (m *MockProjectManager) ListDeployments(projectID uuid.UUID) ([]*services.Deployment, error) {
+	args := m.Called(projectID)
+	return args.Get(0).([]*services.Deployment), args.Error(1)
 }
 
 // MockGitExecutor implements services.GitExecutor interface for testing

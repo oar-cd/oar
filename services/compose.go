@@ -87,146 +87,61 @@ func NewComposeProject(p *Project, config *Config) *ComposeProject {
 }
 
 func (p *ComposeProject) Up() (string, error) {
-	cmd, err := p.commandUp()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_up",
-			"project_name", p.Name,
-			"error", err)
-		return "", err
-	}
-
+	cmd := p.commandUp()
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
-	cmd, err := p.commandUp()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_up",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
+	cmd := p.commandUp()
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
 func (p *ComposeProject) UpPiping() error {
-	cmd, err := p.commandUp()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_up",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
+	cmd := p.commandUp()
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) Down() (string, error) {
-	cmd, err := p.commandDown()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_down",
-			"project_name", p.Name,
-			"error", err)
-		return "", err
-	}
-
+	cmd := p.commandDown()
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
-	cmd, err := p.commandDown()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_down",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
-
+	cmd := p.commandDown()
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
 func (p *ComposeProject) DownPiping() error {
-	cmd, err := p.commandDown()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_down",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
+	cmd := p.commandDown()
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) Logs() (string, error) {
-	cmd, err := p.commandLogs()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_logs",
-			"project_name", p.Name,
-			"error", err)
-		return "", err
-	}
-
+	cmd := p.commandLogs()
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
-	cmd, err := p.commandLogs()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_logs",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
-
+	cmd := p.commandLogs()
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
 func (p *ComposeProject) LogsPiping() error {
-	cmd, err := p.commandLogs()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_logs",
-			"project_name", p.Name,
-			"error", err)
-		return err
-	}
+	cmd := p.commandLogs()
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) GetConfig() (string, error) {
-	cmd, err := p.commandConfig()
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_config",
-			"project_name", p.Name,
-			"error", err)
-		return "", err
-	}
-
+	cmd := p.commandConfig()
 	return p.executeCommand(cmd)
 }
 
-func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cmd, error) {
+func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd {
 	// Build docker compose command
 	commandArgs := []string{
 		"--host", p.Config.DockerHost,
 		"compose",
+		"--progress", "plain",
 		"--project-name", p.Name,
 		"--project-directory", p.hostWorkingDir(),
 	}
@@ -250,16 +165,19 @@ func (p *ComposeProject) prepareCommand(command string, args []string) (*exec.Cm
 	// Do not set cmd.Dir to avoid Docker resolving container paths as host paths.
 	// The compose files are already specified with absolute paths via --file flags.
 
+	// Disable color output to simplify parsing logs and status
+	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+
 	// Inject variables if provided
 	if len(p.Variables) > 0 {
 		// Start with existing environment and append/override with user variables
-		cmd.Env = append(os.Environ(), p.Variables...)
+		cmd.Env = append(cmd.Env, p.Variables...)
 		slog.Debug("Injecting variables",
 			"project_name", p.Name,
 			"var_count", len(p.Variables))
 	}
 
-	return cmd, nil
+	return cmd
 }
 
 func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (string, error) {
@@ -318,20 +236,14 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		defer wg.Done()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			msg := map[string]string{
-				"type":    "docker",
-				"message": scanner.Text(),
-			}
-			if jsonMsg, err := json.Marshal(msg); err == nil {
-				select {
-				case outputChan <- string(jsonMsg):
-				default:
-					// Channel is full or closed (likely client disconnected), skip this message
-					slog.Debug("Dropped Docker stdout message, channel unavailable",
-						"project_name", p.Name,
-						"message_type", "stdout")
-					return
-				}
+			select {
+			case outputChan <- scanner.Text():
+			default:
+				// Channel is full or closed (likely client disconnected), skip this message
+				slog.Debug("Dropped Docker stdout message, channel unavailable",
+					"project_name", p.Name,
+					"message_type", "stdout")
+				return
 			}
 		}
 	}()
@@ -342,20 +254,14 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		defer wg.Done()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
-			msg := map[string]string{
-				"type":    "docker",
-				"message": scanner.Text(),
-			}
-			if jsonMsg, err := json.Marshal(msg); err == nil {
-				select {
-				case outputChan <- string(jsonMsg):
-				default:
-					// Channel is full or closed (likely client disconnected), skip this message
-					slog.Debug("Dropped Docker stderr message, channel unavailable",
-						"project_name", p.Name,
-						"message_type", "stderr")
-					return
-				}
+			select {
+			case outputChan <- scanner.Text():
+			default:
+				// Channel is full or closed (likely client disconnected), skip this message
+				slog.Debug("Dropped Docker stderr message, channel unavailable",
+					"project_name", p.Name,
+					"message_type", "stderr")
+				return
 			}
 		}
 	}()
@@ -405,88 +311,28 @@ func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
 	return nil
 }
 
-func (p *ComposeProject) commandUp() (*exec.Cmd, error) {
-	cmd, err := p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans"})
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_up",
-			"project_name", p.Name,
-			"error", err)
-		return nil, err
-	}
-
-	return cmd, nil
+func (p *ComposeProject) commandUp() *exec.Cmd {
+	return p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans"})
 }
 
-func (p *ComposeProject) commandDown() (*exec.Cmd, error) {
-	cmd, err := p.prepareCommand("down", []string{"--remove-orphans"})
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_down",
-			"project_name", p.Name,
-			"error", err)
-		return nil, err
-	}
-
-	return cmd, nil
+func (p *ComposeProject) commandDown() *exec.Cmd {
+	return p.prepareCommand("down", []string{"--remove-orphans"})
 }
 
-func (p *ComposeProject) commandLogs() (*exec.Cmd, error) {
-	// TODO: Implement color configuration that supports both CLI and web UI
-	// Currently hardcoded to --no-color, but should be configurable.
-	// Cannot import cmd/output here due to import cycle (cmd/output imports services).
-	// Options:
-	// 1. Add color config to ComposeProject struct/Config
-	// 2. Pass color preference as parameter to commandLogs()
-	// 3. Create a shared config package that both can import
-	cmd, err := p.prepareCommand("logs", []string{"--no-color", "--follow"})
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_logs",
-			"project_name", p.Name,
-			"error", err)
-		return nil, err
-	}
-
-	return cmd, nil
+func (p *ComposeProject) commandLogs() *exec.Cmd {
+	return p.prepareCommand("logs", []string{"--follow"})
 }
 
-func (p *ComposeProject) commandConfig() (*exec.Cmd, error) {
-	cmd, err := p.prepareCommand("config", []string{})
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_config",
-			"project_name", p.Name,
-			"error", err)
-		return nil, err
-	}
-
-	return cmd, nil
+func (p *ComposeProject) commandConfig() *exec.Cmd {
+	return p.prepareCommand("config", []string{})
 }
 
-func (p *ComposeProject) commandPs() (*exec.Cmd, error) {
-	cmd, err := p.prepareCommand("ps", []string{"--format", "json"})
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "docker_compose",
-			"operation", "docker_compose_ps",
-			"project_name", p.Name,
-			"error", err)
-		return nil, err
-	}
-
-	return cmd, nil
+func (p *ComposeProject) commandPs() *exec.Cmd {
+	return p.prepareCommand("ps", []string{"--format", "json"})
 }
 
 func (p *ComposeProject) Status() (*ComposeStatus, error) {
-	cmd, err := p.commandPs()
-	if err != nil {
-		return nil, err
-	}
+	cmd := p.commandPs()
 
 	output, err := p.executeCommand(cmd)
 	if err != nil {

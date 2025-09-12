@@ -14,7 +14,6 @@ type MockProjectManager struct {
 	RemoveFunc           func(projectID uuid.UUID) error
 	DeployStreamingFunc  func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	DeployPipingFunc     func(projectID uuid.UUID, pull bool) error
-	StartFunc            func(projectID uuid.UUID) error
 	StopFunc             func(projectID uuid.UUID) error
 	StopStreamingFunc    func(projectID uuid.UUID, outputChan chan<- string) error
 	StopPipingFunc       func(projectID uuid.UUID) error
@@ -22,6 +21,7 @@ type MockProjectManager struct {
 	GetLogsPipingFunc    func(projectID uuid.UUID) error
 	GetConfigFunc        func(projectID uuid.UUID) (string, error)
 	GetStatusFunc        func(projectID uuid.UUID) (*services.ComposeStatus, error)
+	ListDeploymentsFunc  func(projectID uuid.UUID) ([]*services.Deployment, error)
 }
 
 func (m *MockProjectManager) List() ([]*services.Project, error) {
@@ -73,13 +73,6 @@ func (m *MockProjectManager) DeployPiping(projectID uuid.UUID, pull bool) error 
 	return nil
 }
 
-func (m *MockProjectManager) Start(projectID uuid.UUID) error {
-	if m.StartFunc != nil {
-		return m.StartFunc(projectID)
-	}
-	return nil
-}
-
 func (m *MockProjectManager) Stop(projectID uuid.UUID) error {
 	if m.StopFunc != nil {
 		return m.StopFunc(projectID)
@@ -127,4 +120,11 @@ func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeSt
 		return m.GetStatusFunc(projectID)
 	}
 	return &services.ComposeStatus{}, nil
+}
+
+func (m *MockProjectManager) ListDeployments(projectID uuid.UUID) ([]*services.Deployment, error) {
+	if m.ListDeploymentsFunc != nil {
+		return m.ListDeploymentsFunc(projectID)
+	}
+	return []*services.Deployment{}, nil
 }

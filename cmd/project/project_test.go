@@ -30,7 +30,7 @@ func TestNewCmdProject(t *testing.T) {
 	}
 
 	expectedSubcommands := []string{
-		"list", "add", "remove", "show", "deploy", "stop", "status", "config", "logs",
+		"list", "add", "remove", "show", "deploy", "stop", "status", "config", "logs", "deployments",
 	}
 
 	for _, expected := range expectedSubcommands {

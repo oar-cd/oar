@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,18 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// Helper function to extract message content from JSON streaming output
-func extractMessageFromJSON(jsonStr string) (string, error) {
-	var msg struct {
-		Type    string `json:"type"`
-		Message string `json:"message"`
-	}
-	if err := json.Unmarshal([]byte(jsonStr), &msg); err != nil {
-		return "", err
-	}
-	return msg.Message, nil
-}
 
 // Tests for NewComposeProject
 func TestNewComposeProject_Success(t *testing.T) {
@@ -98,10 +85,9 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.prepareCommand("up", []string{"--detach"})
+	cmd := composeProject.prepareCommand("up", []string{"--detach"})
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 	assert.Contains(t, cmd.Path, "docker") // Path may be full path like /usr/bin/docker
 	assert.Equal(t, "", cmd.Dir)           // Working directory is no longer set to avoid host path resolution issues
@@ -111,6 +97,7 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 		"docker", // cmd.Args[0] is always the command name
 		"--host", "unix:///var/run/docker.sock",
 		"compose",
+		"--progress", "plain",
 		"--project-name", "test-project",
 		"--project-directory", composeProject.hostWorkingDir(),
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
@@ -131,10 +118,9 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.prepareCommand("down", []string{"--remove-orphans"})
+	cmd := composeProject.prepareCommand("down", []string{"--remove-orphans"})
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Verify all compose files are included
@@ -142,6 +128,7 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 		"docker",
 		"--host", "unix:///var/run/docker.sock",
 		"compose",
+		"--progress", "plain",
 		"--project-name", "test-project",
 		"--project-directory", composeProject.hostWorkingDir(),
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
@@ -160,10 +147,9 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.prepareCommand("ps", []string{})
+	cmd := composeProject.prepareCommand("ps", []string{})
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Should still work with no files (docker compose will use defaults)
@@ -171,6 +157,7 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 		"docker",
 		"--host", "unix:///var/run/docker.sock",
 		"compose",
+		"--progress", "plain",
 		"--project-name", "test-project",
 		"--project-directory", composeProject.hostWorkingDir(),
 		"ps",
@@ -302,10 +289,9 @@ func TestComposeProject_CommandUp(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.commandUp()
+	cmd := composeProject.commandUp()
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Verify up-specific arguments
@@ -324,10 +310,9 @@ func TestComposeProject_CommandDown(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.commandDown()
+	cmd := composeProject.commandDown()
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Verify down-specific arguments
@@ -342,10 +327,9 @@ func TestComposeProject_CommandLogs(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.commandLogs()
+	cmd := composeProject.commandLogs()
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Verify logs-specific arguments
@@ -426,17 +410,10 @@ func TestComposeProject_ExecuteCommandStreaming_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, receivedLines, 3)
 
-	// Extract messages from JSON and verify content
-	var extractedMessages []string
-	for _, line := range receivedLines {
-		message, err := extractMessageFromJSON(line)
-		assert.NoError(t, err)
-		extractedMessages = append(extractedMessages, message)
-	}
-
-	assert.Contains(t, extractedMessages, "line1")
-	assert.Contains(t, extractedMessages, "line2")
-	assert.Contains(t, extractedMessages, "line3")
+	// Now we expect clean strings directly, not JSON
+	assert.Contains(t, receivedLines, "line1")
+	assert.Contains(t, receivedLines, "line2")
+	assert.Contains(t, receivedLines, "line3")
 }
 
 func TestComposeProject_ExecuteCommandStreaming_Error(t *testing.T) {
@@ -497,10 +474,9 @@ func TestComposeProject_EmptyProjectName(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd, err := composeProject.prepareCommand("up", []string{})
+	cmd := composeProject.prepareCommand("up", []string{})
 
 	// Assertions
-	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 
 	// Should still create command with empty project name
@@ -513,10 +489,9 @@ func TestComposeProject_InvalidWorkingDirectory(t *testing.T) {
 	composeProject.WorkingDir = "/non/existent/directory"
 
 	// Test
-	cmd, err := composeProject.prepareCommand("up", []string{})
+	cmd := composeProject.prepareCommand("up", []string{})
 
-	// Assertions
-	assert.NoError(t, err) // prepareCommand doesn't validate directory existence
+	// Assertions // prepareCommand doesn't validate directory existence
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "", cmd.Dir) // Working directory is no longer set to avoid host path resolution issues
 }
@@ -549,10 +524,8 @@ func TestComposeProject_StreamingChannelManagement(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, output, 1)
 
-	// Extract message from JSON and verify content
-	message, err := extractMessageFromJSON(output[0])
-	assert.NoError(t, err)
-	assert.Equal(t, "streaming test", message)
+	// Now we expect clean string directly, not JSON
+	assert.Equal(t, "streaming test", output[0])
 }
 
 // Test for concurrent streaming operations
@@ -597,12 +570,8 @@ func TestComposeProject_ConcurrentStreaming(t *testing.T) {
 				return
 			}
 
-			// Extract message from JSON and verify content
-			message, err := extractMessageFromJSON(lines[0])
-			if err != nil {
-				done <- fmt.Errorf("failed to parse JSON for operation %d: %w", id, err)
-				return
-			}
+			// Now we expect clean strings directly, not JSON
+			message := lines[0]
 
 			if message != expectedOutput {
 				done <- fmt.Errorf("unexpected output for operation %d: got %s, expected %s", id, message, expectedOutput)

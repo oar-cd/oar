@@ -39,7 +39,6 @@ type ProjectManager interface {
 	Remove(projectID uuid.UUID) error
 	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	DeployPiping(projectID uuid.UUID, pull bool) error
-	Start(projectID uuid.UUID) error
 	Stop(projectID uuid.UUID) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	StopPiping(projectID uuid.UUID) error
@@ -47,4 +46,5 @@ type ProjectManager interface {
 	GetLogsPiping(projectID uuid.UUID) error
 	GetConfig(projectID uuid.UUID) (string, error)
 	GetStatus(projectID uuid.UUID) (*ComposeStatus, error)
+	ListDeployments(projectID uuid.UUID) ([]*Deployment, error)
 }

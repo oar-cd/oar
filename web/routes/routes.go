@@ -74,6 +74,7 @@ func RegisterProjectRoutes(r chi.Router) {
 			r.Get("/deploy", handlers.HandleModal(getDeployProjectModal, "deploy_project_modal"))
 			r.Get("/stop", handlers.HandleModal(getStopProjectModal, "stop_project_modal"))
 			r.Get("/logs", handlers.HandleModal(getLogsProjectModal, "logs_project_modal"))
+			r.Get("/deployments", handlers.HandleModal(getDeploymentsProjectModal, "deployments_project_modal"))
 
 			// Streaming endpoints
 			r.Post("/deploy/stream", handlers.HandleStream(actions.DeployProject, "deployment"))
@@ -274,4 +275,20 @@ func getProjectStatusPill(projectID uuid.UUID) (templ.Component, error) {
 
 	projectView := handlers.ConvertProjectToView(targetProject)
 	return project.StatusPill(projectView.ID.String(), projectView.Status), nil
+}
+
+func getDeploymentsProjectModal(projectID uuid.UUID) (templ.Component, error) {
+	projectService := app.GetProjectService()
+	targetProject, err := projectService.Get(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments, err := projectService.ListDeployments(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	projectView := handlers.ConvertProjectToView(targetProject)
+	return modals.DeploymentsProjectModal(projectView, deployments), nil
 }

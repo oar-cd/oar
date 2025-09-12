@@ -52,12 +52,13 @@ func NewProject(name, gitURL string, composeFiles []string, variables []string) 
 }
 
 type Deployment struct {
-	ID          uuid.UUID
-	ProjectID   uuid.UUID
-	CommitHash  string
-	CommandLine string
-	Status      DeploymentStatus
-	Output      string
+	ID         uuid.UUID
+	ProjectID  uuid.UUID
+	CommitHash string
+	Status     DeploymentStatus
+	Output     string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 func NewDeployment(projectID uuid.UUID, commitHash string) Deployment {
@@ -69,7 +70,6 @@ func NewDeployment(projectID uuid.UUID, commitHash string) Deployment {
 }
 
 type DeploymentResult struct {
-	CommandLine string
-	Status      DeploymentStatus
-	Output      string
+	Status DeploymentStatus
+	Output string
 }

@@ -248,25 +248,18 @@ func TestDeploymentModel_Create_FieldValidation(t *testing.T) {
 			expectError: true, // Foreign key constraint prevents nil project IDs
 		},
 		{
-			name: "empty commit hash allowed by SQLite",
+			name: "empty commit hash rejected by validation",
 			modifyModel: func(d *DeploymentModel) {
 				d.CommitHash = ""
 			},
-			expectError: false,
+			expectError: true,
 		},
 		{
-			name: "empty command line allowed by SQLite",
-			modifyModel: func(d *DeploymentModel) {
-				d.CommandLine = ""
-			},
-			expectError: false,
-		},
-		{
-			name: "empty status allowed by SQLite",
+			name: "empty status rejected by validation",
 			modifyModel: func(d *DeploymentModel) {
 				d.Status = ""
 			},
-			expectError: false,
+			expectError: true,
 		},
 		{
 			name: "all required fields present",

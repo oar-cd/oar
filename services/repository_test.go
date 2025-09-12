@@ -575,10 +575,9 @@ func TestDeploymentRepository_InvalidStatusHandling(t *testing.T) {
 		BaseModel: models.BaseModel{
 			ID: uuid.New(),
 		},
-		ProjectID:   createdProject.ID,
-		CommitHash:  "test-commit",
-		CommandLine: "test command",
-		Status:      "invalid-status",
+		ProjectID:  createdProject.ID,
+		CommitHash: "test-commit",
+		Status:     "invalid-status",
 	}
 
 	err = db.Create(invalidModel).Error

@@ -108,6 +108,7 @@ func NewProjectRepository(db *gorm.DB, encryption *EncryptionService) ProjectRep
 type DeploymentRepository interface {
 	FindByID(id uuid.UUID) (*Deployment, error)
 	Create(deployment *Deployment) error
+	Update(deployment *Deployment) error
 	ListByProjectID(projectID uuid.UUID) ([]*Deployment, error)
 }
 
@@ -126,12 +127,27 @@ func (r *deploymentRepository) FindByID(id uuid.UUID) (*Deployment, error) {
 
 func (r *deploymentRepository) Create(deployment *Deployment) error {
 	model := r.mapper.ToModel(deployment)
-	return r.db.Create(model).Error
+	if err := r.db.Create(model).Error; err != nil {
+		return err
+	}
+	// Update the domain object with the timestamps that GORM populated
+	*deployment = *r.mapper.ToDomain(model)
+	return nil
+}
+
+func (r *deploymentRepository) Update(deployment *Deployment) error {
+	model := r.mapper.ToModel(deployment)
+	if err := r.db.Save(model).Error; err != nil {
+		return err
+	}
+	// Update the domain object with the timestamps that GORM populated
+	*deployment = *r.mapper.ToDomain(model)
+	return nil
 }
 
 func (r *deploymentRepository) ListByProjectID(projectID uuid.UUID) ([]*Deployment, error) {
 	var models []models.DeploymentModel
-	if err := r.db.Where("project_id = ?", projectID).Find(&models).Error; err != nil {
+	if err := r.db.Where("project_id = ?", projectID).Order("created_at DESC").Find(&models).Error; err != nil {
 		return nil, err
 	}
 

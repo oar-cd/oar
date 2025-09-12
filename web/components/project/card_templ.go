@@ -179,7 +179,7 @@ func ProjectCard(project ProjectView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ActionButtonDisabled("deployments", "Deployments", "list-checks").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ActionButton("deployments", "Deployments", "list-checks", "btn-link", fmt.Sprintf("/projects/%s/deployments", project.ID.String())).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
