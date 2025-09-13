@@ -67,3 +67,26 @@ templ StreamingActionFooter(actionLabel, actionId, projectId string) {
 		{ actionLabel }
 	</button>
 }
+
+// LogsFooter renders a footer with auto-scroll toggle and close button for logs modal
+templ LogsFooter() {
+	<div class="flex justify-between items-center w-full">
+		<label class="flex items-center cursor-pointer">
+			<input
+				type="checkbox"
+				id="auto-scroll-checkbox"
+				class="h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+				checked
+				onchange="toggleAutoScroll()"
+			/>
+			<span class="ml-2 text-sm text-gray-700">Auto-scroll</span>
+		</label>
+		<button
+			type="button"
+			class="btn-secondary"
+			onclick="closeModal('modal-container')"
+		>
+			Close
+		</button>
+	</div>
+}

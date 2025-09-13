@@ -307,6 +307,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Auto-start logs streaming if logs modal is loaded
             const logsContent = document.getElementById('logs-content');
             if (logsContent && logsContent.dataset.projectId) {
+                // Reset auto-scroll state and checkbox when new logs modal opens
+                autoScrollEnabled = true;
+                const checkbox = document.getElementById('auto-scroll-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
                 startLogsStreaming(logsContent.dataset.projectId);
             }
         }
@@ -400,8 +406,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                                     const escapedMessage = displayMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     contentElement.innerHTML += `<span class="${cssClass}">${escapedMessage}</span>\n`;
-                                    // Auto-scroll to bottom
-                                    outputElement.scrollTop = outputElement.scrollHeight;
+                                    // Auto-scroll to bottom if enabled
+                                    autoScroll(outputElement);
                                     break;
 
                                 case 'output':
@@ -409,12 +415,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const legacyMessage = data.message;
                                     const escapedLegacyMessage = legacyMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     contentElement.innerHTML += `<span class="deploy-text-backend">${escapedLegacyMessage}</span>\n`;
-                                    outputElement.scrollTop = outputElement.scrollHeight;
+                                    autoScroll(outputElement);
                                     break;
 
                                 case 'complete':
                                     // Complete message handled by onComplete
-                                    outputElement.scrollTop = outputElement.scrollHeight;
+                                    autoScroll(outputElement);
                                     break;
                             }
                         } catch (error) {
@@ -501,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateProjectStatus(projectId);
                     }
 
-                    elements.output.scrollTop = elements.output.scrollHeight;
+                    autoScroll(elements.output);
                 });
             })
             .catch(error => {
@@ -582,6 +588,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global variable to store logs stream controller for cancellation
     let currentLogsController = null;
 
+    // Global variable to track auto-scroll state (enabled by default)
+    let autoScrollEnabled = true;
+
     // Function to stop logs streaming
     window.stopLogsStreaming = function() {
         if (currentLogsController) {
@@ -589,6 +598,29 @@ document.addEventListener('DOMContentLoaded', function() {
             currentLogsController = null;
         }
     };
+
+    // Function to toggle auto-scroll
+    window.toggleAutoScroll = function() {
+        const checkbox = document.getElementById('auto-scroll-checkbox');
+        if (checkbox) {
+            autoScrollEnabled = checkbox.checked;
+
+            // Scroll to bottom immediately when re-enabled
+            if (autoScrollEnabled) {
+                const outputElement = document.getElementById('logs-output');
+                if (outputElement) {
+                    outputElement.scrollTop = outputElement.scrollHeight;
+                }
+            }
+        }
+    };
+
+    // Helper function to conditionally auto-scroll
+    function autoScroll(outputElement) {
+        if (autoScrollEnabled && outputElement) {
+            outputElement.scrollTop = outputElement.scrollHeight;
+        }
+    }
 
     // Logs streaming functionality (auto-starts on modal open)
     window.startLogsStreaming = function(projectId) {
@@ -631,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             return processServerSentEvents(reader, decoder, elements.content, elements.output, (hasError) => {
                 elements.content.innerHTML += '\n<span class="deploy-text-frontend-generic">Logs stream ended</span>\n';
-                elements.output.scrollTop = elements.output.scrollHeight;
+                autoScroll(elements.output);
             });
         })
         .catch(error => {

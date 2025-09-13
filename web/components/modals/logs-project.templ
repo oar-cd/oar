@@ -4,7 +4,7 @@ import "github.com/oar-cd/oar/web/components/project"
 
 // LogsProjectModal renders the project logs modal
 templ LogsProjectModal(proj project.ProjectView) {
-	@LargeModal(proj.Name + " logs", logsProjectBody(proj), CloseOnlyFooter())
+	@LargeModal(proj.Name + " logs", logsProjectBody(proj), LogsFooter())
 }
 
 // logsProjectBody renders the modal body content
