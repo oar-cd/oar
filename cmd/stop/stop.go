@@ -17,7 +17,12 @@ func NewCmdStop() *cobra.Command {
 		Long: `Stop the Oar web service container.
 This is equivalent to running 'docker compose down' in the Oar installation directory.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStop(cmd)
+			err := runStop(cmd)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 

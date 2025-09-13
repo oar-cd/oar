@@ -48,7 +48,12 @@ Environment variables:
   oar project add --git-url https://github.com/user/repo.git \
                   --compose-file compose.yml --env-file .env.production`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runProjectAdd(cmd)
+			err := runProjectAdd(cmd)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 

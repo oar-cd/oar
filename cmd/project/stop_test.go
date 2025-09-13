@@ -140,3 +140,103 @@ func TestNewCmdProjectStopCommand(t *testing.T) {
 	// Verify the command can be found by name
 	assert.Equal(t, "stop", cmd.Name())
 }
+
+func TestCmdProjectStopErrorHandling(t *testing.T) {
+	testProjectID := uuid.New()
+	testProject := &services.Project{
+		ID:     testProjectID,
+		Name:   "test-project",
+		GitURL: "https://github.com/test/project.git",
+		Status: services.ProjectStatusRunning,
+	}
+
+	tests := []struct {
+		name               string
+		args               []string
+		mockProject        *services.Project
+		mockGetError       error
+		mockStopError      error
+		expectSilenceUsage bool
+		expectError        bool
+		description        string
+	}{
+		{
+			name:               "no arguments provided - should show usage",
+			args:               []string{},
+			expectSilenceUsage: false,
+			expectError:        true,
+			description:        "Argument validation errors should show usage",
+		},
+		{
+			name:               "invalid UUID - runtime validation, should silence usage",
+			args:               []string{"invalid-uuid"},
+			expectSilenceUsage: true,
+			expectError:        true,
+			description:        "UUID validation errors happen at runtime, so usage is silenced",
+		},
+		{
+			name:               "project not found - runtime error, should silence usage",
+			args:               []string{testProjectID.String()},
+			mockGetError:       errors.New("project not found"),
+			expectSilenceUsage: true,
+			expectError:        true,
+			description:        "Runtime errors should not show usage",
+		},
+		{
+			name:               "stop failure - runtime error, should silence usage",
+			args:               []string{testProjectID.String()},
+			mockProject:        testProject,
+			mockStopError:      errors.New("stop failed"),
+			expectSilenceUsage: true,
+			expectError:        true,
+			description:        "Runtime errors should not show usage",
+		},
+		{
+			name:               "successful stop - should not silence usage",
+			args:               []string{testProjectID.String()},
+			mockProject:        testProject,
+			expectSilenceUsage: false,
+			expectError:        false,
+			description:        "Successful commands should not silence usage",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock
+			mockService := &mocks.MockProjectManager{
+				GetFunc: func(id uuid.UUID) (*services.Project, error) {
+					if tt.mockGetError != nil {
+						return nil, tt.mockGetError
+					}
+					return tt.mockProject, nil
+				},
+				StopPipingFunc: func(projectID uuid.UUID) error {
+					return tt.mockStopError
+				},
+			}
+			app.SetProjectServiceForTesting(mockService)
+
+			// Create command and capture output
+			cmd := NewCmdProjectStop()
+			var stdout, stderr bytes.Buffer
+			cmd.SetOut(&stdout)
+			cmd.SetErr(&stderr)
+			cmd.SetArgs(tt.args)
+
+			// Execute command
+			err := cmd.Execute()
+
+			// Verify error expectation
+			if tt.expectError {
+				assert.Error(t, err, tt.description)
+			} else {
+				assert.NoError(t, err, tt.description)
+			}
+
+			// Verify SilenceUsage is set correctly
+			assert.Equal(t, tt.expectSilenceUsage, cmd.SilenceUsage,
+				"SilenceUsage should be %t for case: %s", tt.expectSilenceUsage, tt.description)
+		})
+	}
+}

@@ -7,7 +7,7 @@
 LICENSE
 
 # Build artifacts and binaries
-oar
+oar-cli
 coverage.*
 
 # Test files and test data
@@ -34,6 +34,5 @@ LICENSE
 Makefile
 release.sh*
 
-# Build and data files
-oar
+# Data files
 dev_oar_data_dir/

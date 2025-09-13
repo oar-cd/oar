@@ -17,7 +17,12 @@ func NewCmdStart() *cobra.Command {
 		Long: `Start the Oar web service container.
 This is equivalent to running 'docker compose up -d' in the Oar installation directory.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStart(cmd)
+			err := runStart(cmd)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 

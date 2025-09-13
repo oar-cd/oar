@@ -27,7 +27,12 @@ This operation will permanently delete:
 The project cannot be recovered after deletion.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runProjectRemove(cmd, args)
+			err := runProjectRemove(cmd, args)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 
