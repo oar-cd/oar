@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+# Check for uncommitted changes first
+if ! git diff-index --quiet HEAD --; then
+    echo "Error: You have uncommitted changes. Please commit or stash them first."
+    exit 1
+fi
+
+# Fetch latest remote state and pull changes
+echo "Fetching latest remote tags and changes..."
+git fetch --tags origin
+git pull origin main
+
 # Get latest tag from git
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
 echo "Latest tag: $LATEST_TAG"
@@ -38,12 +49,6 @@ patch)
 esac
 
 echo "New version: $NEW_VERSION"
-
-# Check for uncommitted changes
-if ! git diff-index --quiet HEAD --; then
-    echo "Error: You have uncommitted changes. Please commit or stash them first."
-    exit 1
-fi
 
 read -p "Create release $NEW_VERSION? [y/N] " -r
 if [[ $REPLY =~ ^[Yy]$ ]]; then
