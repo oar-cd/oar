@@ -205,7 +205,6 @@ func setupProjectService(t *testing.T) (*ProjectService, string) {
 		DockerCommand: "docker",
 		DockerHost:    "unix:///var/run/docker.sock",
 		GitTimeout:    60 * time.Second, // Allow time for real git operations
-		Containerized: false,
 	}
 
 	// Setup test database

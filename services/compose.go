@@ -41,39 +41,6 @@ type ComposeProject struct {
 // Ensure ComposeProject implements ComposeProjectInterface
 var _ ComposeProjectInterface = (*ComposeProject)(nil)
 
-// hostWorkingDir returns the host equivalent of the container's WorkingDir for Docker Compose --project-directory.
-func (p *ComposeProject) hostWorkingDir() string {
-	return p.hostWorkingDirWithEnv(&DefaultEnvProvider{})
-}
-
-// hostWorkingDirWithEnv allows dependency injection for testing
-func (p *ComposeProject) hostWorkingDirWithEnv(env EnvProvider) string {
-	// Convert container path to host path by replacing the container data dir with host equivalent
-	// We need to handle two scenarios:
-	// 1. Container environment: Config.Containerized=true -> map to host's default data directory
-	// 2. Local development: Config.Containerized=false -> use configured data directory as-is
-
-	var hostDataDir string
-
-	if p.Config.Containerized {
-		// Containerized environment - host data dir must be explicitly provided
-		if p.Config.HostDataDir == "" {
-			slog.Error("Host data directory not configured for containerized environment",
-				"layer", "docker_compose",
-				"operation", "host_working_dir",
-				"project_name", p.Name,
-				"error", "OAR_HOST_DATA_DIR environment variable must be set when running containerized")
-			return ""
-		}
-		hostDataDir = p.Config.HostDataDir
-	} else {
-		// Local development - use the configured data directory as-is since it's already a host path
-		hostDataDir = p.Config.DataDir
-	}
-
-	return strings.Replace(p.WorkingDir, p.Config.DataDir, hostDataDir, 1)
-}
-
 func NewComposeProject(p *Project, config *Config) *ComposeProject {
 	gitDir, err := p.GitDir()
 	if err != nil {
@@ -151,7 +118,6 @@ func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd
 		"compose",
 		"--progress", "plain",
 		"--project-name", p.Name,
-		"--project-directory", p.hostWorkingDir(),
 	}
 
 	// Add compose files to the command
