@@ -99,7 +99,6 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
-		"--project-directory", composeProject.hostWorkingDir(),
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
 		"up",
 		"--detach",
@@ -130,7 +129,6 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
-		"--project-directory", composeProject.hostWorkingDir(),
 		"--file", filepath.Join(tempDir, "docker-compose.yml"),
 		"--file", filepath.Join(tempDir, "docker-compose.override.yml"),
 		"--file", filepath.Join(tempDir, "docker-compose.prod.yml"),
@@ -159,154 +157,9 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
-		"--project-directory", composeProject.hostWorkingDir(),
 		"ps",
 	}
 	assert.Equal(t, expectedArgs, cmd.Args)
-}
-
-// Tests for hostWorkingDir method
-func TestComposeProject_HostWorkingDir(t *testing.T) {
-	tests := []struct {
-		name                string
-		containerDataDir    string
-		containerWorkingDir string
-		expectedResult      string
-		description         string
-	}{
-		{
-			name:                "Standard production path",
-			containerDataDir:    "/data",
-			containerWorkingDir: "/data/projects/abc123/git",
-			expectedResult:      "/home/user/.local/share/oar/data/projects/abc123/git",
-			description:         "Container path /data/projects/... -> Host path ~/.local/share/oar/projects/...",
-		},
-		{
-			name:                "Custom data directory",
-			containerDataDir:    "/custom/data",
-			containerWorkingDir: "/custom/data/projects/def456/git",
-			expectedResult:      "/home/user/.local/share/oar/data/projects/def456/git",
-			description:         "Custom container data dir should still map to standard host location",
-		},
-		{
-			name:                "Root level project",
-			containerDataDir:    "/data",
-			containerWorkingDir: "/data/projects",
-			expectedResult:      "/home/user/.local/share/oar/data/projects",
-			description:         "Projects directory itself should map correctly",
-		},
-		{
-			name:                "Nested project structure",
-			containerDataDir:    "/data",
-			containerWorkingDir: "/data/projects/xyz789/git/subdir",
-			expectedResult:      "/home/user/.local/share/oar/data/projects/xyz789/git/subdir",
-			description:         "Deeply nested paths should map correctly",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a ComposeProject with test configuration
-			config := &Config{
-				DataDir:       tt.containerDataDir,
-				HostDataDir:   "/home/user/.local/share/oar/data", // Set expected host data dir for tests
-				Containerized: true,                               // All test cases assume containerized environment
-			}
-			composeProject := &ComposeProject{
-				Name:       "test-project",
-				WorkingDir: tt.containerWorkingDir,
-				Config:     config,
-			}
-
-			// Create mock environment provider for consistent testing
-			mockEnv := &MockEnvProvider{
-				envVars: map[string]string{},
-				homeDir: "/home/user",
-			}
-
-			// Test the hostWorkingDirWithEnv method with mock environment
-			result := composeProject.hostWorkingDirWithEnv(mockEnv)
-
-			// Assertions
-			assert.Equal(t, tt.expectedResult, result, tt.description)
-		})
-	}
-}
-
-func TestComposeProject_HostWorkingDir_LocalDevelopment(t *testing.T) {
-	// Test case for local development (non-containerized)
-	config := &Config{
-		DataDir:       "/home/user/project/dev_oar_data_dir",
-		Containerized: false,
-	}
-	composeProject := &ComposeProject{
-		Name:       "test-project",
-		WorkingDir: "/home/user/project/dev_oar_data_dir/projects/abc123/git",
-		Config:     config,
-	}
-
-	// Create mock environment provider for consistent testing
-	mockEnv := &MockEnvProvider{
-		envVars: map[string]string{},
-		homeDir: "/home/user",
-	}
-
-	result := composeProject.hostWorkingDirWithEnv(mockEnv)
-
-	// In local development, should use the configured data directory as-is
-	expected := "/home/user/project/dev_oar_data_dir/projects/abc123/git"
-	assert.Equal(t, expected, result, "Local development should use configured data directory as-is")
-}
-
-func TestComposeProject_HostWorkingDir_NoReplacement(t *testing.T) {
-	// Test case where WorkingDir doesn't contain Config.DataDir
-	config := &Config{
-		DataDir:       "/data",
-		HostDataDir:   "/home/user/.local/share/oar/data", // Set host data dir for containerized test
-		Containerized: true,
-	}
-	composeProject := &ComposeProject{
-		Name:       "test-project",
-		WorkingDir: "/some/other/path/projects/abc123/git",
-		Config:     config,
-	}
-
-	// Create mock environment provider for consistent testing
-	mockEnv := &MockEnvProvider{
-		envVars: map[string]string{},
-		homeDir: "/home/user",
-	}
-
-	result := composeProject.hostWorkingDirWithEnv(mockEnv)
-
-	// Should return the working dir unchanged since it doesn't contain the data dir to replace
-	expected := "/some/other/path/projects/abc123/git"
-	assert.Equal(t, expected, result, "Paths not containing DataDir should remain unchanged")
-}
-
-func TestComposeProject_HostWorkingDir_MissingHostDataDir(t *testing.T) {
-	// Test case where OAR_HOST_DATA_DIR is not set in containerized environment
-	config := &Config{
-		DataDir:       "/data",
-		Containerized: true,
-		// HostDataDir intentionally not set
-	}
-	composeProject := &ComposeProject{
-		Name:       "test-project",
-		WorkingDir: "/data/projects/abc123/git",
-		Config:     config,
-	}
-
-	// Create mock environment provider
-	mockEnv := &MockEnvProvider{
-		envVars: map[string]string{},
-		homeDir: "/home/user",
-	}
-
-	result := composeProject.hostWorkingDirWithEnv(mockEnv)
-
-	// Should return empty string when host data dir is not configured
-	assert.Equal(t, "", result, "Should return empty string when HostDataDir is not set in containerized environment")
 }
 
 // Tests for specific command builders

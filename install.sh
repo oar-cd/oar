@@ -62,12 +62,6 @@ chmod +x "$BIN_DIR/oar"
 echo "Creating .env file..."
 
 cat >.env <<EOF
-# User permissions - ensures Oar container runs with current user's permissions
-# Use docker group GID so container can access Docker socket
-OAR_UID=$(id -u)
-OAR_GID=$DOCKER_GID
-
-# Oar encryption key - keep this secure and do not commit to version control
 OAR_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF
 

@@ -47,7 +47,6 @@ func NewIntegrationTestProject(t *testing.T, composeContent string) *Integration
 		DockerCommand: "docker",
 		DockerHost:    "unix:///var/run/docker.sock",
 		GitTimeout:    30 * time.Second,
-		Containerized: false,
 	}
 
 	// Create compose project

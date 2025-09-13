@@ -162,9 +162,6 @@ func TestConfig_EncryptionKeyFromEnvFile(t *testing.T) {
 	// Create .env file with encryption key
 	envKey := generateTestKey()
 	envContent := fmt.Sprintf(`# Test .env file
-OAR_UID=1000
-OAR_GID=1000
-
 # Encryption key
 OAR_ENCRYPTION_KEY=%s
 `, envKey)
