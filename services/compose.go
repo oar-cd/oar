@@ -56,8 +56,16 @@ func (p *ComposeProject) hostWorkingDirWithEnv(env EnvProvider) string {
 	var hostDataDir string
 
 	if p.Config.Containerized {
-		// Containerized environment - map to host's default data directory
-		hostDataDir = filepath.Join(getDefaultInstallDirWithEnv(env), "data")
+		// Containerized environment - host data dir must be explicitly provided
+		if p.Config.HostDataDir == "" {
+			slog.Error("Host data directory not configured for containerized environment",
+				"layer", "docker_compose",
+				"operation", "host_working_dir",
+				"project_name", p.Name,
+				"error", "OAR_HOST_DATA_DIR environment variable must be set when running containerized")
+			return ""
+		}
+		hostDataDir = p.Config.HostDataDir
 	} else {
 		// Local development - use the configured data directory as-is since it's already a host path
 		hostDataDir = p.Config.DataDir

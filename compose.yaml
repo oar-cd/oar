@@ -9,6 +9,7 @@ services:
       OAR_HTTP_PORT: 8080
       OAR_LOG_LEVEL: info
       OAR_DATA_DIR: /data
+      OAR_HOST_DATA_DIR: ${PWD}/data
       OAR_CONTAINERIZED: true
       OAR_ENCRYPTION_KEY: ${OAR_ENCRYPTION_KEY}
     volumes:
@@ -24,6 +25,7 @@ services:
     environment:
       OAR_LOG_LEVEL: info
       OAR_DATA_DIR: /data
+      OAR_HOST_DATA_DIR: ${PWD}/data
       OAR_CONTAINERIZED: true
       OAR_POLL_INTERVAL: ${OAR_POLL_INTERVAL:-5m}
       OAR_ENCRYPTION_KEY: ${OAR_ENCRYPTION_KEY}

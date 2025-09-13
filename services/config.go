@@ -88,6 +88,7 @@ type Config struct {
 
 	// Runtime environment
 	Containerized bool
+	HostDataDir   string // Host data directory path (for containerized environments)
 
 	// Environment provider for testing
 	env EnvProvider
@@ -225,6 +226,9 @@ func (c *Config) loadFromEnv() {
 		if containerized, err := strconv.ParseBool(v); err == nil {
 			c.Containerized = containerized
 		}
+	}
+	if v := c.env.Getenv("OAR_HOST_DATA_DIR"); v != "" {
+		c.HostDataDir = v
 	}
 }
 
