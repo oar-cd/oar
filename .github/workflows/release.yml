@@ -18,6 +18,22 @@ jobs:
       packages: write
 
     steps:
+      - name: Wait for CI to pass
+        uses: lewagon/wait-on-check-action@v1.4.0
+        with:
+          ref: ${{ github.ref }}
+          check-name: Lint
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 5
+
+      - name: Wait for tests to pass
+        uses: lewagon/wait-on-check-action@v1.4.0
+        with:
+          ref: ${{ github.ref }}
+          check-name: Test
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 5
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
