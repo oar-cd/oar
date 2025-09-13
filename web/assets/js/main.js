@@ -342,11 +342,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to process server-sent events
     function processServerSentEvents(reader, decoder, contentElement, outputElement, onComplete) {
         let buffer = '';
+        let hasError = false; // Track if we've seen any error messages
 
         function readChunk() {
             return reader.read().then(({ done, value }) => {
                 if (done) {
-                    onComplete();
+                    onComplete(hasError); // Pass error state to completion handler
                     return;
                 }
 
@@ -373,6 +374,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // All messages now come with proper type field
                                     const messageType = data.type;
                                     const displayMessage = data.message;
+
+                                    // Track error state
+                                    if (messageType === 'error') {
+                                        hasError = true;
+                                    }
 
                                     // Style based on message type
                                     let cssClass;
@@ -478,21 +484,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
-                return processServerSentEvents(reader, decoder, elements.content, elements.output, () => {
+                return processServerSentEvents(reader, decoder, elements.content, elements.output, (hasError) => {
                     elements.button.disabled = false;
 
-                    // Check if operation was successful based on content
-                    const outputText = elements.content.textContent;
-                    if (outputText.includes('ERROR') || outputText.includes('failed') || outputText.includes('error')) {
+                    // Check if operation was successful based on tracked error state
+                    if (hasError) {
                         elements.content.innerHTML += `\n<span class="deploy-text-frontend-error">${config.errorMsg}</span>\n`;
                         showToast(config.errorMsg, 'error');
                     } else {
                         elements.content.innerHTML += `\n<span class="deploy-text-frontend-success">${config.successMsg}</span>\n`;
                         showToast(config.successMsg, 'success');
-                        // Update status pill for deploy/stop operations
-                        if (config.updateStatus) {
-                            updateProjectStatus(projectId);
-                        }
+                    }
+
+                    // Update status pill for deploy/stop operations (regardless of success/failure)
+                    if (config.updateStatus) {
+                        updateProjectStatus(projectId);
                     }
 
                     elements.output.scrollTop = elements.output.scrollHeight;
@@ -623,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
 
-            return processServerSentEvents(reader, decoder, elements.content, elements.output, () => {
+            return processServerSentEvents(reader, decoder, elements.content, elements.output, (hasError) => {
                 elements.content.innerHTML += '\n<span class="deploy-text-frontend-generic">Logs stream ended</span>\n';
                 elements.output.scrollTop = elements.output.scrollHeight;
             });
