@@ -31,6 +31,13 @@ func (p *Project) GitDir() (string, error) {
 	return filepath.Join(p.WorkingDir, GitDir), nil
 }
 
+func (p *Project) CacheDir() (string, error) {
+	if p.WorkingDir == "" {
+		return "", fmt.Errorf("working directory is not set for project %s", p.Name)
+	}
+	return filepath.Join(p.WorkingDir, "cache"), nil
+}
+
 func (p *Project) LastCommitStr() string {
 	if p.LastCommit == nil {
 		return ""

@@ -125,6 +125,29 @@ func (s *ProjectService) Create(project *Project) (*Project, error) {
 		return nil, err
 	}
 
+	cacheDir, err := project.CacheDir()
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"error", err)
+		return nil, err
+	}
+
+	// Create cache directory
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		slog.Error("Service operation failed",
+			"layer", "service",
+			"operation", "create_project_cache_dir",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"cache_dir", cacheDir,
+			"error", err)
+		return nil, fmt.Errorf("failed to create cache directory: %w", err)
+	}
+
 	// Detect default branch if none specified
 	if project.GitBranch == "" {
 		defaultBranch, err := s.gitService.GetDefaultBranch(project.GitURL, project.GitAuth)

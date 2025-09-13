@@ -30,12 +30,13 @@ func NewIntegrationTestProject(t *testing.T, composeContent string) *Integration
 	// Create temporary directory
 	tempDir := t.TempDir()
 	composeDir := filepath.Join(tempDir, "compose_project")
+	gitDir := filepath.Join(composeDir, "git") // This is where NewComposeProject will look
 
-	err := os.MkdirAll(composeDir, 0o755)
+	err := os.MkdirAll(gitDir, 0o755)
 	require.NoError(t, err, "Failed to create compose directory")
 
-	// Write compose file
-	composeFile := filepath.Join(composeDir, "compose.yaml")
+	// Write compose file in git directory where NewComposeProject expects it
+	composeFile := filepath.Join(gitDir, "compose.yaml")
 	err = os.WriteFile(composeFile, []byte(composeContent), 0o644)
 	require.NoError(t, err, "Failed to write compose file")
 
@@ -49,14 +50,24 @@ func NewIntegrationTestProject(t *testing.T, composeContent string) *Integration
 		GitTimeout:    30 * time.Second,
 	}
 
-	// Create compose project
-	composeProject := &ComposeProject{
+	// Create domain project for testing
+	domainProject := &Project{
+		ID:           uuid.New(),
 		Name:         projectName,
 		WorkingDir:   composeDir,
 		ComposeFiles: []string{"compose.yaml"},
 		Variables:    []string{},
-		Config:       config,
+		Status:       ProjectStatusStopped,
 	}
+
+	// Create cache directory that the preprocessing logic expects
+	cacheDir, err := domainProject.CacheDir()
+	require.NoError(t, err, "Failed to get cache directory path")
+	err = os.MkdirAll(cacheDir, 0o755)
+	require.NoError(t, err, "Failed to create cache directory")
+
+	// Create compose project using proper constructor
+	composeProject := NewComposeProject(domainProject, config)
 
 	testProject := &IntegrationTestProject{
 		Name:       projectName,

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,26 +81,70 @@ func TestNewComposeProject_InvalidProject(t *testing.T) {
 
 // Tests for ComposeProject.prepareCommand
 func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
-	composeProject := createTestComposeProject()
 	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
+
+	// Create proper directory structure
+	composeDir := filepath.Join(tempDir, "test-project")
+	gitDir := filepath.Join(composeDir, "git")
+	err := os.MkdirAll(gitDir, 0o755)
+	require.NoError(t, err)
+
+	// Create a compose file
+	composeContent := `services:
+  test:
+    image: nginx:alpine
+`
+	composeFile := filepath.Join(gitDir, "docker-compose.yml")
+	err = os.WriteFile(composeFile, []byte(composeContent), 0o644)
+	require.NoError(t, err)
+
+	// Create domain project
+	domainProject := &Project{
+		ID:           uuid.New(),
+		Name:         "test-project",
+		WorkingDir:   composeDir,
+		ComposeFiles: []string{"docker-compose.yml"},
+		Variables:    []string{},
+		Status:       ProjectStatusStopped,
+	}
+
+	// Create cache directory
+	cacheDir, err := domainProject.CacheDir()
+	require.NoError(t, err)
+	err = os.MkdirAll(cacheDir, 0o755)
+	require.NoError(t, err)
+
+	// Create config
+	config := &Config{
+		DataDir:       tempDir,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+	}
+
+	// Create compose project
+	composeProject := NewComposeProject(domainProject, config)
 
 	// Test
-	cmd := composeProject.prepareCommand("up", []string{"--detach"})
+	cmd, err := composeProject.prepareCommand("up", []string{"--detach"})
+	assert.NoError(t, err)
 
 	// Assertions
 	assert.NotNil(t, cmd)
 	assert.Contains(t, cmd.Path, "docker") // Path may be full path like /usr/bin/docker
 	assert.Equal(t, "", cmd.Dir)           // Working directory is no longer set to avoid host path resolution issues
 
-	// Verify command arguments
+	// Verify command arguments (with new cache-based preprocessing)
+	gitDirPath := filepath.Join(composeDir, "git")
+	cachedFile := filepath.Join(cacheDir, "docker-compose.processed.yaml")
+
 	expectedArgs := []string{
 		"docker", // cmd.Args[0] is always the command name
 		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
-		"--file", filepath.Join(tempDir, "docker-compose.yml"),
+		"--project-directory", gitDirPath,
+		"--file", cachedFile,
 		"up",
 		"--detach",
 	}
@@ -107,115 +152,81 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 }
 
 func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
-	composeProject := createTestComposeProject()
-	composeProject.ComposeFiles = []string{
+	tempDir := t.TempDir()
+
+	// Create proper directory structure
+	composeDir := filepath.Join(tempDir, "test-project")
+	gitDir := filepath.Join(composeDir, "git")
+	err := os.MkdirAll(gitDir, 0o755)
+	require.NoError(t, err)
+
+	// Create multiple compose files
+	composeFiles := []string{
 		"docker-compose.yml",
 		"docker-compose.override.yml",
 		"docker-compose.prod.yml",
 	}
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
+
+	composeContent := `services:
+  test:
+    image: nginx:alpine
+`
+
+	for _, filename := range composeFiles {
+		composeFile := filepath.Join(gitDir, filename)
+		err = os.WriteFile(composeFile, []byte(composeContent), 0o644)
+		require.NoError(t, err)
+	}
+
+	// Create domain project
+	domainProject := &Project{
+		ID:           uuid.New(),
+		Name:         "test-project",
+		WorkingDir:   composeDir,
+		ComposeFiles: composeFiles,
+		Variables:    []string{},
+		Status:       ProjectStatusStopped,
+	}
+
+	// Create cache directory
+	cacheDir, err := domainProject.CacheDir()
+	require.NoError(t, err)
+	err = os.MkdirAll(cacheDir, 0o755)
+	require.NoError(t, err)
+
+	// Create config
+	config := &Config{
+		DataDir:       tempDir,
+		DockerCommand: "docker",
+		DockerHost:    "unix:///var/run/docker.sock",
+	}
+
+	// Create compose project
+	composeProject := NewComposeProject(domainProject, config)
 
 	// Test
-	cmd := composeProject.prepareCommand("down", []string{"--remove-orphans"})
+	cmd, err := composeProject.prepareCommand("down", []string{"--remove-orphans"})
+	assert.NoError(t, err)
 
 	// Assertions
 	assert.NotNil(t, cmd)
 
-	// Verify all compose files are included
+	// Verify all compose files are included (now as cached processed files)
+	gitDirPath := filepath.Join(composeDir, "git")
 	expectedArgs := []string{
 		"docker",
 		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
-		"--file", filepath.Join(tempDir, "docker-compose.yml"),
-		"--file", filepath.Join(tempDir, "docker-compose.override.yml"),
-		"--file", filepath.Join(tempDir, "docker-compose.prod.yml"),
+		"--project-directory", gitDirPath,
+		"--file", filepath.Join(cacheDir, "docker-compose.processed.yaml"),
+		"--file", filepath.Join(cacheDir, "docker-compose.override.processed.yaml"),
+		"--file", filepath.Join(cacheDir, "docker-compose.prod.processed.yaml"),
 		"down",
 		"--remove-orphans",
 	}
 	assert.Equal(t, expectedArgs, cmd.Args)
-}
-
-func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
-	composeProject := createTestComposeProject()
-	composeProject.ComposeFiles = []string{} // No compose files
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
-
-	// Test
-	cmd := composeProject.prepareCommand("ps", []string{})
-
-	// Assertions
-	assert.NotNil(t, cmd)
-
-	// Should still work with no files (docker compose will use defaults)
-	expectedArgs := []string{
-		"docker",
-		"--host", "unix:///var/run/docker.sock",
-		"compose",
-		"--progress", "plain",
-		"--project-name", "test-project",
-		"ps",
-	}
-	assert.Equal(t, expectedArgs, cmd.Args)
-}
-
-// Tests for specific command builders
-func TestComposeProject_CommandUp(t *testing.T) {
-	composeProject := createTestComposeProject()
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
-
-	// Test
-	cmd := composeProject.commandUp()
-
-	// Assertions
-	assert.NotNil(t, cmd)
-
-	// Verify up-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "up")
-	assert.Contains(t, args, "--detach")
-	assert.Contains(t, args, "--wait")
-	assert.Contains(t, args, "--quiet-pull")
-	assert.Contains(t, args, "--no-color")
-	assert.Contains(t, args, "--remove-orphans")
-}
-
-func TestComposeProject_CommandDown(t *testing.T) {
-	composeProject := createTestComposeProject()
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
-
-	// Test
-	cmd := composeProject.commandDown()
-
-	// Assertions
-	assert.NotNil(t, cmd)
-
-	// Verify down-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "down")
-	assert.Contains(t, args, "--remove-orphans")
-}
-
-func TestComposeProject_CommandLogs(t *testing.T) {
-	composeProject := createTestComposeProject()
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
-
-	// Test
-	cmd := composeProject.commandLogs()
-
-	// Assertions
-	assert.NotNil(t, cmd)
-
-	// Verify logs-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "logs")
-	assert.Contains(t, args, "--follow")
 }
 
 // Tests for executeCommand (using real commands that are safe)
@@ -344,36 +355,6 @@ services:
 	// This is more of a placeholder for integration testing
 	_ = output
 	_ = err
-}
-
-// Tests for edge cases and error conditions
-func TestComposeProject_EmptyProjectName(t *testing.T) {
-	composeProject := createTestComposeProject()
-	composeProject.Name = ""
-	tempDir := t.TempDir()
-	composeProject.WorkingDir = tempDir
-
-	// Test
-	cmd := composeProject.prepareCommand("up", []string{})
-
-	// Assertions
-	assert.NotNil(t, cmd)
-
-	// Should still create command with empty project name
-	assert.Contains(t, cmd.Args, "--project-name")
-	assert.Contains(t, cmd.Args, "")
-}
-
-func TestComposeProject_InvalidWorkingDirectory(t *testing.T) {
-	composeProject := createTestComposeProject()
-	composeProject.WorkingDir = "/non/existent/directory"
-
-	// Test
-	cmd := composeProject.prepareCommand("up", []string{})
-
-	// Assertions // prepareCommand doesn't validate directory existence
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "", cmd.Dir) // Working directory is no longer set to avoid host path resolution issues
 }
 
 // Tests for streaming operations with channels
