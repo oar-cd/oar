@@ -17,7 +17,12 @@ func NewCmdProjectDeploy() *cobra.Command {
 This will update running containers with the latest configuration.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runProjectDeploy(cmd, args)
+			err := runProjectDeploy(cmd, args)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 

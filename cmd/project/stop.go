@@ -17,7 +17,12 @@ func NewCmdProjectStop() *cobra.Command {
 This will gracefully shut down all containers associated with the project.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runProjectStop(cmd, args)
+			err := runProjectStop(cmd, args)
+			if err != nil {
+				// Silence usage for runtime errors (not argument validation errors)
+				cmd.SilenceUsage = true
+			}
+			return err
 		},
 	}
 
