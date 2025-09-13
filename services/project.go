@@ -317,7 +317,7 @@ func (s *ProjectService) DeployStreaming(
 	deployment.Output = outputBuffer.String()
 
 	if err != nil {
-		return s.handleDeploymentError(&deployment, err)
+		return s.handleDeploymentError(project, &deployment, err)
 	}
 
 	// Complete deployment
@@ -408,7 +408,7 @@ func (s *ProjectService) prepareDeployment(
 }
 
 // handleDeploymentError handles deployment errors consistently
-func (s *ProjectService) handleDeploymentError(deployment *Deployment, err error) error {
+func (s *ProjectService) handleDeploymentError(project *Project, deployment *Deployment, err error) error {
 	// Update deployment record as failed and append error info to output
 	deployment.Status = DeploymentStatusFailed
 
@@ -418,10 +418,20 @@ func (s *ProjectService) handleDeploymentError(deployment *Deployment, err error
 	}
 	deployment.Output += fmt.Sprintf("ERROR: %v", err)
 
+	// Update project status to error
+	project.Status = ProjectStatusError
+
+	// Update both deployment and project records
 	if updateErr := s.deploymentRepository.Update(deployment); updateErr != nil {
 		slog.Error("Failed to update deployment record as failed",
 			"deployment_id", deployment.ID,
 			"project_id", deployment.ProjectID,
+			"error", updateErr)
+	}
+
+	if updateErr := s.projectRepository.Update(project); updateErr != nil {
+		slog.Error("Failed to update project status to error",
+			"project_id", project.ID,
 			"error", updateErr)
 	}
 

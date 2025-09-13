@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -263,9 +264,20 @@ func HandleStream(streamFunc func(uuid.UUID, chan<- string) error, streamType st
 			defer close(outputChan) // Close channel when streaming function completes
 			if err := streamFunc(projectID, outputChan); err != nil {
 				LogOperationError(fmt.Sprintf("%s_stream", streamType), "handlers", err, "project_id", projectID)
-				select {
-				case outputChan <- fmt.Sprintf("ERROR: %s failed: %s", strings.ToUpper(streamType[:1])+streamType[1:], err.Error()):
-				default:
+				// Send error as JSON message to match deployment format
+				errorMsg := map[string]string{
+					"type": "error",
+					"message": fmt.Sprintf(
+						"%s failed: %s",
+						strings.ToUpper(streamType[:1])+streamType[1:],
+						err.Error(),
+					),
+				}
+				if jsonMsg, jsonErr := json.Marshal(errorMsg); jsonErr == nil {
+					select {
+					case outputChan <- string(jsonMsg):
+					default:
+					}
 				}
 			}
 		}()
