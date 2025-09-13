@@ -15,8 +15,8 @@ func TestGetDefaultDataDir(t *testing.T) {
 	// Should not be empty
 	assert.NotEmpty(t, result)
 
-	// Should end with "oar"
-	assert.True(t, strings.HasSuffix(result, "oar"))
+	// Should end with "data" (since it's now ~/.local/share/oar/data)
+	assert.True(t, strings.HasSuffix(result, "data"))
 
 	// Should contain either .local/share or XDG_DATA_HOME path
 	assert.True(t,

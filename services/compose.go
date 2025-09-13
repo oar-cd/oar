@@ -57,7 +57,7 @@ func (p *ComposeProject) hostWorkingDirWithEnv(env EnvProvider) string {
 
 	if p.Config.Containerized {
 		// Containerized environment - map to host's default data directory
-		hostDataDir = getDefaultDataDirWithEnv(env)
+		hostDataDir = filepath.Join(getDefaultInstallDirWithEnv(env), "data")
 	} else {
 		// Local development - use the configured data directory as-is since it's already a host path
 		hostDataDir = p.Config.DataDir

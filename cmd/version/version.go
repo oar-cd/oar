@@ -46,7 +46,7 @@ func runVersion() error {
 
 // getServerVersion reads the VERSION file from the installation directory
 func getServerVersion() string {
-	oarDir := services.GetDefaultDataDir()
+	oarDir := services.GetDefaultInstallDir()
 	versionFile := filepath.Join(oarDir, "VERSION")
 
 	data, err := os.ReadFile(versionFile)

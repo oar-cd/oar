@@ -7,8 +7,7 @@ import (
 )
 
 func TestNewCmdRoot(t *testing.T) {
-	defaultDataDir := "/test/data/dir"
-	cmd := NewCmdRoot(defaultDataDir)
+	cmd := NewCmdRoot()
 
 	// Test command configuration
 	assert.Equal(t, "oar", cmd.Use)
@@ -46,15 +45,9 @@ func TestNewCmdRoot(t *testing.T) {
 }
 
 func TestNewCmdRootFlags(t *testing.T) {
-	defaultDataDir := "/test/data/dir"
-	cmd := NewCmdRoot(defaultDataDir)
+	cmd := NewCmdRoot()
 
 	// Check persistent flags exist
-	dataDirFlag := cmd.PersistentFlags().Lookup("data-dir")
-	assert.NotNil(t, dataDirFlag)
-	assert.Equal(t, "d", dataDirFlag.Shorthand)
-	assert.Equal(t, defaultDataDir, dataDirFlag.DefValue)
-
 	logLevelFlag := cmd.PersistentFlags().Lookup("log-level")
 	assert.NotNil(t, logLevelFlag)
 	assert.Equal(t, "l", logLevelFlag.Shorthand)
