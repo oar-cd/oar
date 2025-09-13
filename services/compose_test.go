@@ -209,7 +209,8 @@ func TestComposeProject_HostWorkingDir(t *testing.T) {
 			// Create a ComposeProject with test configuration
 			config := &Config{
 				DataDir:       tt.containerDataDir,
-				Containerized: true, // All test cases assume containerized environment
+				HostDataDir:   "/home/user/.local/share/oar/data", // Set expected host data dir for tests
+				Containerized: true,                               // All test cases assume containerized environment
 			}
 			composeProject := &ComposeProject{
 				Name:       "test-project",
@@ -261,6 +262,7 @@ func TestComposeProject_HostWorkingDir_NoReplacement(t *testing.T) {
 	// Test case where WorkingDir doesn't contain Config.DataDir
 	config := &Config{
 		DataDir:       "/data",
+		HostDataDir:   "/home/user/.local/share/oar/data", // Set host data dir for containerized test
 		Containerized: true,
 	}
 	composeProject := &ComposeProject{
@@ -280,6 +282,31 @@ func TestComposeProject_HostWorkingDir_NoReplacement(t *testing.T) {
 	// Should return the working dir unchanged since it doesn't contain the data dir to replace
 	expected := "/some/other/path/projects/abc123/git"
 	assert.Equal(t, expected, result, "Paths not containing DataDir should remain unchanged")
+}
+
+func TestComposeProject_HostWorkingDir_MissingHostDataDir(t *testing.T) {
+	// Test case where OAR_HOST_DATA_DIR is not set in containerized environment
+	config := &Config{
+		DataDir:       "/data",
+		Containerized: true,
+		// HostDataDir intentionally not set
+	}
+	composeProject := &ComposeProject{
+		Name:       "test-project",
+		WorkingDir: "/data/projects/abc123/git",
+		Config:     config,
+	}
+
+	// Create mock environment provider
+	mockEnv := &MockEnvProvider{
+		envVars: map[string]string{},
+		homeDir: "/home/user",
+	}
+
+	result := composeProject.hostWorkingDirWithEnv(mockEnv)
+
+	// Should return empty string when host data dir is not configured
+	assert.Equal(t, "", result, "Should return empty string when HostDataDir is not set in containerized environment")
 }
 
 // Tests for specific command builders

@@ -18,7 +18,7 @@ jobs:
       packages: write
 
     steps:
-      - name: Wait for CI to pass
+      - name: Wait for linting to pass
         uses: lewagon/wait-on-check-action@v1.4.0
         with:
           ref: ${{ github.ref }}
