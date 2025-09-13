@@ -133,7 +133,7 @@ func TestLogLevelFlag_Type(t *testing.T) {
 	flag := &logLevelFlag{value: "info", set: false}
 
 	got := flag.Type()
-	want := "one of [debug|info|warning|error]"
+	want := "one of [debug|info|warning|error|silent]"
 
 	if got != want {
 		t.Errorf("logLevelFlag.Type() = %v, want %v", got, want)

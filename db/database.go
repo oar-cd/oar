@@ -49,7 +49,9 @@ func getGormLogLevel() logger.LogLevel {
 		return logger.Warn // Show warnings but not SQL queries
 	} else if ctx.Enabled(context.TODO(), slog.LevelWarn) {
 		return logger.Warn // Show warnings
+	} else if ctx.Enabled(context.TODO(), slog.LevelError) {
+		return logger.Error // Show only errors for error-level
 	} else {
-		return logger.Error // Show only errors for error-level and above
+		return logger.Silent // Silent level - disable all GORM logging
 	}
 }
