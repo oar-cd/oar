@@ -73,7 +73,8 @@ func TestProjectAddHappy(t *testing.T) {
 			t.Setenv("OAR_ENCRYPTION_KEY", "cw_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4=") // Test key
 
 			// Initialize the app with test data directory
-			config, err := services.NewConfigForCLI(tempDir)
+			t.Setenv("OAR_DATA_DIR", tempDir)
+			config, err := services.NewConfigForCLI()
 			require.NoError(t, err)
 			err = app.InitializeWithConfig(config)
 			require.NoError(t, err)
@@ -199,7 +200,8 @@ func TestProjectAddValidation(t *testing.T) {
 			t.Setenv("OAR_ENCRYPTION_KEY", "cw_0x689RpI-jtRR7oE8h_eQsKImvJapLeSbXpwF4e4=") // Test key
 
 			// Initialize the app with test data directory
-			config, err := services.NewConfigForCLI(tempDir)
+			t.Setenv("OAR_DATA_DIR", tempDir)
+			config, err := services.NewConfigForCLI()
 			require.NoError(t, err)
 			err = app.InitializeWithConfig(config)
 			require.NoError(t, err)

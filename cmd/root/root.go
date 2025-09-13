@@ -22,16 +22,12 @@ import (
 var config *services.Config
 
 func Execute() {
-	defaultDataDir := services.GetDefaultDataDir()
-
-	if err := NewCmdRoot(defaultDataDir).Execute(); err != nil {
+	if err := NewCmdRoot().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func NewCmdRoot(defaultDataDir string) *cobra.Command {
-	var dataDir string
-
+func NewCmdRoot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "oar",
 		Short: "GitOps deployment tool for Docker Compose projects",
@@ -53,17 +49,9 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 				}
 			}
 
-			// Initialize configuration for CLI with data directory override
-			// Only override if the flag was explicitly set by the user (differs from default)
-			var cliDataDirOverride string
-			if dataDir != defaultDataDir {
-				// CLI flag was provided and differs from default, use it to override
-				cliDataDirOverride = dataDir
-			}
-			// Otherwise pass empty string to let config system use environment variables/defaults
-
+			// Initialize configuration for CLI
 			var err error
-			config, err = services.NewConfigForCLI(cliDataDirOverride)
+			config, err = services.NewConfigForCLI()
 			if err != nil {
 				log.Fatalf("Failed to initialize configuration: %s", err)
 				os.Exit(1)
@@ -91,8 +79,6 @@ func NewCmdRoot(defaultDataDir string) *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().
-		StringVarP(&dataDir, "data-dir", "d", defaultDataDir, "Data directory for Oar configuration and projects")
 	cmd.PersistentFlags().VarP(logging.LogLevel, "log-level", "l", "Set log verbosity level")
 	cmd.PersistentFlags().VarP(output.NoColor, "no-color", "c", "Disable colored terminal output")
 

@@ -16,11 +16,6 @@ services:
       - ./data:/data
     ports:
       - 127.0.0.1:8080:8080
-    healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
-      interval: 2s
-      timeout: 1s
-      retries: 10
     restart: unless-stopped
 
   watcher:
@@ -35,7 +30,4 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/data
-    depends_on:
-      web:
-        condition: service_healthy
     restart: unless-stopped

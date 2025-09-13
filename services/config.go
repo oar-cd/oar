@@ -34,13 +34,18 @@ func (p *DefaultEnvProvider) UserHomeDir() (string, error) {
 	return os.UserHomeDir()
 }
 
-// GetDefaultDataDir returns the default Oar data directory following XDG Base Directory specification
-func GetDefaultDataDir() string {
-	return getDefaultDataDirWithEnv(&DefaultEnvProvider{})
+// GetDefaultInstallDir returns the default Oar installation directory following XDG Base Directory specification
+func GetDefaultInstallDir() string {
+	return getDefaultInstallDirWithEnv(&DefaultEnvProvider{})
 }
 
-// getDefaultDataDirWithEnv allows dependency injection for testing
-func getDefaultDataDirWithEnv(env EnvProvider) string {
+// GetDefaultDataDir returns the default Oar data directory following XDG Base Directory specification
+func GetDefaultDataDir() string {
+	return filepath.Join(getDefaultInstallDirWithEnv(&DefaultEnvProvider{}), "data")
+}
+
+// getDefaultInstallDirWithEnv allows dependency injection for testing
+func getDefaultInstallDirWithEnv(env EnvProvider) string {
 	// Use XDG_DATA_HOME if set, otherwise fallback to ~/.local/share
 	xdgDataHome := env.Getenv("XDG_DATA_HOME")
 	if xdgDataHome != "" {
@@ -54,7 +59,8 @@ func getDefaultDataDirWithEnv(env EnvProvider) string {
 // Config holds configuration for all services
 type Config struct {
 	// Core paths
-	DataDir      string
+	InstallDir   string // Installation directory (compose.yaml, .env, VERSION)
+	DataDir      string // Data directory (database, projects, tmp)
 	DatabasePath string
 	TmpDir       string
 	WorkspaceDir string
@@ -87,17 +93,17 @@ type Config struct {
 	env EnvProvider
 }
 
-// NewConfigForCLI creates a new configuration for CLI usage with optional data directory override
-func NewConfigForCLI(cliDataDir string) (*Config, error) {
-	return newConfigWithEnv(&DefaultEnvProvider{}, cliDataDir)
+// NewConfigForCLI creates a new configuration for CLI usage
+func NewConfigForCLI() (*Config, error) {
+	return newConfigForCLIWithEnv(&DefaultEnvProvider{})
 }
 
 // NewConfigForCLIWithEnv creates a new configuration with custom environment provider (for testing)
-func NewConfigForCLIWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
-	return newConfigWithEnv(env, cliDataDir)
+func NewConfigForCLIWithEnv(env EnvProvider) (*Config, error) {
+	return newConfigForCLIWithEnv(env)
 }
 
-func newConfigWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
+func newConfigForCLIWithEnv(env EnvProvider) (*Config, error) {
 	c := &Config{env: env}
 
 	// Set defaults first
@@ -108,11 +114,6 @@ func newConfigWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
 
 	// Override with environment variables
 	c.loadFromEnv()
-
-	// Override with CLI flags (if provided)
-	if cliDataDir != "" {
-		c.DataDir = cliDataDir
-	}
 
 	// Derive dependent paths
 	c.derivePaths()
@@ -161,7 +162,8 @@ func NewConfigForWebAppWithEnv(env EnvProvider) (*Config, error) {
 
 // setDefaults sets sensible default values
 func (c *Config) setDefaults() {
-	c.DataDir = getDefaultDataDirWithEnv(c.env)
+	c.InstallDir = getDefaultInstallDirWithEnv(c.env)
+	c.DataDir = filepath.Join(c.InstallDir, "data")
 	c.LogLevel = "info"
 	c.ColorEnabled = true
 	c.DockerHost = "unix:///var/run/docker.sock"
@@ -175,6 +177,9 @@ func (c *Config) setDefaults() {
 
 // loadFromEnv loads configuration from environment variables
 func (c *Config) loadFromEnv() {
+	if v := c.env.Getenv("OAR_INSTALL_DIR"); v != "" {
+		c.InstallDir = v
+	}
 	if v := c.env.Getenv("OAR_DATA_DIR"); v != "" {
 		c.DataDir = v
 	}
@@ -223,9 +228,9 @@ func (c *Config) loadFromEnv() {
 	}
 }
 
-// readEncryptionKeyFromEnvFile attempts to read OAR_ENCRYPTION_KEY from .env file in data directory
+// readEncryptionKeyFromEnvFile attempts to read OAR_ENCRYPTION_KEY from .env file in installation directory
 func (c *Config) readEncryptionKeyFromEnvFile() string {
-	envFile := filepath.Join(c.DataDir, ".env")
+	envFile := filepath.Join(c.InstallDir, ".env")
 
 	envVars, err := dotenv.Read(envFile)
 	if err != nil {

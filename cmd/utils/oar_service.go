@@ -35,8 +35,8 @@ func ResetCreateOarServiceComposeProjectForTesting() {
 
 // createOarServiceComposeProjectDefault is the default implementation
 func createOarServiceComposeProjectDefault(cmd *cobra.Command) (services.ComposeProjectInterface, error) {
-	// Get the Oar data directory (where compose.yaml should be)
-	oarDir := services.GetDefaultDataDir()
+	// Get the Oar installation directory (where compose.yaml should be)
+	oarDir := services.GetDefaultInstallDir()
 
 	// Check if compose.yaml exists
 	composeFile := filepath.Join(oarDir, "compose.yaml")

@@ -34,57 +34,28 @@ func (m *MockEnvProvider) UserHomeDir() (string, error) {
 }
 
 func TestNewConfigForCLI(t *testing.T) {
-	tests := []struct {
-		name          string
-		dataDir       string
-		wantDataDir   string
-		wantWorkspace string
-	}{
-		{
-			name:          "custom data directory",
-			dataDir:       "/custom/path",
-			wantDataDir:   "/custom/path",
-			wantWorkspace: "/custom/path/projects",
-		},
-		{
-			name:          "empty data directory uses default",
-			dataDir:       "",
-			wantDataDir:   "", // Will be set to home/.oar
-			wantWorkspace: "", // Will be set to home/.oar/projects
-		},
+	// Use mock environment for testing
+	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
+		"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
+	})
+	config, err := NewConfigForCLIWithEnv(mockEnv)
+	if err != nil {
+		t.Fatalf("NewConfigForCLI() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Use mock environment for testing
-			mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
-				"OAR_ENCRYPTION_KEY": generateTestKey(), // Required for config validation
-			})
-			config, err := NewConfigForCLIWithEnv(mockEnv, tt.dataDir)
-			if err != nil {
-				t.Fatalf("NewConfigForCLI() error = %v", err)
-			}
+	// Test default behavior with mock environment
+	expectedInstallDir := getDefaultInstallDirWithEnv(mockEnv)
+	expectedDataDir := filepath.Join(expectedInstallDir, "data")
+	expectedWorkspace := filepath.Join(expectedDataDir, "projects")
 
-			if tt.dataDir == "" {
-				// Test default behavior with mock environment
-				expectedDataDir := getDefaultDataDirWithEnv(mockEnv)
-				expectedWorkspace := filepath.Join(expectedDataDir, "projects")
-
-				if config.DataDir != expectedDataDir {
-					t.Errorf("NewConfigForCLI() DataDir = %v, want %v", config.DataDir, expectedDataDir)
-				}
-				if config.WorkspaceDir != expectedWorkspace {
-					t.Errorf("NewConfigForCLI() WorkspaceDir = %v, want %v", config.WorkspaceDir, expectedWorkspace)
-				}
-			} else {
-				if config.DataDir != tt.wantDataDir {
-					t.Errorf("NewConfigForCLI() DataDir = %v, want %v", config.DataDir, tt.wantDataDir)
-				}
-				if config.WorkspaceDir != tt.wantWorkspace {
-					t.Errorf("NewConfigForCLI() WorkspaceDir = %v, want %v", config.WorkspaceDir, tt.wantWorkspace)
-				}
-			}
-		})
+	if config.InstallDir != expectedInstallDir {
+		t.Errorf("NewConfigForCLI() InstallDir = %v, want %v", config.InstallDir, expectedInstallDir)
+	}
+	if config.DataDir != expectedDataDir {
+		t.Errorf("NewConfigForCLI() DataDir = %v, want %v", config.DataDir, expectedDataDir)
+	}
+	if config.WorkspaceDir != expectedWorkspace {
+		t.Errorf("NewConfigForCLI() WorkspaceDir = %v, want %v", config.WorkspaceDir, expectedWorkspace)
 	}
 }
 
@@ -99,7 +70,8 @@ func TestNewConfigForWebApp(t *testing.T) {
 	}
 
 	// Test that defaults are set
-	expectedDataDir := getDefaultDataDirWithEnv(mockEnv)
+	expectedInstallDir := getDefaultInstallDirWithEnv(mockEnv)
+	expectedDataDir := filepath.Join(expectedInstallDir, "data")
 	expectedWorkspace := filepath.Join(expectedDataDir, "projects")
 
 	if config.DataDir != expectedDataDir {
@@ -141,8 +113,8 @@ func TestNewConfigForWebApp_WithEnvVars(t *testing.T) {
 	if config.HTTPHost != "0.0.0.0" {
 		t.Errorf("NewConfigForWebApp() HTTPHost = %v, want 0.0.0.0", config.HTTPHost)
 	}
-	if config.DataDir != "/custom/data/oar" {
-		t.Errorf("NewConfigForWebApp() DataDir = %v, want /custom/data/oar", config.DataDir)
+	if config.DataDir != "/custom/data/oar/data" {
+		t.Errorf("NewConfigForWebApp() DataDir = %v, want /custom/data/oar/data", config.DataDir)
 	}
 	if config.PollInterval != 2*time.Minute {
 		t.Errorf("NewConfigForWebApp() PollInterval = %v, want 2m", config.PollInterval)
@@ -204,10 +176,10 @@ OAR_ENCRYPTION_KEY=%s
 
 	// Create config with no environment variable set (fallback to .env file)
 	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
-		// Deliberately omit OAR_ENCRYPTION_KEY to test .env file fallback
+		"OAR_INSTALL_DIR": tempDir, // Set install dir to temp dir for .env file lookup
 	})
 
-	config, err := NewConfigForCLIWithEnv(mockEnv, tempDir)
+	config, err := NewConfigForCLIWithEnv(mockEnv)
 	if err != nil {
 		t.Fatalf("Expected config creation to succeed with .env file, got error: %v", err)
 	}
@@ -234,9 +206,10 @@ func TestConfig_EncryptionKeyEnvironmentOverridesEnvFile(t *testing.T) {
 	envVarKey := generateTestKey()
 	mockEnv := NewMockEnvProvider("/home/testuser", map[string]string{
 		"OAR_ENCRYPTION_KEY": envVarKey,
+		"OAR_INSTALL_DIR":    tempDir, // Set install dir to temp dir for .env file lookup
 	})
 
-	config, err := NewConfigForCLIWithEnv(mockEnv, tempDir)
+	config, err := NewConfigForCLIWithEnv(mockEnv)
 	if err != nil {
 		t.Fatalf("Expected config creation to succeed, got error: %v", err)
 	}
