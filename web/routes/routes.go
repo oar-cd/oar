@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/web/actions"
 	"github.com/oar-cd/oar/web/components/modals"
 	"github.com/oar-cd/oar/web/components/project"
@@ -210,8 +211,9 @@ func getDeleteProjectModal(projectID uuid.UUID) (templ.Component, error) {
 		return nil, err
 	}
 
+	deletedDirPath := services.GetDeletedDirectoryPath(targetProject.WorkingDir)
 	projectView := handlers.ConvertProjectToView(targetProject)
-	return modals.DeleteProjectModal(projectView), nil
+	return modals.DeleteProjectModal(projectView, deletedDirPath), nil
 }
 
 func getConfigProjectModal(projectID uuid.UUID) (templ.Component, error) {

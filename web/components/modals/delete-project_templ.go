@@ -9,12 +9,11 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/oar-cd/oar/web/components/icons"
 	"github.com/oar-cd/oar/web/components/project"
 )
 
 // DeleteProjectModal renders the project deletion confirmation modal
-func DeleteProjectModal(proj project.ProjectView) templ.Component {
+func DeleteProjectModal(proj project.ProjectView, deletedDirPath string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -35,7 +34,7 @@ func DeleteProjectModal(proj project.ProjectView) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = BaseModal("Delete Project", deleteProjectBody(proj), deleteProjectFooter(proj)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = BaseModal("Delete Project", deleteProjectBody(proj, deletedDirPath), deleteProjectFooter(proj)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -44,7 +43,7 @@ func DeleteProjectModal(proj project.ProjectView) templ.Component {
 }
 
 // deleteProjectBody renders the modal body content
-func deleteProjectBody(proj project.ProjectView) templ.Component {
+func deleteProjectBody(proj project.ProjectView, deletedDirPath string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -65,41 +64,33 @@ func deleteProjectBody(proj project.ProjectView) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"text-center\"><div class=\"mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = icons.Trash2("w-6 h-6 text-red-600").Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><h3 class=\"text-lg font-medium text-gray-900 mb-2\">Delete Project</h3><p class=\"text-sm text-gray-500 mb-4\">Are you sure you want to delete the project <strong class=\"text-gray-900\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"text-center\"><p class=\"text-sm text-gray-500 mb-4\">Are you sure you want to delete the project <strong class=\"text-gray-900\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(proj.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/delete-project.templ`, Line: 23, Col: 88}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/delete-project.templ`, Line: 16, Col: 88}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</strong>? This action cannot be undone.</p><div class=\"bg-gray-50 rounded-md p-3 mb-4\"><div class=\"text-xs text-gray-600 mb-1\">Git Repository:</div><div class=\"text-sm font-mono text-gray-900 break-all\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</strong>?</p><div class=\"bg-blue-50 border border-blue-200 rounded-md p-3 mb-4\"><p class=\"text-xs text-blue-800\">All data created by the project (Docker volumes, etc.) will be preserved at:</p><p class=\"text-xs text-blue-900 font-mono mt-1 break-all\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(proj.GitURL)
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(deletedDirPath)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/delete-project.templ`, Line: 28, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/delete-project.templ`, Line: 23, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

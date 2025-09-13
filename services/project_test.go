@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -518,4 +519,80 @@ func TestProjectService_Create_WithEmptyBranch(t *testing.T) {
 
 	// Verify project has detected default branch
 	assert.Equal(t, "main", createdProject.GitBranch)
+}
+
+// Test that DeployStreaming displays old and new commit hashes when pull=true
+func TestProjectService_DeployStreaming_CommitHashDisplay(t *testing.T) {
+	service, repo, deploymentRepo, gitService, _ := setupMockProjectService(t)
+
+	// Create a test project
+	testProject := createTestProject()
+	repo.projects[testProject.ID] = testProject
+
+	// Setup git service mock to simulate commit hash changes during deployment
+	callCount := 0
+	gitService.GetLatestCommitFunc = func(workingDir string) (string, error) {
+		callCount++
+		switch callCount {
+		case 1:
+			// First call - before pull (in prepareDeployment)
+			return "abc123def456789012345678901234567890abcd", nil
+		case 2:
+			// Second call - before pull (in DeployStreaming)
+			return "abc123def456789012345678901234567890abcd", nil
+		default:
+			// Third call - after pull (in DeployStreaming)
+			return "xyz789def012345678901234567890abcdef01234", nil
+		}
+	}
+
+	gitService.PullFunc = func(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
+		// Simulate successful pull
+		return nil
+	}
+
+	// Create output channel to capture streaming messages
+	outputChan := make(chan string, 100)
+	done := make(chan bool)
+
+	var messages []string
+	go func() {
+		for msg := range outputChan {
+			messages = append(messages, msg)
+		}
+		done <- true
+	}()
+
+	// Test deployment with pull=true to trigger commit hash display
+	err := service.DeployStreaming(testProject.ID, true, outputChan)
+	close(outputChan)
+	<-done
+
+	// Assertions
+	// The deployment will fail at Docker Compose stage, but we should have captured
+	// the git pull messages including commit hash display before that failure
+	assert.Error(t, err, "Expected error due to Docker Compose not being available")
+	assert.NotEmpty(t, messages)
+
+	// Find the commit hash message
+	var commitHashMessage string
+	for _, msg := range messages {
+		if strings.Contains(msg, "Git pull completed successfully") &&
+			strings.Contains(msg, "from") &&
+			strings.Contains(msg, "to") {
+			commitHashMessage = msg
+			break
+		}
+	}
+
+	// Verify commit hash message exists and contains expected format
+	assert.NotEmpty(t, commitHashMessage, "Should contain a git pull completion message with commit hashes")
+
+	// The message should contain shortened commit hashes (first 8 characters) showing the transition
+	assert.Contains(t, commitHashMessage, "abc123de", "Should contain old commit hash (first 8 chars)")
+	assert.Contains(t, commitHashMessage, "xyz789de", "Should contain new commit hash (first 8 chars)")
+	assert.Contains(t, commitHashMessage, "from abc123de to xyz789de", "Should show commit hash transition")
+
+	// Verify deployment was created
+	assert.Len(t, deploymentRepo.deployments, 1)
 }

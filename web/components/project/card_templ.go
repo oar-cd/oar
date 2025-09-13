@@ -62,7 +62,7 @@ func ProjectCard(project ProjectView) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div title=\"Automatic deployment disabled\" class=\"inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div title=\"Automatic deployment disabled\" class=\"inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

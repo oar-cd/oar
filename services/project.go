@@ -52,6 +52,12 @@ func ParseProjectStatus(s string) (ProjectStatus, error) {
 	}
 }
 
+// GetDeletedDirectoryPath calculates the path where a project directory will be moved when deleted
+func GetDeletedDirectoryPath(workingDir string) string {
+	deletedDirName := fmt.Sprintf("deleted-%s", filepath.Base(workingDir))
+	return filepath.Join(filepath.Dir(workingDir), deletedDirName)
+}
+
 // ProjectService provides methods to manage Docker Compose projects.
 type ProjectService struct {
 	projectRepository    ProjectRepository
@@ -237,12 +243,46 @@ func (s *ProjectService) DeployStreaming(
 	// Streaming-specific messages
 	if pull {
 		captureAndSendJSON("Pulling latest changes from Git...", "info", "oar")
+
+		// Get commit hash before pull
+		gitDir, err := project.GitDir()
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to get git directory: %v", err)
+			captureAndSendJSON(errMsg, "error", "oar")
+			return err
+		}
+
+		beforeCommit, err := s.gitService.GetLatestCommit(gitDir)
+		if err != nil {
+			slog.Warn("Failed to get commit hash before pull", "project_id", project.ID, "error", err)
+			beforeCommit = "unknown"
+		}
+
 		if err := s.pullLatestChanges(project); err != nil {
 			errMsg := fmt.Sprintf("Failed to pull latest changes: %v", err)
 			captureAndSendJSON(errMsg, "error", "oar")
 			return err
 		}
-		captureAndSendJSON("Git pull completed successfully", "success", "oar")
+
+		// Get commit hash after pull
+		afterCommit, err := s.gitService.GetLatestCommit(gitDir)
+		if err != nil {
+			slog.Warn("Failed to get commit hash after pull", "project_id", project.ID, "error", err)
+			afterCommit = "unknown"
+		}
+
+		// Format commit hashes (use first 8 characters, or full string if "unknown")
+		beforeHash := beforeCommit
+		if beforeCommit != "unknown" {
+			beforeHash = beforeCommit[:8]
+		}
+		afterHash := afterCommit
+		if afterCommit != "unknown" {
+			afterHash = afterCommit[:8]
+		}
+
+		successMsg := fmt.Sprintf("Git pull completed successfully (from %s to %s)", beforeHash, afterHash)
+		captureAndSendJSON(successMsg, "success", "oar")
 	}
 
 	captureAndSendJSON("Starting Docker Compose deployment...", "info", "oar")
@@ -603,8 +643,7 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 
 	// Rename project directory to indicate deletion instead of removing it
 	// This avoids issues with root-owned files from Docker containers
-	deletedDirName := fmt.Sprintf("deleted-%s", filepath.Base(project.WorkingDir))
-	deletedDirPath := filepath.Join(filepath.Dir(project.WorkingDir), deletedDirName)
+	deletedDirPath := GetDeletedDirectoryPath(project.WorkingDir)
 	if err := os.Rename(project.WorkingDir, deletedDirPath); err != nil {
 		slog.Warn("Failed to rename project directory, continuing with deletion",
 			"project_id", project.ID,

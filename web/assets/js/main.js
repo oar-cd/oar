@@ -64,28 +64,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const typeConfig = {
             'success': {
                 borderColor: 'border-l-green-500',
+                backgroundColor: 'bg-green-50',
+                borderAllColor: 'border-green-500',
                 textColor: 'text-green-700',
                 icon: 'check'
             },
             'error': {
                 borderColor: 'border-l-red-500',
+                backgroundColor: 'bg-red-50',
+                borderAllColor: 'border-red-500',
                 textColor: 'text-red-700',
                 icon: 'x'
             },
             'warning': {
                 borderColor: 'border-l-yellow-500',
+                backgroundColor: 'bg-yellow-50',
+                borderAllColor: 'border-yellow-500',
                 textColor: 'text-yellow-700',
                 icon: 'triangle-alert'
             },
             'info': {
                 borderColor: 'border-l-blue-500',
+                backgroundColor: 'bg-blue-50',
+                borderAllColor: 'border-blue-500',
                 textColor: 'text-blue-700',
                 icon: 'info'
             }
         };
 
         const config = typeConfig[type];
-        toast.className = `bg-white ${config.borderColor} border-l-4 px-4 py-3 rounded-md shadow-lg max-w-sm transform transition-all duration-300 translate-x-full opacity-0`;
+        toast.className = `${config.backgroundColor} ${config.borderAllColor} border ${config.borderColor} border-l-4 px-4 py-3 rounded-md shadow-lg max-w-sm transform transition-all duration-300 translate-x-full opacity-0`;
 
         // Create toast content with icon and message
         const iconHtml = await loadIcon(config.icon, 'icon-sm');
@@ -653,11 +661,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show deployment output in a popup
     window.showDeploymentOutput = function(deploymentId, output) {
-        // Create modal overlay
+        // Create modal overlay without backdrop (since another modal is already active)
         const overlay = document.createElement('div');
         overlay.className = 'fixed inset-0 z-60 overflow-y-auto';
         overlay.innerHTML = `
-            <div class="fixed inset-0 bg-gray-500/75 transition-opacity"></div>
             <div class="flex min-h-full items-center justify-center p-4 text-center">
                 <div class="relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-4 sm:w-full sm:max-w-2xl sm:p-8">
                     <div class="flex justify-between items-center mb-4">
@@ -669,17 +676,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         </button>
                     </div>
                     <div class="deployment-output-container">
-                        <pre class="bg-gray-800 text-gray-300 p-4 rounded-lg font-mono text-xs overflow-x-auto overflow-y-auto whitespace-pre-wrap" style="max-height: 400px;">${output ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'No output available'}</pre>
+                        <div class="deploy-code-block" style="max-height: 400px;">
+                            <pre class="streaming-output">${output ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'No output available'}</pre>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(overlay);
-        
-        // Close on background click
+
+        // Close on background click (clicking outside the modal content)
         overlay.addEventListener('click', function(e) {
-            if (e.target === overlay || e.target.classList.contains('bg-gray-500/75')) {
+            if (e.target === overlay) {
                 overlay.remove();
             }
         });

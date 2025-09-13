@@ -37,6 +37,7 @@ templ ProjectForm(data ProjectFormData) {
 				name="name"
 				class="form-input"
 				value={ data.Name }
+				placeholder="my-project"
 				required
 			/>
 		</div>
@@ -55,11 +56,12 @@ templ ProjectForm(data ProjectFormData) {
 				/>
 			} else {
 				<input
-					type="url"
+					type="text"
 					id="git_url"
 					name="git_url"
 					class="form-input"
 					value={ data.GitURL }
+					placeholder="https://github.com/me/project.git, git@github.com:me/project.git"
 					required
 				/>
 			}
@@ -85,7 +87,7 @@ templ ProjectForm(data ProjectFormData) {
 					name="git_branch"
 					class="form-input"
 					value={ data.GitBranch }
-					placeholder="(uses repository default if empty)"
+					placeholder="production (or empty to use repository's default branch)"
 				/>
 			}
 		</div>
@@ -93,7 +95,7 @@ templ ProjectForm(data ProjectFormData) {
 		<div class="auth-container">
 			<div class="form-group">
 				<div class="flex items-center justify-between">
-					<label class="form-label">Authentication method</label>
+					<label class="form-label">Git Authentication</label>
 					<!-- Test Git Auth button with result indicator -->
 					<div class="flex items-center gap-2">
 						<div id="test-auth-result" class="result-indicator hidden"></div>
@@ -107,7 +109,7 @@ templ ProjectForm(data ProjectFormData) {
 							disabled
 						>
 							@icons.FlaskConical("icon-sm")
-							<span>Test Git Auth</span>
+							<span>Test</span>
 						</button>
 					</div>
 				</div>
@@ -200,6 +202,7 @@ templ AuthFields(data ProjectFormData) {
 				name="username"
 				class="form-input"
 				value={ data.Username }
+				placeholder="token"
 			/>
 		</div>
 		<div class="form-group">
@@ -210,6 +213,7 @@ templ AuthFields(data ProjectFormData) {
 				name="password"
 				class="form-input"
 				value={ data.Password }
+				placeholder="ghp_xxxxyyyzzzz"
 			/>
 		</div>
 	</div>
@@ -223,6 +227,7 @@ templ AuthFields(data ProjectFormData) {
 				name="ssh_username"
 				class="form-input"
 				value={ data.Username }
+				placeholder="git"
 			/>
 		</div>
 		<div class="form-group">
