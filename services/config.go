@@ -103,6 +103,9 @@ func newConfigWithEnv(env EnvProvider, cliDataDir string) (*Config, error) {
 	// Set defaults first
 	c.setDefaults()
 
+	// Override CLI-specific defaults
+	c.LogLevel = "silent" // CLI should be quiet by default
+
 	// Override with environment variables
 	c.loadFromEnv()
 
@@ -248,10 +251,10 @@ func (c *Config) derivePaths() {
 func (c *Config) validate() error {
 	// Validate log level
 	validLogLevels := map[string]bool{
-		"debug": true, "info": true, "warning": true, "error": true,
+		"debug": true, "info": true, "warning": true, "error": true, "silent": true,
 	}
 	if !validLogLevels[c.LogLevel] {
-		return fmt.Errorf("invalid log level: %s (must be debug, info, warning, or error)", c.LogLevel)
+		return fmt.Errorf("invalid log level: %s (must be debug, info, warning, error, or silent)", c.LogLevel)
 	}
 
 	// Validate HTTP port

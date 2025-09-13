@@ -20,6 +20,9 @@ func ParseLogLevel(level string) slog.Level {
 		return slog.LevelWarn
 	case "error":
 		return slog.LevelError
+	case "silent", "none":
+		// Return a very high level to effectively disable all logging
+		return slog.Level(1000)
 	default:
 		return slog.LevelInfo
 	}
@@ -27,7 +30,7 @@ func ParseLogLevel(level string) slog.Level {
 
 // ValidLogLevels returns the list of valid log levels
 func ValidLogLevels() []string {
-	return []string{"debug", "info", "warning", "error"}
+	return []string{"debug", "info", "warning", "error", "silent"}
 }
 
 // InitLogging initializes logging with the specified log level
@@ -45,7 +48,7 @@ func InitLogging(logLevel string) {
 // CLI flag for setting the log level
 
 // LogLevel is a flag for setting the log level
-var LogLevel = &logLevelFlag{value: "info", set: false}
+var LogLevel = &logLevelFlag{value: "silent", set: false}
 
 type logLevelFlag struct {
 	value string
