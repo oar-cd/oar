@@ -1,28 +1,10 @@
 package services
 
 import (
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetDefaultDataDir(t *testing.T) {
-	// This test calls the public function which should work in any environment
-	result := GetDefaultDataDir()
-
-	// Should not be empty
-	assert.NotEmpty(t, result)
-
-	// Should end with "data" (since it's now ~/.local/share/oar/data)
-	assert.True(t, strings.HasSuffix(result, "data"))
-
-	// Should contain either .local/share or XDG_DATA_HOME path
-	assert.True(t,
-		strings.Contains(result, ".local/share") || strings.Contains(result, os.Getenv("XDG_DATA_HOME")),
-		"Result should contain .local/share or XDG_DATA_HOME path: %s", result)
-}
 
 func TestDefaultEnvProvider_Getenv(t *testing.T) {
 	provider := &DefaultEnvProvider{}
@@ -35,18 +17,6 @@ func TestDefaultEnvProvider_Getenv(t *testing.T) {
 	// Test with non-existent variable
 	nonExistent := provider.Getenv("DEFINITELY_NON_EXISTENT_VAR_12345")
 	assert.Empty(t, nonExistent)
-}
-
-func TestDefaultEnvProvider_UserHomeDir(t *testing.T) {
-	provider := &DefaultEnvProvider{}
-
-	homeDir, err := provider.UserHomeDir()
-	assert.NoError(t, err)
-	assert.NotEmpty(t, homeDir)
-
-	// Should be an absolute path
-	assert.True(t, strings.HasPrefix(homeDir, "/") || strings.Contains(homeDir, ":"),
-		"Home directory should be absolute: %s", homeDir)
 }
 
 func TestConfig_GetLogLevel(t *testing.T) {

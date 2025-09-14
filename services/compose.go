@@ -114,7 +114,6 @@ func (p *ComposeProject) GetConfig() (string, error) {
 func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd {
 	// Build docker compose command
 	commandArgs := []string{
-		"--host", p.Config.DockerHost,
 		"compose",
 		"--progress", "plain",
 		"--project-name", p.Name,
@@ -130,12 +129,12 @@ func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd
 	commandArgs = append(commandArgs, args...)
 
 	slog.Debug("Executing Docker Compose command",
-		"command", p.Config.DockerCommand,
+		"command", "docker",
 		"args", commandArgs,
 		"project_name", p.Name)
 
 	// Create command
-	cmd := exec.Command(p.Config.DockerCommand, commandArgs...)
+	cmd := exec.Command("docker", commandArgs...)
 	// Do not set cmd.Dir to avoid Docker resolving container paths as host paths.
 	// The compose files are already specified with absolute paths via --file flags.
 
@@ -286,7 +285,7 @@ func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
 }
 
 func (p *ComposeProject) commandUp() *exec.Cmd {
-	return p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--no-color", "--remove-orphans"})
+	return p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--remove-orphans"})
 }
 
 func (p *ComposeProject) commandDown() *exec.Cmd {

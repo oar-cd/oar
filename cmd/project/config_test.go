@@ -10,7 +10,7 @@ import (
 	"github.com/oar-cd/oar/testing/mocks"
 
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/app"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -28,8 +28,8 @@ func createFormRequest(method, path string, formData map[string]string) *http.Re
 	return req
 }
 
-func TestGetServerVersion(t *testing.T) {
-	version := handlers.GetServerVersion()
+func TestGetVersion(t *testing.T) {
+	version := handlers.GetVersion()
 	// Just verify it returns a non-empty string
 	assert.NotEmpty(t, version)
 }

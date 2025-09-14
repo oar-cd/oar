@@ -5,11 +5,15 @@ import (
 	"os"
 
 	"github.com/oar-cd/oar/db"
+	"github.com/oar-cd/oar/models"
 	"github.com/oar-cd/oar/services"
 	"gorm.io/gorm"
 )
 
 var (
+	// Version is set at build time via -ldflags
+	Version = "dev"
+
 	database         *gorm.DB
 	projectService   services.ProjectManager
 	discoveryService *services.ProjectDiscoveryService
@@ -38,6 +42,11 @@ func InitializeWithConfig(cfg *services.Config) error {
 	// Initialize database using config
 	database, err = db.InitDB(config.DataDir)
 	if err != nil {
+		return err
+	}
+
+	// Run database migrations
+	if err := models.AutoMigrateAll(database); err != nil {
 		return err
 	}
 

@@ -14,24 +14,16 @@ import (
 
 func TestInitColors(t *testing.T) {
 	tests := []struct {
-		name            string
-		isColorDisabled bool
-		setNoColor      bool
+		name       string
+		setNoColor bool
 	}{
 		{
-			name:            "colors enabled",
-			isColorDisabled: false,
-			setNoColor:      false,
+			name:       "colors enabled",
+			setNoColor: false,
 		},
 		{
-			name:            "colors disabled by flag",
-			isColorDisabled: true,
-			setNoColor:      false,
-		},
-		{
-			name:            "colors disabled by NoColor",
-			isColorDisabled: false,
-			setNoColor:      true,
+			name:       "colors disabled by NO_COLOR",
+			setNoColor: true,
 		},
 	}
 
@@ -46,7 +38,7 @@ func TestInitColors(t *testing.T) {
 			maybeColorize = nil
 
 			// Test InitColors
-			InitColors(tt.isColorDisabled)
+			InitColors()
 
 			// Verify maybeColorize was set
 			assert.NotNil(t, maybeColorize)
@@ -413,7 +405,7 @@ func TestPrintProjectList(t *testing.T) {
 	updatedAt := time.Date(2023, 1, 16, 14, 45, 0, 0, time.UTC)
 
 	// Set up colors for testing
-	InitColors(false)
+	InitColors()
 
 	tests := []struct {
 		name     string
@@ -479,7 +471,7 @@ func TestPrintProjectList(t *testing.T) {
 
 func TestFormatProjectStatus(t *testing.T) {
 	// Set up colors for testing
-	InitColors(false)
+	InitColors()
 
 	tests := []struct {
 		name     string
@@ -526,30 +518,9 @@ func TestFormatProjectStatus(t *testing.T) {
 	assert.Equal(t, "running", result)
 }
 
-func TestNoColorFlag(t *testing.T) {
-	flag := &noColorFlag{}
-
-	// Test initial state
-	assert.False(t, flag.IsSet())
-	assert.Equal(t, "false", flag.String())
-	assert.Equal(t, "bool", flag.Type())
-	assert.True(t, flag.IsBoolFlag())
-
-	// Test setting the flag
-	err := flag.Set("true")
-	assert.NoError(t, err)
-	assert.True(t, flag.IsSet())
-	assert.Equal(t, "true", flag.String())
-
-	// Test setting with different value (should still set to true)
-	err = flag.Set("false")
-	assert.NoError(t, err)
-	assert.True(t, flag.IsSet()) // Still true because flag was set
-}
-
 func TestFprintFunctions(t *testing.T) {
 	// Set up colors for testing
-	InitColors(false)
+	InitColors()
 
 	buf := &bytes.Buffer{}
 
@@ -606,7 +577,7 @@ func TestPrintDeploymentList(t *testing.T) {
 	updatedAt := time.Date(2023, 1, 16, 14, 45, 0, 0, time.UTC)
 
 	// Set up colors for testing
-	InitColors(false)
+	InitColors()
 
 	tests := []struct {
 		name        string
@@ -710,7 +681,7 @@ func TestPrintDeploymentList(t *testing.T) {
 
 func TestFormatDeploymentStatus(t *testing.T) {
 	// Set up colors for testing
-	InitColors(false)
+	InitColors()
 
 	tests := []struct {
 		name     string

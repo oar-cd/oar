@@ -10,33 +10,85 @@ on:
     branches:
       - main
 
+env:
+  GO_VERSION: 1.25.x
+  CGO_ENABLED: 1
+  OAR_BUILD_ARTIFACTS_DIR: dist
+  OAR_EXECUTABLE_FILENAME: oar-linux-amd64
+  OAR_WEB_ASSETS_FILENAME: web-assets.tar.gz
+
 jobs:
   lint:
-    runs-on: ubuntu-latest
     name: Lint
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8.0.0
 
   test:
-    runs-on: ubuntu-latest
     name: Test
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Run tests
         run: make test_ci
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, test]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build app
+        run: make build_release
+        env:
+          OAR_VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./${{ env.OAR_BUILD_ARTIFACTS_DIR}}/${{ env.OAR_EXECUTABLE_FILENAME }}
+            ./${{ env.OAR_BUILD_ARTIFACTS_DIR}}/${{ env.OAR_WEB_ASSETS_FILENAME }}
+            ./oar.service
+            ./install.sh
+          generate_release_notes: true

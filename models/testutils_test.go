@@ -8,13 +8,13 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/oar-cd/oar/internal/dbutil"
+	"github.com/oar-cd/oar/db"
 )
 
 // setupTestDB creates an in-memory SQLite database for testing
 func setupTestDB(t *testing.T) *gorm.DB {
-	// Initialize database using shared utility
-	database, err := dbutil.InitDatabase(dbutil.DBConfig{
+	// Initialize database using shared utility (same as production)
+	database, err := db.InitDatabase(db.DBConfig{
 		Path:     ":memory:",
 		LogLevel: logger.Silent,
 	})

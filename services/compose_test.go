@@ -31,12 +31,9 @@ func TestNewComposeProject_Success(t *testing.T) {
 
 	// Create test config
 	config := &Config{
-		DataDir:       tempDir,
-		LogLevel:      "info",
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    5 * time.Minute,
+		DataDir:    tempDir,
+		LogLevel:   "info",
+		GitTimeout: 5 * time.Minute,
 	}
 
 	// Test
@@ -63,12 +60,9 @@ func TestNewComposeProject_InvalidProject(t *testing.T) {
 	// Create test config
 	tempDir := t.TempDir()
 	config := &Config{
-		DataDir:       tempDir,
-		LogLevel:      "info",
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    5 * time.Minute,
+		DataDir:    tempDir,
+		LogLevel:   "info",
+		GitTimeout: 5 * time.Minute,
 	}
 
 	// Test
@@ -95,7 +89,6 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	// Verify command arguments
 	expectedArgs := []string{
 		"docker", // cmd.Args[0] is always the command name
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -125,7 +118,6 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 	// Verify all compose files are included
 	expectedArgs := []string{
 		"docker",
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -153,7 +145,6 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 	// Should still work with no files (docker compose will use defaults)
 	expectedArgs := []string{
 		"docker",
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -174,14 +165,20 @@ func TestComposeProject_CommandUp(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, cmd)
 
-	// Verify up-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "up")
-	assert.Contains(t, args, "--detach")
-	assert.Contains(t, args, "--wait")
-	assert.Contains(t, args, "--quiet-pull")
-	assert.Contains(t, args, "--no-color")
-	assert.Contains(t, args, "--remove-orphans")
+	// Verify complete command arguments
+	expectedArgs := []string{
+		"docker", // cmd.Args[0] is always the command name
+		"compose",
+		"--progress", "plain",
+		"--project-name", "test-project",
+		"--file", tempDir + "/docker-compose.yml",
+		"up",
+		"--detach",
+		"--wait",
+		"--quiet-pull",
+		"--remove-orphans",
+	}
+	assert.Equal(t, expectedArgs, cmd.Args)
 }
 
 func TestComposeProject_CommandDown(t *testing.T) {
@@ -195,10 +192,17 @@ func TestComposeProject_CommandDown(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, cmd)
 
-	// Verify down-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "down")
-	assert.Contains(t, args, "--remove-orphans")
+	// Verify complete command arguments
+	expectedArgs := []string{
+		"docker", // cmd.Args[0] is always the command name
+		"compose",
+		"--progress", "plain",
+		"--project-name", "test-project",
+		"--file", tempDir + "/docker-compose.yml",
+		"down",
+		"--remove-orphans",
+	}
+	assert.Equal(t, expectedArgs, cmd.Args)
 }
 
 func TestComposeProject_CommandLogs(t *testing.T) {
@@ -212,10 +216,17 @@ func TestComposeProject_CommandLogs(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, cmd)
 
-	// Verify logs-specific arguments
-	args := cmd.Args
-	assert.Contains(t, args, "logs")
-	assert.Contains(t, args, "--follow")
+	// Verify complete command arguments
+	expectedArgs := []string{
+		"docker", // cmd.Args[0] is always the command name
+		"compose",
+		"--progress", "plain",
+		"--project-name", "test-project",
+		"--file", tempDir + "/docker-compose.yml",
+		"logs",
+		"--follow",
+	}
+	assert.Equal(t, expectedArgs, cmd.Args)
 }
 
 // Tests for executeCommand (using real commands that are safe)
@@ -359,9 +370,16 @@ func TestComposeProject_EmptyProjectName(t *testing.T) {
 	// Assertions
 	assert.NotNil(t, cmd)
 
-	// Should still create command with empty project name
-	assert.Contains(t, cmd.Args, "--project-name")
-	assert.Contains(t, cmd.Args, "")
+	// Verify complete command arguments with empty project name
+	expectedArgs := []string{
+		"docker", // cmd.Args[0] is always the command name
+		"compose",
+		"--progress", "plain",
+		"--project-name", "",
+		"--file", tempDir + "/docker-compose.yml",
+		"up",
+	}
+	assert.Equal(t, expectedArgs, cmd.Args)
 }
 
 func TestComposeProject_InvalidWorkingDirectory(t *testing.T) {

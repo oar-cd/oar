@@ -9,7 +9,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/web/actions"
 	"github.com/oar-cd/oar/web/components/modals"
@@ -28,7 +28,7 @@ func RegisterHomeRoutes(r chi.Router) {
 		if err != nil {
 			handlers.LogOperationError("list_projects", "main", err)
 			// Fall back to empty state on error
-			component := pages.Home(handlers.GetServerVersion())
+			component := pages.Home(handlers.GetVersion())
 			if err := handlers.RenderComponent(w, r, component, "home_page_fallback"); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
@@ -39,9 +39,9 @@ func RegisterHomeRoutes(r chi.Router) {
 
 		var component templ.Component
 		if len(projectViews) > 0 {
-			component = pages.HomeWithProjects(projectViews, handlers.GetServerVersion())
+			component = pages.HomeWithProjects(projectViews, handlers.GetVersion())
 		} else {
-			component = pages.Home(handlers.GetServerVersion())
+			component = pages.Home(handlers.GetVersion())
 		}
 
 		if err := handlers.RenderComponent(w, r, component, "home_page"); err != nil {
@@ -225,10 +225,7 @@ func getConfigProjectModal(projectID uuid.UUID) (templ.Component, error) {
 
 	config, err := projectService.GetConfig(projectID)
 	if err != nil {
-		config = fmt.Sprintf(
-			"Error getting project configuration:\n\n%s\n\nNote: The project repository must be deployed first before configuration can be displayed.",
-			err.Error(),
-		)
+		config = fmt.Sprintf("Error getting project configuration:\n\n%s\n", err.Error())
 	}
 
 	projectView := handlers.ConvertProjectToView(targetProject)

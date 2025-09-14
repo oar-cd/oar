@@ -1,0 +1,14 @@
+[Unit]
+Description=Oar GitOps deployment server
+Documentation=https://github.com/oar-cd/oar
+After=docker.service
+Requires=docker.service
+
+[Service]
+WorkingDirectory=/opt/oar
+ExecStart=/opt/oar/bin/oar server --config /opt/oar/config.yaml
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

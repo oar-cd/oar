@@ -38,7 +38,7 @@ func TestNewCmdRoot(t *testing.T) {
 		subcommandNames[i] = subcmd.Name()
 	}
 
-	expectedSubcommands := []string{"logs", "project", "start", "status", "stop", "update", "version"}
+	expectedSubcommands := []string{"project", "server", "version"}
 	for _, expected := range expectedSubcommands {
 		assert.Contains(t, subcommandNames, expected, "Expected subcommand %s not found", expected)
 	}
@@ -52,20 +52,17 @@ func TestNewCmdRootFlags(t *testing.T) {
 	assert.NotNil(t, logLevelFlag)
 	assert.Equal(t, "l", logLevelFlag.Shorthand)
 
-	noColorFlag := cmd.PersistentFlags().Lookup("no-color")
-	assert.NotNil(t, noColorFlag)
-	assert.Equal(t, "c", noColorFlag.Shorthand)
 }
 
 func TestNewCmdRootPersistentPreRunLogic(t *testing.T) {
 	// This tests the skip initialization logic without actually running it
 	// since that would require full app initialization
 
-	skipInitCommands := []string{"version", "update", "logs", "start", "stop", "status"}
+	skipInitCommands := []string{"version", "server"}
 
 	// Verify our expected commands are in the skip list
 	for _, cmdName := range skipInitCommands {
-		assert.Contains(t, []string{"version", "update", "logs", "start", "stop", "status"}, cmdName)
+		assert.Contains(t, []string{"version", "server"}, cmdName)
 	}
 
 	// These commands should NOT be in the skip list

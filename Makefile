@@ -1,4 +1,12 @@
-.PHONY: lint test test_ci templ templ_watch web watcher tailwind tailwind_watch generate docker_image_web docker_image_watcher air-web air-watcher air-all dev build_cli release release_patch release_minor release_major
+.PHONY: lint test test_verbose test_ci templ templ_watch tailwind tailwind_watch generate air build dev release release_patch release_minor release_major
+
+.EXPORT_ALL_VARIABLES:
+
+CGO_ENABLED = 1
+OAR_VERSION ?= $(shell git rev-parse --short HEAD)
+OAR_EXECUTABLE_FILENAME ?= oar
+OAR_WEB_ASSETS_FILENAME ?= web-assets.tar.gz
+OAR_BUILD_ARTIFACTS_DIR ?= dist
 
 lint:
 	golangci-lint run --fix
@@ -26,46 +34,19 @@ tailwind_watch:
 
 generate: tailwind templ
 
-air-web:
-	air \
-	--build.cmd "go build -o tmp/bin/web ./web" \
-	--build.bin "tmp/bin/web" \
-	--build.delay "100" \
-	--build.exclude_dir "cmd,dev_oar_data_dir,watcher" \
-	--build.include_ext "go" \
-	--build.stop_on_error "false" \
-	--misc.clean_on_exit true
+air:
+	air -c .air.toml
 
-air-watcher:
-	air \
-	--build.cmd "go build -o tmp/bin/watcher ./watcher" \
-	--build.bin "tmp/bin/watcher" \
-	--build.delay "100" \
-	--build.exclude_dir "cmd,dev_oar_data_dir,web" \
-	--build.include_ext "go" \
-	--build.stop_on_error "false" \
-	--misc.clean_on_exit true
+build:
+	go build -ldflags="-s -w -X github.com/oar-cd/oar/app.Version=$(OAR_VERSION)" -o ./${OAR_BUILD_ARTIFACTS_DIR}/$(OAR_EXECUTABLE_FILENAME) .
 
-air-all:
-	make -j2 air-web air-watcher
+assets:
+	tar -czf ./${OAR_BUILD_ARTIFACTS_DIR}/${OAR_WEB_ASSETS_FILENAME} web/assets
 
-web:
-	go run ./web
-
-watcher:
-	go run ./watcher
-
-docker_image_web:
-	docker build --build-arg VERSION=dev-$(shell git rev-parse --short HEAD) -t oar-web -f web/Dockerfile .
-
-docker_image_watcher:
-	docker build --build-arg VERSION=dev-$(shell git rev-parse --short HEAD) -t oar-watcher -f watcher/Dockerfile .
-
-build_cli:
-	CGO_ENABLED=1 go build -ldflags="-X github.com/oar-cd/oar/cmd/version.CLIVersion=dev-$(shell git rev-parse --short HEAD)" -o oar-cli ./cmd
+build_release: build assets
 
 dev:
-	make -j4 tailwind_watch templ_watch air-web air-watcher
+	make -j4 tailwind_watch templ_watch air
 
 release:
 	@echo "Available release types:"

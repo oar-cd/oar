@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/test"
-	"github.com/oar-cd/oar/internal/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +74,7 @@ func TestProjectAddHappy(t *testing.T) {
 
 			// Initialize the app with test data directory
 			t.Setenv("OAR_DATA_DIR", tempDir)
-			config, err := services.NewConfigForCLI()
+			config, err := services.NewConfig("", services.WithCLIDefaults())
 			require.NoError(t, err)
 			err = app.InitializeWithConfig(config)
 			require.NoError(t, err)
@@ -201,7 +201,7 @@ func TestProjectAddValidation(t *testing.T) {
 
 			// Initialize the app with test data directory
 			t.Setenv("OAR_DATA_DIR", tempDir)
-			config, err := services.NewConfigForCLI()
+			config, err := services.NewConfig("", services.WithCLIDefaults())
 			require.NoError(t, err)
 			err = app.InitializeWithConfig(config)
 			require.NoError(t, err)

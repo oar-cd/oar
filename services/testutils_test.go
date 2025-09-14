@@ -15,14 +15,14 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/oar-cd/oar/internal/dbutil"
+	"github.com/oar-cd/oar/db"
 	"github.com/oar-cd/oar/models"
 )
 
 // setupTestDB creates an in-memory SQLite database for testing
 func setupTestDB(t *testing.T) *gorm.DB {
 	// Initialize database using shared utility
-	database, err := dbutil.InitDatabase(dbutil.DBConfig{
+	database, err := db.InitDatabase(db.DBConfig{
 		Path:     ":memory:",
 		LogLevel: logger.Silent,
 	})
@@ -140,12 +140,9 @@ func createTestComposeProject() *ComposeProject {
 
 	// Create test config
 	config := &Config{
-		DataDir:       "/tmp",
-		LogLevel:      "info",
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    5 * time.Minute,
+		DataDir:    "/tmp",
+		LogLevel:   "info",
+		GitTimeout: 5 * time.Minute,
 	}
 
 	return NewComposeProject(testProject, config)
@@ -198,13 +195,10 @@ func setupProjectService(t *testing.T) (*ProjectService, string) {
 
 	// Setup configuration for integration testing
 	config := &Config{
-		DataDir:       tempDir,
-		WorkspaceDir:  workspaceDir,
-		LogLevel:      "warn", // Reduce noise in tests
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    60 * time.Second, // Allow time for real git operations
+		DataDir:      tempDir,
+		WorkspaceDir: workspaceDir,
+		LogLevel:     "warn",           // Reduce noise in tests
+		GitTimeout:   60 * time.Second, // Allow time for real git operations
 	}
 
 	// Setup test database

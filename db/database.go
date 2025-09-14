@@ -8,9 +8,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"github.com/oar-cd/oar/internal/dbutil"
-	"github.com/oar-cd/oar/models"
 )
 
 func InitDB(dataDir string) (*gorm.DB, error) {
@@ -21,16 +18,11 @@ func InitDB(dataDir string) (*gorm.DB, error) {
 	gormLogLevel := getGormLogLevel()
 
 	// Initialize database using shared utility
-	db, err := dbutil.InitDatabase(dbutil.DBConfig{
+	db, err := InitDatabase(DBConfig{
 		Path:     dbPath,
 		LogLevel: gormLogLevel,
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	// Run migrations for all models (single source of truth)
-	if err := models.AutoMigrateAll(db); err != nil {
 		return nil, err
 	}
 

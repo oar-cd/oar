@@ -12,17 +12,14 @@ import (
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/web/components/project"
 )
 
-// ServerVersion is set at build time via -ldflags
-var ServerVersion = "dev"
-
-// GetServerVersion returns the server version for use in templates
-func GetServerVersion() string {
-	return ServerVersion
+// GetVersion returns the server version for use in templates
+func GetVersion() string {
+	return app.Version
 }
 
 // Helper functions for common operations

@@ -2,16 +2,19 @@ package services
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
-	"github.com/compose-spec/compose-go/v2/dotenv"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	DataDir     = ".oar"
+	// Default directory paths
+	DataDir     = "/opt/oar/data"
+	ConfigPath  = "/opt/oar/config.yaml"
 	ProjectsDir = "projects"
 	GitDir      = "git"
 	TmpDir      = "tmp"
@@ -20,7 +23,6 @@ const (
 // EnvProvider abstracts environment variable access for testing
 type EnvProvider interface {
 	Getenv(key string) string
-	UserHomeDir() (string, error)
 }
 
 // DefaultEnvProvider implements EnvProvider using real OS functions
@@ -30,48 +32,40 @@ func (p *DefaultEnvProvider) Getenv(key string) string {
 	return os.Getenv(key)
 }
 
-func (p *DefaultEnvProvider) UserHomeDir() (string, error) {
-	return os.UserHomeDir()
+// YamlConfig represents the YAML configuration file structure
+type YamlConfig struct {
+	DataDir       string        `yaml:"data_dir"`
+	DatabasePath  string        `yaml:"database_path,omitempty"`
+	LogLevel      string        `yaml:"log_level,omitempty"`
+	HTTP          HTTPConfig    `yaml:"http,omitempty"`
+	Git           GitConfig     `yaml:"git,omitempty"`
+	Watcher       WatcherConfig `yaml:"watcher,omitempty"`
+	EncryptionKey string        `yaml:"encryption_key"`
 }
 
-// GetDefaultInstallDir returns the default Oar installation directory following XDG Base Directory specification
-func GetDefaultInstallDir() string {
-	return getDefaultInstallDirWithEnv(&DefaultEnvProvider{})
+type HTTPConfig struct {
+	Host string `yaml:"host,omitempty"`
+	Port int    `yaml:"port,omitempty"`
 }
 
-// GetDefaultDataDir returns the default Oar data directory following XDG Base Directory specification
-func GetDefaultDataDir() string {
-	return filepath.Join(getDefaultInstallDirWithEnv(&DefaultEnvProvider{}), "data")
+type GitConfig struct {
+	Timeout string `yaml:"timeout,omitempty"`
 }
 
-// getDefaultInstallDirWithEnv allows dependency injection for testing
-func getDefaultInstallDirWithEnv(env EnvProvider) string {
-	// Use XDG_DATA_HOME if set, otherwise fallback to ~/.local/share
-	xdgDataHome := env.Getenv("XDG_DATA_HOME")
-	if xdgDataHome != "" {
-		return filepath.Join(xdgDataHome, "oar")
-	}
-
-	homeDir, _ := env.UserHomeDir()
-	return filepath.Join(homeDir, ".local", "share", "oar")
+type WatcherConfig struct {
+	PollInterval string `yaml:"poll_interval,omitempty"`
 }
 
 // Config holds configuration for all services
 type Config struct {
 	// Core paths
-	InstallDir   string // Installation directory (compose.yaml, .env, VERSION)
 	DataDir      string // Data directory (database, projects, tmp)
 	DatabasePath string
 	TmpDir       string
 	WorkspaceDir string
 
 	// Logging
-	LogLevel     string
-	ColorEnabled bool
-
-	// Docker
-	DockerHost    string
-	DockerCommand string
+	LogLevel string
 
 	// HTTP server
 	HTTPHost string
@@ -90,83 +84,79 @@ type Config struct {
 	env EnvProvider
 }
 
-// NewConfigForCLI creates a new configuration for CLI usage
-func NewConfigForCLI() (*Config, error) {
-	return newConfigForCLIWithEnv(&DefaultEnvProvider{})
+// NewConfig creates a new configuration with optional config file path and options
+func NewConfig(configPath string, options ...ConfigOption) (*Config, error) {
+	return NewConfigWithEnv(configPath, &DefaultEnvProvider{}, options...)
 }
 
-// NewConfigForCLIWithEnv creates a new configuration with custom environment provider (for testing)
-func NewConfigForCLIWithEnv(env EnvProvider) (*Config, error) {
-	return newConfigForCLIWithEnv(env)
-}
-
-func newConfigForCLIWithEnv(env EnvProvider) (*Config, error) {
+// NewConfigWithEnv creates a new configuration with custom environment provider (for testing)
+func NewConfigWithEnv(configPath string, env EnvProvider, options ...ConfigOption) (*Config, error) {
+	slog.Debug("Loading configuration", "config_path", configPath)
 	c := &Config{env: env}
 
 	// Set defaults first
 	c.setDefaults()
+	slog.Debug("Set default configuration values")
 
-	// Override CLI-specific defaults
-	c.LogLevel = "silent" // CLI should be quiet by default
+	// Apply any provided options (like CLI-specific settings)
+	for _, opt := range options {
+		opt(c)
+	}
 
-	// Override with environment variables
-	c.loadFromEnv()
-
-	// Derive dependent paths
-	c.derivePaths()
-
-	// Try to read encryption key from .env file as fallback (after data dir is finalized)
-	if c.EncryptionKey == "" {
-		if key := c.readEncryptionKeyFromEnvFile(); key != "" {
-			c.EncryptionKey = key
+	// Load from YAML config file (if path is specified)
+	if configPath != "" {
+		if err := c.loadFromYamlFile(configPath); err != nil {
+			return nil, fmt.Errorf("failed to load config file: %w", err)
 		}
 	}
 
-	// Validate
-	if err := c.validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	return c, nil
-}
-
-// NewConfigForWebApp creates a new configuration for web application usage
-// This version only uses environment variables and defaults, no CLI overrides
-func NewConfigForWebApp() (*Config, error) {
-	return NewConfigForWebAppWithEnv(&DefaultEnvProvider{})
-}
-
-// NewConfigForWebAppWithEnv creates a new configuration with custom environment provider (for testing)
-func NewConfigForWebAppWithEnv(env EnvProvider) (*Config, error) {
-	c := &Config{env: env}
-
-	// Set defaults first
-	c.setDefaults()
-
-	// Override with environment variables
+	// Override with environment variables (env vars have higher priority than config file)
 	c.loadFromEnv()
+	slog.Debug("Loaded configuration from environment variables")
 
 	// Derive dependent paths
 	c.derivePaths()
+	slog.Debug("Derived configuration paths", "data_dir", c.DataDir, "database_path", c.DatabasePath)
 
 	// Validate
 	if err := c.validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
+	slog.Debug("Configuration validation passed")
+
+	// Log final configuration
+	slog.Debug("Final configuration loaded",
+		"config_path", configPath,
+		"data_dir", c.DataDir,
+		"database_path", c.DatabasePath,
+		"tmp_dir", c.TmpDir,
+		"workspace_dir", c.WorkspaceDir,
+		"log_level", c.LogLevel,
+		"http_host", c.HTTPHost,
+		"http_port", c.HTTPPort,
+		"git_timeout", c.GitTimeout,
+		"poll_interval", c.PollInterval,
+		"has_encryption_key", c.EncryptionKey != "")
 
 	return c, nil
+}
+
+// ConfigOption allows customizing configuration during creation
+type ConfigOption func(*Config)
+
+// WithCLIDefaults applies CLI-specific defaults (silent logging)
+func WithCLIDefaults() ConfigOption {
+	return func(c *Config) {
+		c.LogLevel = "silent" // CLI should be quiet by default
+	}
 }
 
 // setDefaults sets sensible default values
 func (c *Config) setDefaults() {
-	c.InstallDir = getDefaultInstallDirWithEnv(c.env)
-	c.DataDir = filepath.Join(c.InstallDir, "data")
+	c.DataDir = DataDir
 	c.LogLevel = "info"
-	c.ColorEnabled = true
-	c.DockerHost = "unix:///var/run/docker.sock"
-	c.DockerCommand = "docker"
 	c.HTTPHost = "127.0.0.1"
-	c.HTTPPort = 8080
+	c.HTTPPort = 3333
 	c.GitTimeout = 5 * time.Minute
 	c.PollInterval = 5 * time.Minute
 	// Don't set default encryption key - it must be provided explicitly
@@ -174,63 +164,97 @@ func (c *Config) setDefaults() {
 
 // loadFromEnv loads configuration from environment variables
 func (c *Config) loadFromEnv() {
-	if v := c.env.Getenv("OAR_INSTALL_DIR"); v != "" {
-		c.InstallDir = v
-	}
+	var envVarsFound []string
+
 	if v := c.env.Getenv("OAR_DATA_DIR"); v != "" {
 		c.DataDir = v
+		envVarsFound = append(envVarsFound, "OAR_DATA_DIR")
 	}
 	if v := c.env.Getenv("OAR_DATABASE_PATH"); v != "" {
 		c.DatabasePath = v
+		envVarsFound = append(envVarsFound, "OAR_DATABASE_PATH")
 	}
 	if v := c.env.Getenv("OAR_LOG_LEVEL"); v != "" {
 		c.LogLevel = v
-	}
-	if v := c.env.Getenv("OAR_COLOR_ENABLED"); v != "" {
-		if enabled, err := strconv.ParseBool(v); err == nil {
-			c.ColorEnabled = enabled
-		}
-	}
-	if v := c.env.Getenv("OAR_DOCKER_HOST"); v != "" {
-		c.DockerHost = v
-	}
-	if v := c.env.Getenv("OAR_DOCKER_COMMAND"); v != "" {
-		c.DockerCommand = v
+		envVarsFound = append(envVarsFound, "OAR_LOG_LEVEL")
 	}
 	if v := c.env.Getenv("OAR_HTTP_HOST"); v != "" {
 		c.HTTPHost = v
+		envVarsFound = append(envVarsFound, "OAR_HTTP_HOST")
 	}
 	if v := c.env.Getenv("OAR_HTTP_PORT"); v != "" {
 		if port, err := strconv.Atoi(v); err == nil {
 			c.HTTPPort = port
+			envVarsFound = append(envVarsFound, "OAR_HTTP_PORT")
 		}
 	}
 	if v := c.env.Getenv("OAR_GIT_TIMEOUT"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.GitTimeout = d
+			envVarsFound = append(envVarsFound, "OAR_GIT_TIMEOUT")
 		}
 	}
 	if v := c.env.Getenv("OAR_POLL_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.PollInterval = d
+			envVarsFound = append(envVarsFound, "OAR_POLL_INTERVAL")
 		}
 	}
 	if v := c.env.Getenv("OAR_ENCRYPTION_KEY"); v != "" {
 		c.EncryptionKey = v
+		envVarsFound = append(envVarsFound, "OAR_ENCRYPTION_KEY")
+	}
+
+	if len(envVarsFound) > 0 {
+		slog.Debug("Found environment variables", "variables", envVarsFound)
 	}
 }
 
-// readEncryptionKeyFromEnvFile attempts to read OAR_ENCRYPTION_KEY from .env file in installation directory
-func (c *Config) readEncryptionKeyFromEnvFile() string {
-	envFile := filepath.Join(c.InstallDir, ".env")
-
-	envVars, err := dotenv.Read(envFile)
+// loadFromYamlFile loads configuration from a YAML file
+func (c *Config) loadFromYamlFile(configPath string) error {
+	data, err := os.ReadFile(configPath)
 	if err != nil {
-		// .env file doesn't exist or can't be read, that's okay
-		return ""
+		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
-	return envVars["OAR_ENCRYPTION_KEY"]
+	slog.Info("Loading configuration from YAML file", "config_path", configPath)
+
+	var yamlConfig YamlConfig
+	if err := yaml.Unmarshal(data, &yamlConfig); err != nil {
+		return fmt.Errorf("failed to parse YAML config: %w", err)
+	}
+
+	// Apply YAML config to internal config
+	if yamlConfig.DataDir != "" {
+		c.DataDir = yamlConfig.DataDir
+	}
+	if yamlConfig.DatabasePath != "" {
+		c.DatabasePath = yamlConfig.DatabasePath
+	}
+	if yamlConfig.LogLevel != "" {
+		c.LogLevel = yamlConfig.LogLevel
+	}
+	if yamlConfig.HTTP.Host != "" {
+		c.HTTPHost = yamlConfig.HTTP.Host
+	}
+	if yamlConfig.HTTP.Port != 0 {
+		c.HTTPPort = yamlConfig.HTTP.Port
+	}
+	if yamlConfig.Git.Timeout != "" {
+		if d, err := time.ParseDuration(yamlConfig.Git.Timeout); err == nil {
+			c.GitTimeout = d
+		}
+	}
+	if yamlConfig.Watcher.PollInterval != "" {
+		if d, err := time.ParseDuration(yamlConfig.Watcher.PollInterval); err == nil {
+			c.PollInterval = d
+		}
+	}
+	if yamlConfig.EncryptionKey != "" {
+		c.EncryptionKey = yamlConfig.EncryptionKey
+	}
+
+	return nil
 }
 
 // derivePaths calculates dependent paths from the base DataDir
@@ -269,17 +293,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("poll interval must be positive, got: %v", c.PollInterval)
 	}
 
-	// Validate Docker command is not empty
-	if c.DockerCommand == "" {
-		return fmt.Errorf("docker command cannot be empty")
-	}
-
-	// Require encryption key to be provided via environment variable or .env file
+	// Require encryption key to be provided via environment variable or config file
 	if c.EncryptionKey == "" {
-		return fmt.Errorf(
-			"encryption key is required - set OAR_ENCRYPTION_KEY environment variable or ensure .env file exists in data directory (%s)",
-			c.DataDir,
-		)
+		return fmt.Errorf("encryption key is required - set in config file or OAR_ENCRYPTION_KEY environment variable")
 	}
 
 	return nil

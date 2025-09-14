@@ -1,0 +1,8 @@
+[build]
+cmd = "go build -o ./tmp/bin/oar ."
+bin = "./tmp/bin/oar"
+args_bin = ["server"]
+include_ext = ["go", "templ"]
+exclude_dir = ["dev_oar_data_dir"]
+exclude_regex = ["_test\\.go"]
+stop_on_error = true
