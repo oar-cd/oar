@@ -1,7 +1,7 @@
 CLAUDE.md
 PLAN_*.md
 coverage.*
-oar-cli
+dist/
 data/
 dev_oar_data_dir/
 *rsa*

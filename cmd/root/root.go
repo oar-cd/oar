@@ -5,15 +5,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/oar-cd/oar/cmd/logs"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
 	"github.com/oar-cd/oar/cmd/project"
-	"github.com/oar-cd/oar/cmd/start"
-	"github.com/oar-cd/oar/cmd/status"
-	"github.com/oar-cd/oar/cmd/stop"
-	"github.com/oar-cd/oar/cmd/update"
+	"github.com/oar-cd/oar/cmd/server"
 	"github.com/oar-cd/oar/cmd/version"
-	"github.com/oar-cd/oar/internal/app"
 	"github.com/oar-cd/oar/logging"
 	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
@@ -38,7 +34,7 @@ func NewCmdRoot() *cobra.Command {
 		},
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// Skip initialization for commands that don't need full app context
-			skipInitCommands := []string{"version", "update", "logs", "start", "stop", "status"}
+			skipInitCommands := []string{"version", "server"}
 
 			// For root-level commands (parent is "oar"), skip initialization
 			if cmd.Parent() != nil && cmd.Parent().Name() == "oar" {
@@ -57,12 +53,8 @@ func NewCmdRoot() *cobra.Command {
 				os.Exit(1)
 			}
 
-			// Initialize colors (CLI flag overrides config)
-			colorDisabled := !config.ColorEnabled
-			if output.NoColor.IsSet() {
-				colorDisabled = true // --no-color flag overrides config
-			}
-			output.InitColors(colorDisabled)
+			// Initialize colors (NO_COLOR environment variable is handled automatically)
+			output.InitColors()
 
 			// Initialize logging (CLI flag overrides config)
 			logLevel := config.LogLevel
@@ -80,14 +72,9 @@ func NewCmdRoot() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().VarP(logging.LogLevel, "log-level", "l", "Set log verbosity level")
-	cmd.PersistentFlags().VarP(output.NoColor, "no-color", "c", "Disable colored terminal output")
 
-	cmd.AddCommand(logs.NewCmdLogs())
 	cmd.AddCommand(project.NewCmdProject())
-	cmd.AddCommand(start.NewCmdStart())
-	cmd.AddCommand(status.NewCmdStatus())
-	cmd.AddCommand(stop.NewCmdStop())
-	cmd.AddCommand(update.NewCmdUpdate())
+	cmd.AddCommand(server.NewCmdServer())
 	cmd.AddCommand(version.NewCmdVersion())
 	return cmd
 }

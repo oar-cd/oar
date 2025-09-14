@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/test"
-	"github.com/oar-cd/oar/internal/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

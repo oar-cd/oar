@@ -41,12 +41,9 @@ func NewIntegrationTestProject(t *testing.T, composeContent string) *Integration
 
 	// Create test config
 	config := &Config{
-		DataDir:       tempDir,
-		LogLevel:      "warn", // Reduce noise in tests
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    30 * time.Second,
+		DataDir:    tempDir,
+		LogLevel:   "warn", // Reduce noise in tests
+		GitTimeout: 30 * time.Second,
 	}
 
 	// Create compose project

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
-	"github.com/oar-cd/oar/internal/app"
 	"github.com/spf13/cobra"
 )
 

@@ -1,0 +1,28 @@
+[Unit]
+Description=Oar GitOps deployment server
+Documentation=https://github.com/oar-cd/oar
+After=network.target docker.service
+Wants=network.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/oar
+ExecStart=/opt/oar/bin/oar server --config /opt/oar/config.yaml
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/oar/data
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

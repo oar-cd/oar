@@ -1,7 +1,6 @@
 package services
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -9,19 +8,12 @@ import (
 )
 
 func TestGetDefaultDataDir(t *testing.T) {
-	// This test calls the public function which should work in any environment
+	// This test calls the public function which should return the fixed path
 	result := GetDefaultDataDir()
 
-	// Should not be empty
-	assert.NotEmpty(t, result)
-
-	// Should end with "data" (since it's now ~/.local/share/oar/data)
-	assert.True(t, strings.HasSuffix(result, "data"))
-
-	// Should contain either .local/share or XDG_DATA_HOME path
-	assert.True(t,
-		strings.Contains(result, ".local/share") || strings.Contains(result, os.Getenv("XDG_DATA_HOME")),
-		"Result should contain .local/share or XDG_DATA_HOME path: %s", result)
+	// Should return the fixed path for native deployment
+	expected := "/opt/oar/data"
+	assert.Equal(t, expected, result)
 }
 
 func TestDefaultEnvProvider_Getenv(t *testing.T) {

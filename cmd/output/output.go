@@ -24,9 +24,10 @@ const (
 var maybeColorize func(kind color.Attribute, tmpl string, a ...any) string
 
 // InitColors sets up color functions based on environment
-func InitColors(isColorDisabled bool) {
-	// Check if colors should be enabled
-	if color.NoColor || isColorDisabled {
+// The color package automatically respects the NO_COLOR environment variable
+func InitColors() {
+	// Check if colors should be enabled (color.NoColor checks NO_COLOR automatically)
+	if color.NoColor {
 		// Fallback to plain formatting if colors are not supported
 		maybeColorize = func(kind color.Attribute, tmpl string, a ...any) string {
 			return fmt.Sprintf(tmpl, a...)
@@ -399,42 +400,6 @@ func formatCommitHash(commit string) string {
 		return commit[:8]
 	}
 	return commit
-}
-
-// CLI flag for disabling color output
-
-// NoColor is a flag that can be used to disable colored output in the CLI.
-var NoColor = &noColorFlag{set: false}
-
-type noColorFlag struct {
-	set bool
-}
-
-func (f *noColorFlag) Set(value string) error {
-	// This is a boolean flag, so we ignore the value and just mark it as set
-	f.set = true
-	return nil
-}
-
-func (f *noColorFlag) String() string {
-	if f.set {
-		return "true"
-	}
-	return "false"
-}
-
-func (f *noColorFlag) Type() string {
-	return "bool"
-}
-
-// IsSet returns true if the --no-color flag was explicitly set
-func (f *noColorFlag) IsSet() bool {
-	return f.set
-}
-
-// IsBoolFlag tells pflag this is a boolean flag (no argument required)
-func (f *noColorFlag) IsBoolFlag() bool {
-	return true
 }
 
 // CLI output helpers

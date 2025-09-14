@@ -1,6 +1,6 @@
 module github.com/oar-cd/oar
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/a-h/templ v0.3.906
@@ -14,6 +14,7 @@ require (
 	github.com/olekukonko/tablewriter v1.0.7
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.30.0
 )
@@ -65,7 +66,6 @@ require (
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 // Use fork with fix for issue #53 (untracked file deletion during pull)

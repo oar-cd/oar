@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/web/handlers"
 )
 

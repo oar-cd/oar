@@ -20,8 +20,8 @@ Turn your Git repositories into the single source of truth for Docker Compose de
 - **Self-Hosted**: Complete control over your deployment infrastructure
 - **Zero Setup**: Works with existing Compose files
 
-## Installation
+## Installation, upgrade
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/oar-cd/oar/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/oar-cd/oar/main/install.sh | sudo bash
 ```

@@ -12,7 +12,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/internal/app"
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/web/components/project"
 )

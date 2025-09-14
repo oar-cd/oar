@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
-	"github.com/oar-cd/oar/internal/app"
 	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
 )

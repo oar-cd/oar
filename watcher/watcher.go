@@ -1,5 +1,5 @@
-// Package service provides the watcher service for automatic project deployments.
-package service
+// Package watcher provides the watcher service for automatic project deployments.
+package watcher
 
 import (
 	"context"

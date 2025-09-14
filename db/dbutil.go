@@ -1,5 +1,4 @@
-// Package dbutil provides utilities for database initialization without import cycles
-package dbutil
+package db
 
 import (
 	"fmt"

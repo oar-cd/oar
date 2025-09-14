@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/oar-cd/oar/db"
+	"github.com/oar-cd/oar/models"
 	"github.com/oar-cd/oar/services"
 	"gorm.io/gorm"
 )
@@ -38,6 +39,11 @@ func InitializeWithConfig(cfg *services.Config) error {
 	// Initialize database using config
 	database, err = db.InitDB(config.DataDir)
 	if err != nil {
+		return err
+	}
+
+	// Run database migrations
+	if err := models.AutoMigrateAll(database); err != nil {
 		return err
 	}
 

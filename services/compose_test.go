@@ -31,12 +31,9 @@ func TestNewComposeProject_Success(t *testing.T) {
 
 	// Create test config
 	config := &Config{
-		DataDir:       tempDir,
-		LogLevel:      "info",
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    5 * time.Minute,
+		DataDir:    tempDir,
+		LogLevel:   "info",
+		GitTimeout: 5 * time.Minute,
 	}
 
 	// Test
@@ -63,12 +60,9 @@ func TestNewComposeProject_InvalidProject(t *testing.T) {
 	// Create test config
 	tempDir := t.TempDir()
 	config := &Config{
-		DataDir:       tempDir,
-		LogLevel:      "info",
-		ColorEnabled:  false,
-		DockerCommand: "docker",
-		DockerHost:    "unix:///var/run/docker.sock",
-		GitTimeout:    5 * time.Minute,
+		DataDir:    tempDir,
+		LogLevel:   "info",
+		GitTimeout: 5 * time.Minute,
 	}
 
 	// Test
@@ -95,7 +89,6 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	// Verify command arguments
 	expectedArgs := []string{
 		"docker", // cmd.Args[0] is always the command name
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -125,7 +118,6 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 	// Verify all compose files are included
 	expectedArgs := []string{
 		"docker",
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -153,7 +145,6 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 	// Should still work with no files (docker compose will use defaults)
 	expectedArgs := []string{
 		"docker",
-		"--host", "unix:///var/run/docker.sock",
 		"compose",
 		"--progress", "plain",
 		"--project-name", "test-project",
@@ -180,7 +171,6 @@ func TestComposeProject_CommandUp(t *testing.T) {
 	assert.Contains(t, args, "--detach")
 	assert.Contains(t, args, "--wait")
 	assert.Contains(t, args, "--quiet-pull")
-	assert.Contains(t, args, "--no-color")
 	assert.Contains(t, args, "--remove-orphans")
 }
 
