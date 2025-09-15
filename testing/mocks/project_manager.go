@@ -1,29 +1,27 @@
 package mocks
 
 import (
-	"context"
-
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/services"
 )
 
 // MockProjectManager implements the ProjectManager interface for testing
 type MockProjectManager struct {
-	ListFunc             func() ([]*services.Project, error)
-	GetFunc              func(id uuid.UUID) (*services.Project, error)
-	CreateFunc           func(project *services.Project) (*services.Project, error)
-	UpdateFunc           func(project *services.Project) error
-	RemoveFunc           func(projectID uuid.UUID) error
-	DeployStreamingFunc  func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
-	DeployPipingFunc     func(projectID uuid.UUID, pull bool) error
-	StopFunc             func(projectID uuid.UUID) error
-	StopStreamingFunc    func(projectID uuid.UUID, outputChan chan<- string) error
-	StopPipingFunc       func(projectID uuid.UUID) error
-	GetLogsStreamingFunc func(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error
-	GetLogsPipingFunc    func(projectID uuid.UUID) error
-	GetConfigFunc        func(projectID uuid.UUID) (string, error)
-	GetStatusFunc        func(projectID uuid.UUID) (*services.ComposeStatus, error)
-	ListDeploymentsFunc  func(projectID uuid.UUID) ([]*services.Deployment, error)
+	ListFunc            func() ([]*services.Project, error)
+	GetFunc             func(id uuid.UUID) (*services.Project, error)
+	CreateFunc          func(project *services.Project) (*services.Project, error)
+	UpdateFunc          func(project *services.Project) error
+	RemoveFunc          func(projectID uuid.UUID) error
+	DeployStreamingFunc func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	DeployPipingFunc    func(projectID uuid.UUID, pull bool) error
+	StopFunc            func(projectID uuid.UUID) error
+	StopStreamingFunc   func(projectID uuid.UUID, outputChan chan<- string) error
+	StopPipingFunc      func(projectID uuid.UUID) error
+	GetLogsPipingFunc   func(projectID uuid.UUID) error
+	GetConfigFunc       func(projectID uuid.UUID) (string, error)
+	GetLogsFunc         func(projectID uuid.UUID) (string, error)
+	GetStatusFunc       func(projectID uuid.UUID) (*services.ComposeStatus, error)
+	ListDeploymentsFunc func(projectID uuid.UUID) ([]*services.Deployment, error)
 }
 
 func (m *MockProjectManager) List() ([]*services.Project, error) {
@@ -96,17 +94,6 @@ func (m *MockProjectManager) StopPiping(projectID uuid.UUID) error {
 	return nil
 }
 
-func (m *MockProjectManager) GetLogsStreaming(
-	ctx context.Context,
-	projectID uuid.UUID,
-	outputChan chan<- string,
-) error {
-	if m.GetLogsStreamingFunc != nil {
-		return m.GetLogsStreamingFunc(ctx, projectID, outputChan)
-	}
-	return nil
-}
-
 func (m *MockProjectManager) GetLogsPiping(projectID uuid.UUID) error {
 	if m.GetLogsPipingFunc != nil {
 		return m.GetLogsPipingFunc(projectID)
@@ -119,6 +106,13 @@ func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
 		return m.GetConfigFunc(projectID)
 	}
 	return "mock config", nil
+}
+
+func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, error) {
+	if m.GetLogsFunc != nil {
+		return m.GetLogsFunc(projectID)
+	}
+	return "mock logs output", nil
 }
 
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeStatus, error) {

@@ -86,6 +86,11 @@ func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, error) {
+	args := m.Called(projectID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeStatus, error) {
 	args := m.Called(projectID)
 	return args.Get(0).(*services.ComposeStatus), args.Error(1)

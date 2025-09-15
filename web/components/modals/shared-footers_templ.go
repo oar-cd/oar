@@ -254,34 +254,4 @@ func StreamingActionFooter(actionLabel, actionId, projectId string) templ.Compon
 	})
 }
 
-// LogsFooter renders a footer with auto-scroll toggle and close button for logs modal
-func LogsFooter() templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var15 == nil {
-			templ_7745c5c3_Var15 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"flex justify-between items-center w-full\"><label class=\"flex items-center cursor-pointer\"><input type=\"checkbox\" id=\"auto-scroll-checkbox\" class=\"h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500\" checked onchange=\"toggleAutoScroll()\"> <span class=\"ml-2 text-sm text-gray-700\">Auto-scroll</span></label> <button type=\"button\" class=\"btn-secondary\" onclick=\"closeModal('modal-container')\">Close</button></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
 var _ = templruntime.GeneratedTemplate

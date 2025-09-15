@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -135,14 +134,24 @@ deployLoop:
 	logsChan := make(chan string, 100)
 	logsDone := make(chan error, 1)
 
-	// Start log streaming in goroutine with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	// Get logs (no streaming needed)
 
 	go func() {
 		defer close(logsChan)
-		// Using context-aware GetLogsStreaming for proper timeout handling
-		logsDone <- projectManager.GetLogsStreaming(ctx, createdProject.ID, logsChan)
+		// Get static logs instead of streaming
+		logs, err := projectManager.GetLogs(createdProject.ID)
+		if err != nil {
+			logsDone <- err
+			return
+		}
+		// Send each line to the channel to simulate the old streaming behavior for the test
+		lines := strings.Split(logs, "\n")
+		for _, line := range lines {
+			if line != "" {
+				logsChan <- line
+			}
+		}
+		logsDone <- nil
 	}()
 
 	// Collect some log output
@@ -161,7 +170,7 @@ logsLoop:
 
 			// Stop after getting some logs to avoid infinite collection
 			if len(logMessages) >= 5 {
-				cancel() // This should stop log streaming
+				// No need to cancel since we're using static logs
 				break logsLoop
 			}
 		case err := <-logsDone:
@@ -171,7 +180,7 @@ logsLoop:
 			}
 			break logsLoop
 		case <-logsTimeout:
-			cancel()
+			// No timeout needed since we're using static logs
 			t.Log("Log collection timeout reached")
 			break logsLoop
 		}

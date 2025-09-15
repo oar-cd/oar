@@ -3,15 +3,27 @@ package modals
 import "github.com/oar-cd/oar/web/components/project"
 
 // LogsProjectModal renders the project logs modal
-templ LogsProjectModal(proj project.ProjectView) {
-	@LargeModal(proj.Name + " logs", logsProjectBody(proj), LogsFooter())
+templ LogsProjectModal(proj project.ProjectView, logs string) {
+	@LargeModal(proj.Name + " logs", logsProjectBody(proj, logs), CloseOnlyFooter())
 }
 
 // logsProjectBody renders the modal body content
-templ logsProjectBody(proj project.ProjectView) {
+templ logsProjectBody(proj project.ProjectView, logs string) {
 	<div class="logs-output-container">
 		<div id="logs-output" class="logs-code-block">
-			<pre id="logs-content" class="streaming-output" data-project-id={ proj.ID.String() }>Loading logs...</pre>
+			<pre id="static-logs-content" class="static-output">{ logs }</pre>
 		</div>
+		<script>
+			// Use htmx:afterSettle to ensure all transitions are complete
+			document.body.addEventListener('htmx:afterSettle', function(event) {
+				// Only scroll if this is the modal container being settled
+				if (event.target.id === 'modal-container' || event.target.closest('#modal-container')) {
+					const logsOutput = document.getElementById('logs-output');
+					if (logsOutput) {
+						logsOutput.scrollTop = logsOutput.scrollHeight;
+					}
+				}
+			}, { once: true });
+		</script>
 	</div>
 }

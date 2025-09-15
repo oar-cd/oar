@@ -1,8 +1,6 @@
 package services
 
 import (
-	"context"
-
 	"github.com/google/uuid"
 )
 
@@ -28,7 +26,6 @@ type ComposeProjectInterface interface {
 	UpPiping() error
 	DownStreaming(outputChan chan<- string) error
 	DownPiping() error
-	LogsStreaming(ctx context.Context, outputChan chan<- string) error
 	LogsPiping() error
 }
 
@@ -44,7 +41,7 @@ type ProjectManager interface {
 	Stop(projectID uuid.UUID) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	StopPiping(projectID uuid.UUID) error
-	GetLogsStreaming(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error
+	GetLogs(projectID uuid.UUID) (string, error)
 	GetLogsPiping(projectID uuid.UUID) error
 	GetConfig(projectID uuid.UUID) (string, error)
 	GetStatus(projectID uuid.UUID) (*ComposeStatus, error)

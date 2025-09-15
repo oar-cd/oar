@@ -2,7 +2,6 @@
 package services
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -683,16 +682,16 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 	return nil
 }
 
-func (s *ProjectService) GetLogsStreaming(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error {
-	// Get projectID
+func (s *ProjectService) GetLogs(projectID uuid.UUID) (string, error) {
+	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
-		return fmt.Errorf("project not found: %w", err)
+		return "", fmt.Errorf("project not found: %w", err)
 	}
 
-	// Stream logs using Docker Compose
+	// Get logs using Docker Compose
 	slog.Info(
-		"Streaming logs for Docker Compose project",
+		"Getting logs for Docker Compose project",
 		"project_id",
 		project.ID,
 		"project_name",
@@ -700,48 +699,26 @@ func (s *ProjectService) GetLogsStreaming(ctx context.Context, projectID uuid.UU
 	)
 
 	composeProject := NewComposeProject(project, s.config)
-
-	// Create a capturing channel that forwards to the original channel
-	capturingChan := make(chan string, 100) // buffered channel
-	done := make(chan bool)
-
-	go func() {
-		defer func() { done <- true }()
-		for msg := range capturingChan {
-			// Wrap Docker log output in JSON for web UI
-			msgData := map[string]string{
-				"type":    "docker",
-				"message": msg,
-			}
-			if jsonMsg, err := json.Marshal(msgData); err == nil {
-				outputChan <- string(jsonMsg)
-			}
-		}
-	}()
-
-	// Execute logs with streaming
-	err = composeProject.LogsStreaming(ctx, capturingChan)
-	close(capturingChan) // Signal that we're done sending to the capturing channel
-	<-done               // Wait for the goroutine to finish processing all messages
-
+	logs, err := composeProject.Logs()
 	if err != nil {
 		slog.Error(
-			"Failed to stream logs",
+			"Failed to get logs",
 			"project_id",
 			project.ID,
 			"error",
 			err,
 		)
-		return fmt.Errorf("failed to stream logs: %w", err)
+		return "", fmt.Errorf("failed to get logs: %w", err)
 	}
+
 	slog.Info(
-		"Logs streaming completed",
+		"Logs retrieved successfully",
 		"project_id",
 		project.ID,
 		"project_name",
 		project.Name,
 	)
-	return nil
+	return logs, nil
 }
 
 func (s *ProjectService) GetLogsPiping(projectID uuid.UUID) error {
