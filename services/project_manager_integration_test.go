@@ -136,13 +136,13 @@ deployLoop:
 	logsDone := make(chan error, 1)
 
 	// Start log streaming in goroutine with timeout
-	_, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	go func() {
 		defer close(logsChan)
-		// Note: We'll need to modify GetLogsStreaming to accept context or add timeout
-		logsDone <- projectManager.GetLogsStreaming(createdProject.ID, logsChan)
+		// Using context-aware GetLogsStreaming for proper timeout handling
+		logsDone <- projectManager.GetLogsStreaming(ctx, createdProject.ID, logsChan)
 	}()
 
 	// Collect some log output

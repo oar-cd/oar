@@ -2,6 +2,7 @@ package services
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 type ContainerInfo struct {
@@ -62,56 +64,56 @@ func NewComposeProject(p *Project, config *Config) *ComposeProject {
 }
 
 func (p *ComposeProject) Up() (string, error) {
-	cmd := p.commandUp()
+	cmd := p.commandUp(context.Background())
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
-	cmd := p.commandUp()
-	return p.executeCommandStreaming(cmd, outputChan)
+	cmd := p.commandUp(context.Background())
+	return p.executeCommandStreaming(context.Background(), cmd, outputChan)
 }
 
 func (p *ComposeProject) UpPiping() error {
-	cmd := p.commandUp()
+	cmd := p.commandUp(context.Background())
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) Down() (string, error) {
-	cmd := p.commandDown()
+	cmd := p.commandDown(context.Background())
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
-	cmd := p.commandDown()
-	return p.executeCommandStreaming(cmd, outputChan)
+	cmd := p.commandDown(context.Background())
+	return p.executeCommandStreaming(context.Background(), cmd, outputChan)
 }
 
 func (p *ComposeProject) DownPiping() error {
-	cmd := p.commandDown()
+	cmd := p.commandDown(context.Background())
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) Logs() (string, error) {
-	cmd := p.commandLogs()
+	cmd := p.commandLogs(context.Background())
 	return p.executeCommand(cmd)
 }
 
-func (p *ComposeProject) LogsStreaming(outputChan chan<- string) error {
-	cmd := p.commandLogs()
-	return p.executeCommandStreaming(cmd, outputChan)
+func (p *ComposeProject) LogsStreaming(ctx context.Context, outputChan chan<- string) error {
+	cmd := p.commandLogs(ctx)
+	return p.executeCommandStreaming(ctx, cmd, outputChan)
 }
 
 func (p *ComposeProject) LogsPiping() error {
-	cmd := p.commandLogs()
+	cmd := p.commandLogs(context.Background())
 	return p.executeCommandPiping(cmd)
 }
 
 func (p *ComposeProject) GetConfig() (string, error) {
-	cmd := p.commandConfig()
+	cmd := p.commandConfig(context.Background())
 	return p.executeCommand(cmd)
 }
 
-func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd {
+func (p *ComposeProject) prepareCommand(ctx context.Context, command string, args []string) *exec.Cmd {
 	// Build docker compose command
 	commandArgs := []string{
 		"compose",
@@ -134,9 +136,14 @@ func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd
 		"project_name", p.Name)
 
 	// Create command
-	cmd := exec.Command("docker", commandArgs...)
+	cmd := exec.CommandContext(ctx, "docker", commandArgs...)
 	// Do not set cmd.Dir to avoid Docker resolving container paths as host paths.
 	// The compose files are already specified with absolute paths via --file flags.
+
+	// Set up process group to ensure child processes are also terminated on cancellation
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	// Disable color output to simplify parsing logs and status
 	cmd.Env = append(os.Environ(), "NO_COLOR=1")
@@ -168,7 +175,9 @@ func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (string, error) {
 	return output, nil
 }
 
-func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<- string) error {
+func (p *ComposeProject) executeCommandStreaming(ctx context.Context, cmd *exec.Cmd, outputChan chan<- string) error {
+	// Command is already created with context via prepareCommand
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -210,6 +219,10 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			select {
+			case <-ctx.Done():
+				slog.Debug("Context cancelled, stopping stdout streaming",
+					"project_name", p.Name)
+				return
 			case outputChan <- scanner.Text():
 			default:
 				// Channel is full or closed (likely client disconnected), skip this message
@@ -228,6 +241,10 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			select {
+			case <-ctx.Done():
+				slog.Debug("Context cancelled, stopping stderr streaming",
+					"project_name", p.Name)
+				return
 			case outputChan <- scanner.Text():
 			default:
 				// Channel is full or closed (likely client disconnected), skip this message
@@ -247,6 +264,13 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 	wg.Wait()
 
 	if cmdErr != nil {
+		// Check if error is due to context cancellation
+		if ctx.Err() != nil {
+			slog.Info("Docker Compose command cancelled by context",
+				"project_name", p.Name,
+				"command", cmd.String())
+			return ctx.Err()
+		}
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",
 			"operation", "docker_compose_stream",
@@ -284,28 +308,28 @@ func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
 	return nil
 }
 
-func (p *ComposeProject) commandUp() *exec.Cmd {
-	return p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--remove-orphans"})
+func (p *ComposeProject) commandUp(ctx context.Context) *exec.Cmd {
+	return p.prepareCommand(ctx, "up", []string{"--detach", "--wait", "--quiet-pull", "--remove-orphans"})
 }
 
-func (p *ComposeProject) commandDown() *exec.Cmd {
-	return p.prepareCommand("down", []string{"--remove-orphans"})
+func (p *ComposeProject) commandDown(ctx context.Context) *exec.Cmd {
+	return p.prepareCommand(ctx, "down", []string{"--remove-orphans"})
 }
 
-func (p *ComposeProject) commandLogs() *exec.Cmd {
-	return p.prepareCommand("logs", []string{"--follow"})
+func (p *ComposeProject) commandLogs(ctx context.Context) *exec.Cmd {
+	return p.prepareCommand(ctx, "logs", []string{"--follow"})
 }
 
-func (p *ComposeProject) commandConfig() *exec.Cmd {
-	return p.prepareCommand("config", []string{})
+func (p *ComposeProject) commandConfig(ctx context.Context) *exec.Cmd {
+	return p.prepareCommand(ctx, "config", []string{})
 }
 
-func (p *ComposeProject) commandPs() *exec.Cmd {
-	return p.prepareCommand("ps", []string{"--format", "json"})
+func (p *ComposeProject) commandPs(ctx context.Context) *exec.Cmd {
+	return p.prepareCommand(ctx, "ps", []string{"--format", "json"})
 }
 
 func (p *ComposeProject) Status() (*ComposeStatus, error) {
-	cmd := p.commandPs()
+	cmd := p.commandPs(context.Background())
 
 	output, err := p.executeCommand(cmd)
 	if err != nil {
