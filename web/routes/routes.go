@@ -80,7 +80,6 @@ func RegisterProjectRoutes(r chi.Router) {
 			// Streaming endpoints
 			r.Post("/deploy/stream", handlers.HandleStream(actions.DeployProject, "deployment"))
 			r.Post("/stop/stream", handlers.HandleStream(actions.StopProject, "stop"))
-			r.Post("/logs/stream", handlers.HandleLogsStream(actions.GetProjectLogs))
 
 			// Status pill updates
 			r.Get("/status", handlers.HandleModal(getProjectStatusPill, "project_status_pill"))
@@ -261,8 +260,13 @@ func getLogsProjectModal(projectID uuid.UUID) (templ.Component, error) {
 		return nil, err
 	}
 
+	logs, err := projectService.GetLogs(projectID)
+	if err != nil {
+		logs = fmt.Sprintf("Error getting project logs:\n\n%s\n", err.Error())
+	}
+
 	projectView := handlers.ConvertProjectToView(targetProject)
-	return modals.LogsProjectModal(projectView), nil
+	return modals.LogsProjectModal(projectView, logs), nil
 }
 
 func getProjectStatusPill(projectID uuid.UUID) (templ.Component, error) {

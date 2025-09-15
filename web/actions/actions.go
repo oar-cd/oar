@@ -2,7 +2,6 @@
 package actions
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -98,10 +97,4 @@ func DeployProject(projectID uuid.UUID, outputChan chan<- string) error {
 func StopProject(projectID uuid.UUID, outputChan chan<- string) error {
 	projectService := app.GetProjectService()
 	return projectService.StopStreaming(projectID, outputChan)
-}
-
-// GetProjectLogs handles project logs streaming
-func GetProjectLogs(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error {
-	projectService := app.GetProjectService()
-	return projectService.GetLogsStreaming(ctx, projectID, outputChan)
 }

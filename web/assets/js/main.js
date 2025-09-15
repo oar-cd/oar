@@ -139,9 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.closeModal = function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            // Stop logs streaming when any modal closes
-            stopLogsStreaming();
-
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
@@ -301,20 +298,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target.closest('.modal-panel') || event.target.id === 'modal-container' || event.target.querySelector('.modal-panel')) {
             updateButtonStates();
             updateAuthFieldRequirements();
-
-            // Deploy button will be handled by event delegation below
-
-            // Auto-start logs streaming if logs modal is loaded
-            const logsContent = document.getElementById('logs-content');
-            if (logsContent && logsContent.dataset.projectId) {
-                // Reset auto-scroll state and checkbox when new logs modal opens
-                autoScrollEnabled = true;
-                const checkbox = document.getElementById('auto-scroll-checkbox');
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-                startLogsStreaming(logsContent.dataset.projectId);
-            }
         }
     });
 
@@ -406,8 +389,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                                     const escapedMessage = displayMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     contentElement.innerHTML += `<span class="${cssClass}">${escapedMessage}</span>\n`;
-                                    // Auto-scroll to bottom if enabled
-                                    autoScroll(outputElement);
+                                    // Auto-scroll to bottom
+                                    if (outputElement) {
+                                        outputElement.scrollTop = outputElement.scrollHeight;
+                                    }
                                     break;
 
                                 case 'output':
@@ -415,12 +400,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const legacyMessage = data.message;
                                     const escapedLegacyMessage = legacyMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                                     contentElement.innerHTML += `<span class="deploy-text-backend">${escapedLegacyMessage}</span>\n`;
-                                    autoScroll(outputElement);
+                                    if (outputElement) {
+                                        outputElement.scrollTop = outputElement.scrollHeight;
+                                    }
                                     break;
 
                                 case 'complete':
                                     // Complete message handled by onComplete
-                                    autoScroll(outputElement);
+                                    if (outputElement) {
+                                        outputElement.scrollTop = outputElement.scrollHeight;
+                                    }
                                     break;
                             }
                         } catch (error) {
@@ -507,7 +496,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateProjectStatus(projectId);
                     }
 
-                    autoScroll(elements.output);
+                    if (elements.output) {
+                        elements.output.scrollTop = elements.output.scrollHeight;
+                    }
                 });
             })
             .catch(error => {
@@ -565,19 +556,6 @@ document.addEventListener('DOMContentLoaded', function() {
         useAbortController: false
     };
 
-    const logsConfig = {
-        name: 'Logs',
-        btnId: 'logs-btn', // Not used since logs don't have a button
-        contentId: 'logs-content',
-        outputId: 'logs-output',
-        endpoint: (projectId) => `/projects/${projectId}/logs/stream`,
-        connectingMsg: 'Connecting to logs stream...',
-        startingMsg: 'Streaming logs...',
-        successMsg: 'Logs stream ended',
-        errorMsg: 'Logs stream failed',
-        updateStatus: false,
-        useAbortController: true
-    };
 
     // Deployment streaming functionality
     window.startDeployment = createStreamingHandler(deployConfig);
@@ -585,107 +563,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stop streaming functionality
     window.startStop = createStreamingHandler(stopConfig);
 
-    // Global variable to store logs stream controller for cancellation
-    let currentLogsController = null;
-
-    // Global variable to track auto-scroll state (enabled by default)
-    let autoScrollEnabled = true;
-
-    // Function to stop logs streaming
-    window.stopLogsStreaming = function() {
-        if (currentLogsController) {
-            currentLogsController.abort();
-            currentLogsController = null;
-        }
-    };
-
-    // Function to toggle auto-scroll
-    window.toggleAutoScroll = function() {
-        const checkbox = document.getElementById('auto-scroll-checkbox');
-        if (checkbox) {
-            autoScrollEnabled = checkbox.checked;
-
-            // Scroll to bottom immediately when re-enabled
-            if (autoScrollEnabled) {
-                const outputElement = document.getElementById('logs-output');
-                if (outputElement) {
-                    outputElement.scrollTop = outputElement.scrollHeight;
-                }
-            }
-        }
-    };
-
-    // Helper function to conditionally auto-scroll
-    function autoScroll(outputElement) {
-        if (autoScrollEnabled && outputElement) {
-            outputElement.scrollTop = outputElement.scrollHeight;
-        }
-    }
-
-    // Logs streaming functionality (auto-starts on modal open)
-    window.startLogsStreaming = function(projectId) {
-        // Cancel any existing logs stream first
-        stopLogsStreaming();
-
-        const elements = validateElements({
-            content: 'logs-content',
-            output: 'logs-output'
-        });
-
-        if (!elements) return;
-
-        // Create new AbortController for this stream
-        currentLogsController = new AbortController();
-
-        // Clear previous output and show loading state
-        elements.content.innerHTML = '<span class="deploy-text-frontend-generic">Connecting to logs stream...</span>\n';
-        elements.content.className = 'streaming-output';
-
-        // Start logs streaming with POST fetch
-        fetch(`/projects/${projectId}/logs/stream`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'text/event-stream',
-                'Cache-Control': 'no-cache'
-            },
-            signal: currentLogsController.signal
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            elements.content.innerHTML = '<span class="deploy-text-frontend-generic">Streaming logs...</span>\n';
-            elements.content.className = 'streaming-output';
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            return processServerSentEvents(reader, decoder, elements.content, elements.output, (hasError) => {
-                elements.content.innerHTML += '\n<span class="deploy-text-frontend-generic">Logs stream ended</span>\n';
-                autoScroll(elements.output);
-            });
-        })
-        .catch(error => {
-            // Don't show error if stream was intentionally cancelled
-            if (error.name === 'AbortError') {
-                console.log('Logs streaming was cancelled');
-                return;
-            }
-
-            console.error('Logs streaming error:', error);
-            const logsContent = document.getElementById('logs-content');
-            if (logsContent) {
-                logsContent.innerHTML += '\n<span class="deploy-text-frontend-error">ERROR: Connection to logs stream failed</span>\n';
-            }
-            showToast('Logs connection failed', 'error');
-        });
-    };
-
-    // Stop logs streaming when page is about to unload (navigation/refresh)
-    window.addEventListener('beforeunload', function() {
-        stopLogsStreaming();
-    });
 
     // Event delegation for deployment output buttons
     document.addEventListener('click', function(e) {
