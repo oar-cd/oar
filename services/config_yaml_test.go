@@ -43,7 +43,7 @@ encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 	assert.Equal(t, "0.0.0.0", config.HTTPHost)
 	assert.Equal(t, 8080, config.HTTPPort)
 	assert.Equal(t, 10*time.Minute, config.GitTimeout)
-	assert.Equal(t, 2*time.Minute, config.PollInterval)
+	assert.Equal(t, 2*time.Minute, config.WatcherPollInterval)
 	assert.Equal(t, "nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=", config.EncryptionKey)
 
 	// Verify derived paths
@@ -193,7 +193,7 @@ encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 	// Unspecified values should use defaults
 	assert.Equal(t, "/opt/oar/data", config.DataDir)
 	assert.Equal(t, "127.0.0.1", config.HTTPHost)
-	assert.Equal(t, 5*time.Minute, config.PollInterval)
+	assert.Equal(t, 5*time.Minute, config.WatcherPollInterval)
 }
 
 func TestLoadFromYamlFile_InvalidDurations(t *testing.T) {
@@ -219,7 +219,7 @@ encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 
 	// Invalid durations should be ignored, defaults used
 	assert.Equal(t, 5*time.Minute, config.GitTimeout)
-	assert.Equal(t, 5*time.Minute, config.PollInterval)
+	assert.Equal(t, 5*time.Minute, config.WatcherPollInterval)
 }
 
 func TestNewConfigForCLI_SilentDefault(t *testing.T) {
@@ -402,7 +402,7 @@ func TestConfigValidation_GitTimeout(t *testing.T) {
 	}
 }
 
-func TestConfigValidation_PollInterval(t *testing.T) {
+func TestConfigValidation_WatcherPollInterval(t *testing.T) {
 	tests := []struct {
 		name     string
 		interval string
@@ -418,8 +418,8 @@ func TestConfigValidation_PollInterval(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEnv := NewMockEnvProvider("/home/test", map[string]string{
-				"OAR_POLL_INTERVAL":  tt.interval,
-				"OAR_ENCRYPTION_KEY": generateTestKey(),
+				"OAR_WATCHER_POLL_INTERVAL": tt.interval,
+				"OAR_ENCRYPTION_KEY":        generateTestKey(),
 			})
 
 			config, err := NewConfigWithEnv("", mockEnv)
@@ -429,7 +429,7 @@ func TestConfigValidation_PollInterval(t *testing.T) {
 			} else {
 				assert.Error(t, err, "Expected interval '%s' to be invalid", tt.interval)
 				assert.Nil(t, config)
-				assert.Contains(t, err.Error(), "poll interval must be positive")
+				assert.Contains(t, err.Error(), "watcher poll interval must be positive")
 			}
 		})
 	}
@@ -473,5 +473,5 @@ encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 	assert.Equal(t, "127.0.0.1", config.HTTPHost) // Default
 	assert.Equal(t, 3333, config.HTTPPort)        // Default
 	assert.Equal(t, 5*time.Minute, config.GitTimeout)
-	assert.Equal(t, 5*time.Minute, config.PollInterval)
+	assert.Equal(t, 5*time.Minute, config.WatcherPollInterval)
 }

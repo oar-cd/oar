@@ -53,6 +53,7 @@ type GitConfig struct {
 }
 
 type WatcherConfig struct {
+	Enabled      *bool  `yaml:"enabled,omitempty"`
 	PollInterval string `yaml:"poll_interval,omitempty"`
 }
 
@@ -75,7 +76,8 @@ type Config struct {
 	GitTimeout time.Duration
 
 	// Watcher
-	PollInterval time.Duration
+	WatcherEnabled      bool
+	WatcherPollInterval time.Duration
 
 	// Encryption
 	EncryptionKey string
@@ -135,7 +137,8 @@ func NewConfigWithEnv(configPath string, env EnvProvider, options ...ConfigOptio
 		"http_host", c.HTTPHost,
 		"http_port", c.HTTPPort,
 		"git_timeout", c.GitTimeout,
-		"poll_interval", c.PollInterval,
+		"watcher_enabled", c.WatcherEnabled,
+		"watcher_poll_interval", c.WatcherPollInterval,
 		"has_encryption_key", c.EncryptionKey != "")
 
 	return c, nil
@@ -158,7 +161,8 @@ func (c *Config) setDefaults() {
 	c.HTTPHost = "127.0.0.1"
 	c.HTTPPort = 3333
 	c.GitTimeout = 5 * time.Minute
-	c.PollInterval = 5 * time.Minute
+	c.WatcherEnabled = true
+	c.WatcherPollInterval = 5 * time.Minute
 	// Don't set default encryption key - it must be provided explicitly
 }
 
@@ -194,10 +198,16 @@ func (c *Config) loadFromEnv() {
 			envVarsFound = append(envVarsFound, "OAR_GIT_TIMEOUT")
 		}
 	}
-	if v := c.env.Getenv("OAR_POLL_INTERVAL"); v != "" {
+	if v := c.env.Getenv("OAR_WATCHER_ENABLED"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.WatcherEnabled = b
+			envVarsFound = append(envVarsFound, "OAR_WATCHER_ENABLED")
+		}
+	}
+	if v := c.env.Getenv("OAR_WATCHER_POLL_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
-			c.PollInterval = d
-			envVarsFound = append(envVarsFound, "OAR_POLL_INTERVAL")
+			c.WatcherPollInterval = d
+			envVarsFound = append(envVarsFound, "OAR_WATCHER_POLL_INTERVAL")
 		}
 	}
 	if v := c.env.Getenv("OAR_ENCRYPTION_KEY"); v != "" {
@@ -245,9 +255,12 @@ func (c *Config) loadFromYamlFile(configPath string) error {
 			c.GitTimeout = d
 		}
 	}
+	if yamlConfig.Watcher.Enabled != nil {
+		c.WatcherEnabled = *yamlConfig.Watcher.Enabled
+	}
 	if yamlConfig.Watcher.PollInterval != "" {
 		if d, err := time.ParseDuration(yamlConfig.Watcher.PollInterval); err == nil {
-			c.PollInterval = d
+			c.WatcherPollInterval = d
 		}
 	}
 	if yamlConfig.EncryptionKey != "" {
@@ -288,9 +301,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("git timeout must be positive, got: %v", c.GitTimeout)
 	}
 
-	// Validate poll interval
-	if c.PollInterval <= 0 {
-		return fmt.Errorf("poll interval must be positive, got: %v", c.PollInterval)
+	// Validate watcher poll interval
+	if c.WatcherPollInterval <= 0 {
+		return fmt.Errorf("watcher poll interval must be positive, got: %v", c.WatcherPollInterval)
 	}
 
 	// Require encryption key to be provided via environment variable or config file

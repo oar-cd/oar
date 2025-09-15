@@ -122,16 +122,19 @@ func startWebServer(ctx context.Context, config *services.Config) error {
 // startWatcherService starts the watcher service
 func startWatcherService(ctx context.Context, config *services.Config) error {
 
-	// Initialize watcher service
-	watcherService := watcher.NewWatcherService(
-		app.GetProjectService(),
-		app.GetGitService(),
-		config.PollInterval,
-	)
+	// Initialize and run watcher service if enabled
+	if config.WatcherEnabled {
+		watcherService := watcher.NewWatcherService(
+			app.GetProjectService(),
+			app.GetGitService(),
+			config.WatcherPollInterval,
+		)
 
-	// Run watcher service
-	if err := watcherService.Start(ctx); err != nil {
-		return fmt.Errorf("watcher service failed: %w", err)
+		if err := watcherService.Start(ctx); err != nil {
+			return fmt.Errorf("watcher service failed: %w", err)
+		}
+	} else {
+		slog.Info("Watcher service is disabled")
 	}
 
 	slog.Info("Watcher service stopped")

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -169,6 +170,36 @@ func TestStartWatcherService_ConfigurationError(t *testing.T) {
 	// full application initialization. We'll skip it for unit tests
 	// and rely on integration tests for this functionality.
 	t.Skip("Skipping watcher service test - requires full app initialization")
+}
+
+func TestStartWatcherService_WatcherDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping watcher service test in short mode")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// Create a config with watcher disabled
+	config := &services.Config{
+		WatcherEnabled:      false,
+		WatcherPollInterval: 5 * time.Minute,
+	}
+
+	// Test that startWatcherService returns nil immediately when watcher is disabled
+	err := startWatcherService(ctx, config)
+	assert.NoError(t, err, "startWatcherService should return nil when watcher is disabled")
+}
+
+func TestStartWatcherService_WatcherEnabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping watcher service test in short mode")
+	}
+
+	// This test verifies the watcher enabled path, but since it requires
+	// full app initialization (app.GetProjectService(), app.GetGitService()),
+	// we'll skip it for unit tests and rely on integration tests.
+	t.Skip("Skipping watcher enabled test - requires full app initialization")
 }
 
 // Test helper functions and edge cases
