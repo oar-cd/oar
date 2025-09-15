@@ -2,6 +2,7 @@
 package actions
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -100,7 +101,7 @@ func StopProject(projectID uuid.UUID, outputChan chan<- string) error {
 }
 
 // GetProjectLogs handles project logs streaming
-func GetProjectLogs(projectID uuid.UUID, outputChan chan<- string) error {
+func GetProjectLogs(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error {
 	projectService := app.GetProjectService()
-	return projectService.GetLogsStreaming(projectID, outputChan)
+	return projectService.GetLogsStreaming(ctx, projectID, outputChan)
 }

@@ -1,6 +1,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/services"
 )
@@ -17,7 +19,7 @@ type MockProjectManager struct {
 	StopFunc             func(projectID uuid.UUID) error
 	StopStreamingFunc    func(projectID uuid.UUID, outputChan chan<- string) error
 	StopPipingFunc       func(projectID uuid.UUID) error
-	GetLogsStreamingFunc func(projectID uuid.UUID, outputChan chan<- string) error
+	GetLogsStreamingFunc func(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error
 	GetLogsPipingFunc    func(projectID uuid.UUID) error
 	GetConfigFunc        func(projectID uuid.UUID) (string, error)
 	GetStatusFunc        func(projectID uuid.UUID) (*services.ComposeStatus, error)
@@ -94,9 +96,13 @@ func (m *MockProjectManager) StopPiping(projectID uuid.UUID) error {
 	return nil
 }
 
-func (m *MockProjectManager) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+func (m *MockProjectManager) GetLogsStreaming(
+	ctx context.Context,
+	projectID uuid.UUID,
+	outputChan chan<- string,
+) error {
 	if m.GetLogsStreamingFunc != nil {
-		return m.GetLogsStreamingFunc(projectID, outputChan)
+		return m.GetLogsStreamingFunc(ctx, projectID, outputChan)
 	}
 	return nil
 }

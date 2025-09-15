@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -79,7 +80,7 @@ func TestComposeProject_PrepareCommand_Basic(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.prepareCommand("up", []string{"--detach"})
+	cmd := composeProject.prepareCommand(context.Background(), "up", []string{"--detach"})
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -110,7 +111,7 @@ func TestComposeProject_PrepareCommand_MultipleFiles(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.prepareCommand("down", []string{"--remove-orphans"})
+	cmd := composeProject.prepareCommand(context.Background(), "down", []string{"--remove-orphans"})
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -137,7 +138,7 @@ func TestComposeProject_PrepareCommand_NoFiles(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.prepareCommand("ps", []string{})
+	cmd := composeProject.prepareCommand(context.Background(), "ps", []string{})
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -160,7 +161,7 @@ func TestComposeProject_CommandUp(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.commandUp()
+	cmd := composeProject.commandUp(context.Background())
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -187,7 +188,7 @@ func TestComposeProject_CommandDown(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.commandDown()
+	cmd := composeProject.commandDown(context.Background())
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -211,7 +212,7 @@ func TestComposeProject_CommandLogs(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.commandLogs()
+	cmd := composeProject.commandLogs(context.Background())
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -291,7 +292,7 @@ func TestComposeProject_ExecuteCommandStreaming_Success(t *testing.T) {
 	}()
 
 	// Test
-	err := composeProject.executeCommandStreaming(cmd, outputChan)
+	err := composeProject.executeCommandStreaming(context.Background(), cmd, outputChan)
 	close(outputChan)
 
 	// Wait for output collection to complete
@@ -321,7 +322,7 @@ func TestComposeProject_ExecuteCommandStreaming_Error(t *testing.T) {
 	outputChan := make(chan string, 10)
 
 	// Test
-	err := composeProject.executeCommandStreaming(cmd, outputChan)
+	err := composeProject.executeCommandStreaming(context.Background(), cmd, outputChan)
 	close(outputChan)
 
 	// Assertions
@@ -365,7 +366,7 @@ func TestComposeProject_EmptyProjectName(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.prepareCommand("up", []string{})
+	cmd := composeProject.prepareCommand(context.Background(), "up", []string{})
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -387,7 +388,7 @@ func TestComposeProject_InvalidWorkingDirectory(t *testing.T) {
 	composeProject.WorkingDir = "/non/existent/directory"
 
 	// Test
-	cmd := composeProject.prepareCommand("up", []string{})
+	cmd := composeProject.prepareCommand(context.Background(), "up", []string{})
 
 	// Assertions // prepareCommand doesn't validate directory existence
 	assert.NotNil(t, cmd)
@@ -409,7 +410,7 @@ func TestComposeProject_StreamingChannelManagement(t *testing.T) {
 	cmd := exec.Command("echo", "streaming test")
 
 	// Test
-	err := composeProject.executeCommandStreaming(cmd, outputChan)
+	err := composeProject.executeCommandStreaming(context.Background(), cmd, outputChan)
 
 	// Close channel and collect output
 	close(outputChan)
@@ -448,7 +449,7 @@ func TestComposeProject_ConcurrentStreaming(t *testing.T) {
 			// Use a more reliable command that should always produce output
 			cmd := exec.Command("sh", "-c", fmt.Sprintf("printf 'concurrent test %d\\n'", id))
 
-			err := composeProject.executeCommandStreaming(cmd, outputChan)
+			err := composeProject.executeCommandStreaming(context.Background(), cmd, outputChan)
 			close(outputChan)
 
 			// Collect output to ensure it completes

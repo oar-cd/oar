@@ -80,7 +80,7 @@ func RegisterProjectRoutes(r chi.Router) {
 			// Streaming endpoints
 			r.Post("/deploy/stream", handlers.HandleStream(actions.DeployProject, "deployment"))
 			r.Post("/stop/stream", handlers.HandleStream(actions.StopProject, "stop"))
-			r.Post("/logs/stream", handlers.HandleStream(actions.GetProjectLogs, "logs"))
+			r.Post("/logs/stream", handlers.HandleLogsStream(actions.GetProjectLogs))
 
 			// Status pill updates
 			r.Get("/status", handlers.HandleModal(getProjectStatusPill, "project_status_pill"))

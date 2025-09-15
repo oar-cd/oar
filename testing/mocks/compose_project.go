@@ -2,6 +2,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/mock"
 )
@@ -56,8 +58,8 @@ func (m *MockComposeProject) DownPiping() error {
 	return args.Error(0)
 }
 
-func (m *MockComposeProject) LogsStreaming(outputChan chan<- string) error {
-	args := m.Called(outputChan)
+func (m *MockComposeProject) LogsStreaming(ctx context.Context, outputChan chan<- string) error {
+	args := m.Called(ctx, outputChan)
 	return args.Error(0)
 }
 

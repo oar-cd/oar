@@ -2,6 +2,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -682,7 +683,7 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 	return nil
 }
 
-func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+func (s *ProjectService) GetLogsStreaming(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error {
 	// Get projectID
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -719,7 +720,7 @@ func (s *ProjectService) GetLogsStreaming(projectID uuid.UUID, outputChan chan<-
 	}()
 
 	// Execute logs with streaming
-	err = composeProject.LogsStreaming(capturingChan)
+	err = composeProject.LogsStreaming(ctx, capturingChan)
 	close(capturingChan) // Signal that we're done sending to the capturing channel
 	<-done               // Wait for the goroutine to finish processing all messages
 

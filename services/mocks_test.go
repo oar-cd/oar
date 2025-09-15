@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -220,8 +221,8 @@ func (m *MockComposeProject) DownPiping() error {
 	return args.Error(0)
 }
 
-func (m *MockComposeProject) LogsStreaming(outputChan chan<- string) error {
-	args := m.Called(outputChan)
+func (m *MockComposeProject) LogsStreaming(ctx context.Context, outputChan chan<- string) error {
+	args := m.Called(ctx, outputChan)
 	return args.Error(0)
 }
 
@@ -242,7 +243,7 @@ type MockProjectManager struct {
 	StopFunc             func(projectID uuid.UUID) error
 	StopStreamingFunc    func(projectID uuid.UUID, outputChan chan<- string) error
 	StopPipingFunc       func(projectID uuid.UUID) error
-	GetLogsStreamingFunc func(projectID uuid.UUID, outputChan chan<- string) error
+	GetLogsStreamingFunc func(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error
 	GetLogsPipingFunc    func(projectID uuid.UUID) error
 	GetConfigFunc        func(projectID uuid.UUID) (string, error)
 	GetStatusFunc        func(projectID uuid.UUID) (*ComposeStatus, error)
@@ -319,9 +320,13 @@ func (m *MockProjectManager) StopPiping(projectID uuid.UUID) error {
 	return nil
 }
 
-func (m *MockProjectManager) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+func (m *MockProjectManager) GetLogsStreaming(
+	ctx context.Context,
+	projectID uuid.UUID,
+	outputChan chan<- string,
+) error {
 	if m.GetLogsStreamingFunc != nil {
-		return m.GetLogsStreamingFunc(projectID, outputChan)
+		return m.GetLogsStreamingFunc(ctx, projectID, outputChan)
 	}
 	return nil
 }

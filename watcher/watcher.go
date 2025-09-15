@@ -120,13 +120,28 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 		"remote_commit", remoteCommit,
 		"has_updates", currentCommit != remoteCommit)
 
-	// Compare with current commit
-	if currentCommit != remoteCommit {
-		slog.Info("New commit detected, triggering automatic deployment",
-			"project_id", project.ID,
-			"project_name", project.Name,
-			"old_commit", currentCommit,
-			"new_commit", remoteCommit)
+	// Deploy if there are git changes OR if project is not in running/stopped state
+	hasGitChanges := currentCommit != remoteCommit
+	isInErrorState := project.Status != services.ProjectStatusRunning && project.Status != services.ProjectStatusStopped
+	shouldDeploy := hasGitChanges || isInErrorState
+
+	if shouldDeploy {
+		var reason string
+		if hasGitChanges {
+			reason = "new commit detected"
+			slog.Info("New commit detected, triggering automatic deployment",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"old_commit", currentCommit,
+				"new_commit", remoteCommit)
+		} else {
+			reason = "project in error state"
+			slog.Info("Project in error state, triggering automatic deployment",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"status", project.Status.String(),
+				"target_commit", remoteCommit)
+		}
 
 		// TODO: Consider creating a dedicated method for automatic deployments
 		// instead of using DeployPiping(). This would allow for:
@@ -138,6 +153,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 			slog.Error("Automatic deployment failed",
 				"project_id", project.ID,
 				"project_name", project.Name,
+				"reason", reason,
 				"target_commit", remoteCommit,
 				"error", err)
 			return fmt.Errorf("failed to deploy project: %w", err)
@@ -163,6 +179,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 		slog.Info("Automatic deployment completed successfully",
 			"project_id", project.ID,
 			"project_name", project.Name,
+			"reason", reason,
 			"deployed_commit", remoteCommit)
 	}
 

@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -281,6 +282,42 @@ func HandleStream(streamFunc func(uuid.UUID, chan<- string) error, streamType st
 
 		if err := StreamOutput(w, outputChan, streamType); err != nil {
 			LogOperationError(fmt.Sprintf("%s_stream_output", streamType), "handlers", err, "project_id", projectID)
+		}
+	})
+}
+
+// HandleLogsStream creates a specialized handler for logs streaming with client disconnect detection
+func HandleLogsStream(logsFunc func(context.Context, uuid.UUID, chan<- string) error) http.HandlerFunc {
+	return withProjectID(func(w http.ResponseWriter, r *http.Request, projectID uuid.UUID) {
+		SetupSSE(w)
+
+		outputChan := make(chan string, 100)
+
+		// Create context that cancels when client disconnects
+		ctx, cancel := context.WithCancel(r.Context())
+		defer cancel()
+
+		// Start streaming in a goroutine
+		go func() {
+			defer close(outputChan) // Close channel when streaming function completes
+			if err := logsFunc(ctx, projectID, outputChan); err != nil {
+				LogOperationError("logs_stream", "handlers", err, "project_id", projectID)
+				// Send error as JSON message to match deployment format
+				errorMsg := map[string]string{
+					"type":    "error",
+					"message": fmt.Sprintf("Logs failed: %s", err.Error()),
+				}
+				if jsonMsg, jsonErr := json.Marshal(errorMsg); jsonErr == nil {
+					select {
+					case outputChan <- string(jsonMsg):
+					default:
+					}
+				}
+			}
+		}()
+
+		if err := StreamOutput(w, outputChan, "logs"); err != nil {
+			LogOperationError("logs_stream_output", "handlers", err, "project_id", projectID)
 		}
 	})
 }

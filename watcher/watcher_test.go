@@ -67,8 +67,12 @@ func (m *MockProjectManager) StopPiping(projectID uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) GetLogsStreaming(projectID uuid.UUID, outputChan chan<- string) error {
-	args := m.Called(projectID, outputChan)
+func (m *MockProjectManager) GetLogsStreaming(
+	ctx context.Context,
+	projectID uuid.UUID,
+	outputChan chan<- string,
+) error {
+	args := m.Called(ctx, projectID, outputChan)
 	return args.Error(0)
 }
 
@@ -239,6 +243,13 @@ func TestWatcherService_checkAllProjects_MixedProjects(t *testing.T) {
 	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-error-with-watcher/git", "main").
 		Return("commit4", nil)
 
+	// Error project should trigger deployment (even without git changes) and update
+	errorProjectID := projects[3].ID
+	mockProjectService.On("DeployPiping", errorProjectID, true).Return(nil)
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == errorProjectID && p.LastCommit != nil && *p.LastCommit == "commit4"
+	})).Return(nil)
+
 	err := service.checkAllProjects(context.Background())
 	assert.NoError(t, err)
 
@@ -262,6 +273,31 @@ func TestWatcherService_checkProject_NoChanges(t *testing.T) {
 	mockGitService.AssertExpectations(t)
 	// DeployPiping should not be called since commits are the same
 	mockProjectService.AssertNotCalled(t, "DeployPiping")
+}
+
+func TestWatcherService_checkProject_ErrorStateWithoutChanges(t *testing.T) {
+	mockProjectService := &MockProjectManager{}
+	mockGitService := &MockGitExecutor{}
+	service := NewWatcherService(mockProjectService, mockGitService, time.Minute)
+
+	project := createTestProject(uuid.New(), "test-project", services.ProjectStatusError, true, "commit1")
+
+	mockGitService.On("Fetch", "main", (*services.GitAuthConfig)(nil), "/tmp/test-project-test-project/git").Return(nil)
+	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-test-project/git", "main").
+		Return("commit1", nil)
+		// Same commit
+	mockProjectService.On("DeployPiping", project.ID, true).
+		Return(nil)
+		// Should deploy despite no git changes
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == project.ID && p.LastCommit != nil && *p.LastCommit == "commit1"
+	})).Return(nil)
+
+	err := service.checkProject(context.Background(), project)
+	assert.NoError(t, err)
+
+	mockGitService.AssertExpectations(t)
+	mockProjectService.AssertExpectations(t)
 }
 
 func TestWatcherService_checkProject_WithChanges(t *testing.T) {
