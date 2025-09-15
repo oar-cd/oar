@@ -163,6 +163,7 @@ http:
   port: 3333
 
 watcher:
+  enabled: true
   poll_interval: 5m
 
 encryption_key: $ENCRYPTION_KEY
