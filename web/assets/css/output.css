@@ -314,6 +314,9 @@
   .m-1 {
     margin: calc(var(--spacing) * 1);
   }
+  .m-2 {
+    margin: calc(var(--spacing) * 2);
+  }
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
@@ -473,9 +476,6 @@
   .flex-col {
     flex-direction: column;
   }
-  .flex-wrap {
-    flex-wrap: wrap;
-  }
   .items-center {
     align-items: center;
   }
@@ -506,6 +506,13 @@
       --tw-space-x-reverse: 0;
       margin-inline-start: calc(calc(var(--spacing) * 1) * var(--tw-space-x-reverse));
       margin-inline-end: calc(calc(var(--spacing) * 1) * calc(1 - var(--tw-space-x-reverse)));
+    }
+  }
+  .space-x-2 {
+    :where(& > :not(:last-child)) {
+      --tw-space-x-reverse: 0;
+      margin-inline-start: calc(calc(var(--spacing) * 2) * var(--tw-space-x-reverse));
+      margin-inline-end: calc(calc(var(--spacing) * 2) * calc(1 - var(--tw-space-x-reverse)));
     }
   }
   .truncate {
@@ -1609,9 +1616,7 @@ body {
   text-align: left;
   --tw-shadow: 0 20px 25px -5px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
   box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  transition-property: all;
-  transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
-  transition-duration: var(--tw-duration, var(--default-transition-duration));
+  transition-property: none;
   @media (width >= 40rem) {
     margin-block: calc(var(--spacing) * 4);
   }
@@ -1623,6 +1628,42 @@ body {
   }
   @media (width >= 40rem) {
     padding: calc(var(--spacing) * 8);
+  }
+}
+.modal.fullscreen .modal-container {
+  padding: calc(var(--spacing) * 2);
+}
+.modal.fullscreen .modal-panel-large {
+  margin: calc(var(--spacing) * 0);
+  height: 100%;
+  max-height: none;
+  width: 100%;
+  max-width: none;
+  border-radius: var(--radius-lg);
+  @media (width >= 40rem) {
+    padding: calc(var(--spacing) * 6);
+  }
+}
+.modal.fullscreen .modal-body {
+  flex: 1;
+  overflow: hidden;
+}
+.fullscreen-toggle {
+  margin-left: calc(var(--spacing) * 2);
+  color: var(--color-gray-400);
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+  transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+  --tw-duration: 200ms;
+  transition-duration: 200ms;
+  &:hover {
+    @media (hover: hover) {
+      color: var(--color-gray-600);
+    }
+  }
+  &:focus {
+    --tw-outline-style: none;
+    outline-style: none;
   }
 }
 .modal-header {
@@ -1695,6 +1736,10 @@ body {
   color: var(--color-gray-300);
   min-height: 500px;
   max-height: 50vh;
+}
+.modal.fullscreen .config-code-block, .modal.fullscreen .deploy-code-block, .modal.fullscreen .stop-code-block, .modal.fullscreen .logs-code-block {
+  max-height: calc(100vh - 200px);
+  min-height: calc(100vh - 200px);
 }
 .deploy-output-container, .stop-output-container, .logs-output-container {
   position: relative;
