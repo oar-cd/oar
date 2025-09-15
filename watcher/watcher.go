@@ -60,45 +60,35 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 		return fmt.Errorf("failed to list projects: %w", err)
 	}
 
-	watcherEnabledCount := 0
-	activeProjectsChecked := 0
+	projectsChecked := 0
 	for _, project := range projects {
 		if project.WatcherEnabled {
-			slog.Info("Checking project",
-				"project_id", project.ID,
-				"project_name", project.Name,
-				"status", project.Status.String(),
-				"is_running", project.Status == services.ProjectStatusRunning)
-
-			if project.Status != services.ProjectStatusStopped {
-				watcherEnabledCount++
-				if project.Status == services.ProjectStatusRunning {
-					activeProjectsChecked++
-					if err := w.checkProject(ctx, project); err != nil {
-						slog.Error("Failed to check project",
-							"project_id", project.ID,
-							"project_name", project.Name,
-							"error", err)
-					}
-				} else {
-					slog.Info("Project watcher enabled but not running - skipping git check",
-						"project_id", project.ID,
-						"project_name", project.Name,
-						"status", project.Status.String())
-				}
-			} else {
+			if project.Status == services.ProjectStatusStopped {
 				slog.Info("Project is stopped - skipping git check",
 					"project_id", project.ID,
 					"project_name", project.Name,
 					"status", project.Status.String())
+				continue
+			}
+
+			slog.Info("Checking project",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"status", project.Status.String())
+
+			projectsChecked++
+			if err := w.checkProject(ctx, project); err != nil {
+				slog.Error("Failed to check project",
+					"project_id", project.ID,
+					"project_name", project.Name,
+					"error", err)
 			}
 		}
 	}
 
 	slog.Debug("Project check cycle completed",
 		"total_projects", len(projects),
-		"watcher_enabled", watcherEnabledCount,
-		"active_projects_checked", activeProjectsChecked)
+		"projects_checked", projectsChecked)
 
 	return nil
 }

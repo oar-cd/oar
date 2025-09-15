@@ -64,7 +64,14 @@ templ Footer(version string) {
 				</a>
 				<a href="/about" class="footer-link">About</a>
 			</div>
-			<p>v{ version }</p>
+			<a
+				href={ "https://github.com/oar-cd/oar/releases/tag/" + version }
+				target="_blank"
+				rel="noopener noreferrer"
+				class="footer-link"
+			>
+				v{ version }
+			</a>
 		</div>
 	</footer>
 }
