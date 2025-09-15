@@ -3,6 +3,7 @@ package services
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -11,16 +12,56 @@ import (
 	"sync"
 )
 
+type ComposeProjectStatus int
+
+const (
+	ComposeProjectStatusUnknown ComposeProjectStatus = iota
+	ComposeProjectStatusRunning
+	ComposeProjectStatusStopped
+	ComposeProjectStatusFailed
+)
+
+func (s ComposeProjectStatus) String() string {
+	switch s {
+	case ComposeProjectStatusRunning:
+		return "running"
+	case ComposeProjectStatusStopped:
+		return "stopped"
+	case ComposeProjectStatusFailed:
+		return "failed"
+	case ComposeProjectStatusUnknown:
+		return "unknown"
+	default:
+		return "unknown"
+	}
+}
+
+func ParseComposeProjectStatus(s string) (ComposeProjectStatus, error) {
+	switch s {
+	case "running":
+		return ComposeProjectStatusRunning, nil
+	case "stopped":
+		return ComposeProjectStatusStopped, nil
+	case "failed":
+		return ComposeProjectStatusFailed, nil
+	case "unknown":
+		return ComposeProjectStatusUnknown, nil
+	default:
+		return ComposeProjectStatusUnknown, fmt.Errorf("invalid compose project status: %q", s)
+	}
+}
+
 type ContainerInfo struct {
 	Service    string `json:"Service"`
 	Name       string `json:"Name"`
 	State      string `json:"State"`
 	Status     string `json:"Status"`
 	RunningFor string `json:"RunningFor"`
+	ExitCode   int    `json:"ExitCode"`
 }
 
 type ComposeStatus struct {
-	Status     string
+	Status     ComposeProjectStatus
 	Containers []ContainerInfo
 	Uptime     string
 }
@@ -336,11 +377,19 @@ func (p *ComposeProject) Status() (*ComposeStatus, error) {
 	}
 
 	// Determine overall project status
-	projectStatus := "stopped"
+	projectStatus := ComposeProjectStatusStopped
 	uptime := ""
 	if len(containers) > 0 {
 		runningCount := 0
+		totalRelevantContainers := 0
+
 		for _, container := range containers {
+			// Skip containers that have legitimately exited with success (e.g., init containers)
+			if container.State == "exited" && container.ExitCode == 0 {
+				continue
+			}
+
+			totalRelevantContainers++
 			if container.State == "running" {
 				runningCount++
 				if uptime == "" {
@@ -349,10 +398,13 @@ func (p *ComposeProject) Status() (*ComposeStatus, error) {
 			}
 		}
 
-		if runningCount == len(containers) {
-			projectStatus = "running"
+		if totalRelevantContainers == 0 {
+			// All containers are successfully exited init containers - we can't determine status
+			projectStatus = ComposeProjectStatusUnknown
+		} else if runningCount == totalRelevantContainers {
+			projectStatus = ComposeProjectStatusRunning
 		} else if runningCount > 0 {
-			projectStatus = "partial"
+			projectStatus = ComposeProjectStatusFailed
 		}
 	}
 

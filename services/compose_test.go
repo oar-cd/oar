@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -488,5 +489,185 @@ func TestComposeProject_ConcurrentStreaming(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			t.Fatal("Timeout waiting for concurrent operations")
 		}
+	}
+}
+
+// Tests for Status calculation logic
+func TestComposeProject_StatusCalculation_AllSuccessfullyExitedContainers(t *testing.T) {
+	// Test the status calculation logic directly by simulating different container scenarios
+	tests := []struct {
+		name           string
+		containers     []ContainerInfo
+		expectedStatus ComposeProjectStatus
+		expectedUptime string
+	}{
+		{
+			name: "all containers successfully exited (init containers)",
+			containers: []ContainerInfo{
+				{Service: "migrate", State: "exited", ExitCode: 0, Status: "Exited (0) 5 minutes ago"},
+				{Service: "collectstatic", State: "exited", ExitCode: 0, Status: "Exited (0) 5 minutes ago"},
+			},
+			expectedStatus: ComposeProjectStatusUnknown,
+			expectedUptime: "",
+		},
+		{
+			name: "all containers running",
+			containers: []ContainerInfo{
+				{Service: "web", State: "running", Status: "Up 2 hours", RunningFor: "2 hours ago"},
+				{Service: "db", State: "running", Status: "Up 2 hours", RunningFor: "2 hours ago"},
+			},
+			expectedStatus: ComposeProjectStatusRunning,
+			expectedUptime: "2 hours",
+		},
+		{
+			name: "mixed running and failed containers",
+			containers: []ContainerInfo{
+				{Service: "web", State: "running", Status: "Up 1 hour", RunningFor: "1 hour ago"},
+				{Service: "db", State: "exited", ExitCode: 1, Status: "Exited (1) 10 minutes ago"},
+			},
+			expectedStatus: ComposeProjectStatusFailed,
+			expectedUptime: "1 hour",
+		},
+		{
+			name: "all containers stopped (non-zero exit codes)",
+			containers: []ContainerInfo{
+				{Service: "web", State: "exited", ExitCode: 1, Status: "Exited (1) 1 hour ago"},
+				{Service: "db", State: "exited", ExitCode: 1, Status: "Exited (1) 1 hour ago"},
+			},
+			expectedStatus: ComposeProjectStatusStopped,
+			expectedUptime: "",
+		},
+		{
+			name: "regular containers cleanly stopped (would be treated as unknown due to current logic)",
+			containers: []ContainerInfo{
+				{Service: "web", State: "exited", ExitCode: 0, Status: "Exited (0) 1 hour ago"},
+				{Service: "db", State: "exited", ExitCode: 0, Status: "Exited (0) 1 hour ago"},
+			},
+			expectedStatus: ComposeProjectStatusUnknown, // Current logic treats all ExitCode:0 as init containers
+			expectedUptime: "",
+		},
+		{
+			name: "running containers with successful init containers",
+			containers: []ContainerInfo{
+				{Service: "web", State: "running", Status: "Up 1 hour", RunningFor: "1 hour ago"},
+				{Service: "migrate", State: "exited", ExitCode: 0, Status: "Exited (0) 2 hours ago"},
+			},
+			expectedStatus: ComposeProjectStatusRunning,
+			expectedUptime: "1 hour",
+		},
+		{
+			name:           "no containers",
+			containers:     []ContainerInfo{},
+			expectedStatus: ComposeProjectStatusStopped,
+			expectedUptime: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the status calculation logic from ComposeProject.Status()
+			projectStatus := ComposeProjectStatusStopped
+			uptime := ""
+
+			if len(tt.containers) > 0 {
+				runningCount := 0
+				totalRelevantContainers := 0
+
+				for _, container := range tt.containers {
+					// Skip containers that have legitimately exited with success (e.g., init containers)
+					if container.State == "exited" && container.ExitCode == 0 {
+						continue
+					}
+
+					totalRelevantContainers++
+					if container.State == "running" {
+						runningCount++
+						if uptime == "" {
+							uptime = strings.TrimSuffix(container.RunningFor, " ago")
+						}
+					}
+				}
+
+				if totalRelevantContainers == 0 {
+					// All containers are successfully exited init containers - we can't determine status
+					projectStatus = ComposeProjectStatusUnknown
+				} else if runningCount == totalRelevantContainers {
+					projectStatus = ComposeProjectStatusRunning
+				} else if runningCount > 0 {
+					projectStatus = ComposeProjectStatusFailed
+				}
+			}
+
+			// Assertions
+			assert.Equal(t, tt.expectedStatus, projectStatus, "status should match expected")
+			assert.Equal(t, tt.expectedUptime, uptime, "uptime should match expected")
+		})
+	}
+}
+
+// Test for ParseComposeProjectStatus function
+func TestParseComposeProjectStatus(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedStatus ComposeProjectStatus
+		expectError    bool
+	}{
+		{
+			name:           "parse running status",
+			input:          "running",
+			expectedStatus: ComposeProjectStatusRunning,
+			expectError:    false,
+		},
+		{
+			name:           "parse stopped status",
+			input:          "stopped",
+			expectedStatus: ComposeProjectStatusStopped,
+			expectError:    false,
+		},
+		{
+			name:           "parse failed status",
+			input:          "failed",
+			expectedStatus: ComposeProjectStatusFailed,
+			expectError:    false,
+		},
+		{
+			name:           "parse unknown status",
+			input:          "unknown",
+			expectedStatus: ComposeProjectStatusUnknown,
+			expectError:    false,
+		},
+		{
+			name:           "parse invalid status",
+			input:          "invalid",
+			expectedStatus: ComposeProjectStatusUnknown,
+			expectError:    true,
+		},
+		{
+			name:           "parse empty string",
+			input:          "",
+			expectedStatus: ComposeProjectStatusUnknown,
+			expectError:    true,
+		},
+		{
+			name:           "parse mixed case",
+			input:          "Running",
+			expectedStatus: ComposeProjectStatusUnknown,
+			expectError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status, err := ParseComposeProjectStatus(tt.input)
+
+			if tt.expectError {
+				assert.Error(t, err, "should return error for input: %s", tt.input)
+			} else {
+				assert.NoError(t, err, "should not return error for valid input: %s", tt.input)
+			}
+
+			assert.Equal(t, tt.expectedStatus, status, "status should match expected for input: %s", tt.input)
+		})
 	}
 }

@@ -101,7 +101,7 @@ func (itp *IntegrationTestProject) WaitForServices(timeout time.Duration) error 
 			return fmt.Errorf("failed to get status: %w", err)
 		}
 
-		if status.Status == "running" && len(status.Containers) > 0 {
+		if status.Status == ComposeProjectStatusRunning && len(status.Containers) > 0 {
 			// All containers are running
 			return nil
 		}
@@ -189,7 +189,7 @@ func TestComposeProject_Integration_BasicLifecycle(t *testing.T) {
 	status, err := testProject.Project.Status()
 	require.NoError(t, err, "Status check should succeed")
 	assert.NotNil(t, status, "Status should not be nil")
-	assert.Equal(t, "running", status.Status, "Service should be running")
+	assert.Equal(t, ComposeProjectStatusRunning, status.Status, "Service should be running")
 	assert.Greater(t, len(status.Containers), 0, "Should have running containers")
 
 	// Test Down
@@ -224,7 +224,7 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 
 	// Should have both web and redis services
 	assert.GreaterOrEqual(t, len(status.Containers), 2, "Should have at least 2 containers")
-	assert.Equal(t, "running", status.Status, "All services should be running")
+	assert.Equal(t, ComposeProjectStatusRunning, status.Status, "All services should be running")
 
 	// Test Logs
 	t.Log("Getting logs...")
@@ -244,7 +244,7 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 	// Verify services are stopped
 	status, err = testProject.Project.Status()
 	require.NoError(t, err, "Status check should succeed even after down")
-	assert.Equal(t, "stopped", status.Status, "All services should be stopped")
+	assert.Equal(t, ComposeProjectStatusStopped, status.Status, "All services should be stopped")
 }
 
 // TestComposeProject_Integration_ErrorHandling tests error scenarios with real Docker
