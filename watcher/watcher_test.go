@@ -228,11 +228,16 @@ func TestWatcherService_checkAllProjects_MixedProjects(t *testing.T) {
 
 	mockProjectService.On("List").Return(projects, nil)
 
-	// Only the running project with watcher enabled should be checked
+	// Both running and error projects with watcher enabled should be checked (stopped is excluded)
 	mockGitService.On("Fetch", "main", (*services.GitAuthConfig)(nil), "/tmp/test-project-running-with-watcher/git").
 		Return(nil)
 	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-running-with-watcher/git", "main").
 		Return("commit1", nil)
+
+	mockGitService.On("Fetch", "main", (*services.GitAuthConfig)(nil), "/tmp/test-project-error-with-watcher/git").
+		Return(nil)
+	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-error-with-watcher/git", "main").
+		Return("commit4", nil)
 
 	err := service.checkAllProjects(context.Background())
 	assert.NoError(t, err)
