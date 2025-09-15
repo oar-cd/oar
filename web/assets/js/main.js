@@ -609,6 +609,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
+    // Fullscreen modal toggle functionality
+    window.toggleModalFullscreen = async function() {
+        const modal = document.getElementById('modal-container');
+        const toggleButton = document.querySelector('.fullscreen-toggle');
+
+        if (!modal || !toggleButton) {
+            return;
+        }
+
+        const isFullscreen = modal.classList.contains('fullscreen');
+
+        if (isFullscreen) {
+            // Exit fullscreen
+            modal.classList.remove('fullscreen');
+            toggleButton.innerHTML = await loadIcon('maximize', 'w-5 h-5');
+        } else {
+            // Enter fullscreen
+            modal.classList.add('fullscreen');
+            toggleButton.innerHTML = await loadIcon('minimize', 'w-5 h-5');
+        }
+    };
+
     // Global keyboard shortcuts
     document.addEventListener('keydown', function(event) {
         // Modals can only be closed with X button, not Escape key

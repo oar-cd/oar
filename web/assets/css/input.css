@@ -203,7 +203,25 @@ body {
 }
 
 .modal-panel-large {
-    @apply relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-all sm:my-4 sm:w-full sm:max-w-4xl sm:p-8;
+    @apply relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-6 text-left shadow-xl transition-none sm:my-4 sm:w-full sm:max-w-4xl sm:p-8;
+}
+
+/* Fullscreen modal state */
+.modal.fullscreen .modal-container {
+    @apply p-2;
+}
+
+.modal.fullscreen .modal-panel-large {
+    @apply m-0 h-full w-full max-w-none max-h-none rounded-lg sm:p-6;
+}
+
+.modal.fullscreen .modal-body {
+    @apply flex-1 overflow-hidden;
+}
+
+/* Fullscreen toggle button */
+.fullscreen-toggle {
+    @apply text-gray-400 hover:text-gray-600 focus:outline-none ml-2 transition-colors duration-200;
 }
 
 .modal-header {
@@ -249,6 +267,15 @@ body {
     @apply bg-gray-800 text-gray-300 p-4 rounded-lg font-mono text-xs overflow-x-auto overflow-y-auto;
     min-height: 500px;
     max-height: 50vh;
+}
+
+/* Fullscreen code blocks expand to use available space */
+.modal.fullscreen .config-code-block,
+.modal.fullscreen .deploy-code-block,
+.modal.fullscreen .stop-code-block,
+.modal.fullscreen .logs-code-block {
+    max-height: calc(100vh - 200px);
+    min-height: calc(100vh - 200px);
 }
 
 .deploy-output-container,

@@ -39,13 +39,23 @@ templ LargeModal(title string, body templ.Component, footer templ.Component) {
 			<div class="modal-panel-large">
 				<div class="modal-header">
 					<h3 class="modal-title">{ title }</h3>
-					<button
-						type="button"
-						class="modal-close"
-						onclick="closeModal('modal-container')"
-					>
-						@icons.X("w-5 h-5")
-					</button>
+					<div class="flex items-center space-x-2">
+						<button
+							type="button"
+							class="fullscreen-toggle"
+							onclick="toggleModalFullscreen()"
+							title="Toggle fullscreen"
+						>
+							@icons.Maximize("w-5 h-5")
+						</button>
+						<button
+							type="button"
+							class="modal-close"
+							onclick="closeModal('modal-container')"
+						>
+							@icons.X("w-5 h-5")
+						</button>
+					</div>
 				</div>
 				<div class="modal-body">
 					@body
