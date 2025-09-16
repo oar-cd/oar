@@ -133,33 +133,13 @@ templ ProjectForm(data ProjectFormData) {
 		</div>
 		<!-- Compose file paths -->
 		<div class="form-group">
-			<div class="flex items-center justify-between">
-				<label for="compose_files" class="form-label">Compose file paths <span class="text-red-500">*</span></label>
-				<!-- Discover Compose Files button with result indicator -->
-				<div class="flex items-center gap-2">
-					<div id="discover-result" class="result-indicator hidden"></div>
-					<button
-						type="button"
-						id="discover-btn"
-						class="action-button-inline btn-link-success opacity-50 cursor-not-allowed"
-						style="color: #10b981"
-						hx-post="/discover"
-						hx-include="closest form"
-						hx-target="#compose_files"
-						hx-swap="outerHTML"
-						disabled
-					>
-						@icons.Radar("icon-sm")
-						<span>Discover</span>
-					</button>
-				</div>
-			</div>
+			<label for="compose_files" class="form-label">Compose file paths <span class="text-red-500">*</span></label>
 			<textarea
 				id="compose_files"
 				name="compose_files"
 				class="form-textarea"
 				rows="3"
-				placeholder="docker-compose.yml"
+				placeholder="compose.yaml&#10;compose.override.yaml"
 				required
 			>{ data.ComposeFiles }</textarea>
 		</div>

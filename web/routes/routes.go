@@ -4,7 +4,6 @@ package routes
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
@@ -87,7 +86,7 @@ func RegisterProjectRoutes(r chi.Router) {
 	})
 }
 
-// RegisterUtilityRoutes registers utility routes like auth testing and discovery
+// RegisterUtilityRoutes registers utility routes like auth testing
 func RegisterUtilityRoutes(r chi.Router) {
 	// Test git authentication
 	r.Post("/test-git-auth", handlers.WithFormParsing(func(w http.ResponseWriter, r *http.Request) {
@@ -113,72 +112,6 @@ func RegisterUtilityRoutes(r chi.Router) {
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("HX-Trigger-After-Settle", "testAuthSuccess")
 		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Discover compose files
-	r.Post("/discover", handlers.WithFormParsing(func(w http.ResponseWriter, r *http.Request) {
-		gitURL := r.FormValue("git_url")
-		if gitURL == "" {
-			w.Header().Set("Content-Type", "text/html")
-			w.Header().Set("HX-Trigger-After-Settle", "discoverError")
-			w.WriteHeader(http.StatusOK)
-			// Return the original textarea to prevent it from disappearing
-			currentComposeFiles := r.FormValue("compose_files")
-			if _, err := fmt.Fprintf(w, `<textarea
-				id="compose_files"
-				name="compose_files"
-				class="form-textarea"
-				rows="3"
-				placeholder="docker-compose.yml"
-				required
-			>%s</textarea>`, currentComposeFiles); err != nil {
-				handlers.LogOperationError("discover_write_error", "main", err)
-			}
-			return
-		}
-
-		discoveryService := app.GetDiscoveryService()
-		gitAuthConfig := handlers.BuildGitAuthConfig(r)
-		gitBranch := r.FormValue("git_branch") // Extract git branch from form
-
-		discoveryResponse, err := discoveryService.DiscoverFiles(gitURL, gitBranch, gitAuthConfig)
-		if err != nil {
-			handlers.LogOperationError("discover", "main", err, "git_url", gitURL)
-			w.Header().Set("Content-Type", "text/html")
-			w.Header().Set("HX-Trigger-After-Settle", "discoverError")
-			w.WriteHeader(http.StatusOK)
-			// Return the original textarea to prevent it from disappearing
-			currentComposeFiles := r.FormValue("compose_files")
-			if _, err := fmt.Fprintf(w, `<textarea
-				id="compose_files"
-				name="compose_files"
-				class="form-textarea"
-				rows="3"
-				placeholder="docker-compose.yml"
-				required
-			>%s</textarea>`, currentComposeFiles); err != nil {
-				handlers.LogOperationError("discover_write_error", "main", err)
-			}
-			return
-		}
-
-		var composeFilePaths []string
-		for _, composeFile := range discoveryResponse.ComposeFiles {
-			composeFilePaths = append(composeFilePaths, composeFile.Path)
-		}
-
-		w.Header().Set("Content-Type", "text/html")
-		w.Header().Set("HX-Trigger-After-Settle", "discoverSuccess")
-		if _, err := fmt.Fprintf(w, `<textarea
-			id="compose_files"
-			name="compose_files"
-			class="form-textarea"
-			rows="3"
-			placeholder="docker-compose.yml"
-		>%s</textarea>`, strings.Join(composeFilePaths, "\n")); err != nil {
-			handlers.LogOperationError("discover_write", "main", err, "git_url", gitURL)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
 	}))
 
 	// Health check

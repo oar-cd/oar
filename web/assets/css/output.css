@@ -1889,31 +1889,6 @@ body {
 .test-error {
   color: var(--color-red-600);
 }
-.discovery-results {
-  margin-top: calc(var(--spacing) * 4);
-  border-radius: var(--radius-md);
-  background-color: var(--color-gray-50);
-  padding: calc(var(--spacing) * 4);
-}
-.discovery-title {
-  margin-bottom: calc(var(--spacing) * 2);
-  --tw-font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-gray-900);
-}
-.discovery-files {
-  :where(& > :not(:last-child)) {
-    --tw-space-y-reverse: 0;
-    margin-block-start: calc(calc(var(--spacing) * 1) * var(--tw-space-y-reverse));
-    margin-block-end: calc(calc(var(--spacing) * 1) * calc(1 - var(--tw-space-y-reverse)));
-  }
-}
-.discovery-file {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: var(--tw-leading, var(--text-sm--line-height));
-  color: var(--color-gray-600);
-}
 @media (max-width: 640px) {
   .project-actions {
     flex-direction: column;
