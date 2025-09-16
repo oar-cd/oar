@@ -47,6 +47,16 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+        with:
+          version: latest
+
+      - name: Check versions
+        run: |
+          docker version
+          docker compose version
+
       - name: Run tests
         run: make test_ci
 

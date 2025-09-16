@@ -102,33 +102,33 @@ func NewComposeProject(p *Project, config *Config) *ComposeProject {
 	}
 }
 
-func (p *ComposeProject) Up() (string, error) {
-	cmd := p.commandUp()
+func (p *ComposeProject) Up(startServices bool) (string, error) {
+	cmd := p.commandUp(startServices)
 	return p.executeCommand(cmd)
 }
 
-func (p *ComposeProject) UpStreaming(outputChan chan<- string) error {
-	cmd := p.commandUp()
+func (p *ComposeProject) UpStreaming(startServices bool, outputChan chan<- string) error {
+	cmd := p.commandUp(startServices)
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
-func (p *ComposeProject) UpPiping() error {
-	cmd := p.commandUp()
+func (p *ComposeProject) UpPiping(startServices bool) error {
+	cmd := p.commandUp(startServices)
 	return p.executeCommandPiping(cmd)
 }
 
-func (p *ComposeProject) Down() (string, error) {
-	cmd := p.commandDown()
+func (p *ComposeProject) Down(removeVolumes bool) (string, error) {
+	cmd := p.commandDown(removeVolumes)
 	return p.executeCommand(cmd)
 }
 
 func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
-	cmd := p.commandDown()
+	cmd := p.commandDown(false)
 	return p.executeCommandStreaming(cmd, outputChan)
 }
 
 func (p *ComposeProject) DownPiping() error {
-	cmd := p.commandDown()
+	cmd := p.commandDown(false)
 	return p.executeCommandPiping(cmd)
 }
 
@@ -144,6 +144,16 @@ func (p *ComposeProject) LogsPiping() error {
 
 func (p *ComposeProject) GetConfig() (string, error) {
 	cmd := p.commandConfig()
+	return p.executeCommand(cmd)
+}
+
+func (p *ComposeProject) Pull() (string, error) {
+	cmd := p.commandPull()
+	return p.executeCommand(cmd)
+}
+
+func (p *ComposeProject) Build() (string, error) {
+	cmd := p.commandBuild()
 	return p.executeCommand(cmd)
 }
 
@@ -320,12 +330,20 @@ func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
 	return nil
 }
 
-func (p *ComposeProject) commandUp() *exec.Cmd {
-	return p.prepareCommand("up", []string{"--detach", "--wait", "--quiet-pull", "--remove-orphans"})
+func (p *ComposeProject) commandUp(startServices bool) *exec.Cmd {
+	args := []string{"--detach", "--wait", "--quiet-pull", "--quiet-build", "--remove-orphans"}
+	if !startServices {
+		args = append(args, "--no-start")
+	}
+	return p.prepareCommand("up", args)
 }
 
-func (p *ComposeProject) commandDown() *exec.Cmd {
-	return p.prepareCommand("down", []string{"--remove-orphans"})
+func (p *ComposeProject) commandDown(removeVolumes bool) *exec.Cmd {
+	args := []string{"--remove-orphans"}
+	if removeVolumes {
+		args = append(args, "--volumes")
+	}
+	return p.prepareCommand("down", args)
 }
 
 func (p *ComposeProject) commandLogs(follow bool) *exec.Cmd {
@@ -338,6 +356,14 @@ func (p *ComposeProject) commandLogs(follow bool) *exec.Cmd {
 
 func (p *ComposeProject) commandConfig() *exec.Cmd {
 	return p.prepareCommand("config", []string{})
+}
+
+func (p *ComposeProject) commandPull() *exec.Cmd {
+	return p.prepareCommand("pull", []string{})
+}
+
+func (p *ComposeProject) commandBuild() *exec.Cmd {
+	return p.prepareCommand("build", []string{})
 }
 
 func (p *ComposeProject) commandPs() *exec.Cmd {

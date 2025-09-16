@@ -1,10 +1,14 @@
 package services
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/docker/docker/api/types/mount"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -250,7 +254,7 @@ stopLoop:
 	// Step 7: Remove the project
 	t.Log("Step 7: Removing project...")
 
-	err = projectManager.Remove(createdProject.ID)
+	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Project removed successfully")
@@ -370,7 +374,7 @@ deployLoop:
 	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
-	err = projectManager.Remove(createdProject.ID)
+	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Merge strategy test completed successfully")
@@ -443,7 +447,7 @@ deployLoop:
 	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
-	err = projectManager.Remove(createdProject.ID)
+	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Extend strategy test completed successfully")
@@ -516,7 +520,7 @@ deployLoop:
 	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
-	err = projectManager.Remove(createdProject.ID)
+	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Include strategy test completed successfully")
@@ -604,8 +608,247 @@ deployLoop:
 	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
-	err = projectManager.Remove(createdProject.ID)
+	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Variables test completed successfully")
+}
+
+// TestProjectManager_Integration_VolumeMounts tests the volume permission initialization feature
+// using a comprehensive test suite with 23 different services covering various volume mount scenarios
+func TestProjectManager_Integration_VolumeMounts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	service, _ := setupProjectService(t)
+	projectManager := ProjectManager(service)
+
+	testRepoURL := "https://github.com/oar-cd/test-project.git"
+	testProjectName := "test-project-volume-mounts"
+
+	t.Log("Testing volume mounts with permission initialization...")
+
+	project := &Project{
+		ID:        uuid.New(),
+		Name:      testProjectName,
+		GitURL:    testRepoURL,
+		GitBranch: "volume-mounts", // Use volume-mounts branch with comprehensive test suite
+		GitAuth:   nil,
+		// Using compose file with 23 different volume mount test cases
+		ComposeFiles: []string{"compose.yaml"},
+	}
+
+	createdProject, err := projectManager.Create(project)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	t.Logf("Project created successfully with ID: %s", createdProject.ID)
+
+	// Deploy the project
+	t.Log("Deploying project...")
+
+	outputChan := make(chan string, 200)
+	deployDone := make(chan error, 1)
+
+	go func() {
+		defer close(outputChan)
+		deployDone <- projectManager.DeployStreaming(createdProject.ID, false, outputChan)
+	}()
+
+	// Wait for deployment to complete and consume output
+	timeout := time.After(180 * time.Second)
+
+deployLoop:
+	for {
+		select {
+		case msg, ok := <-outputChan:
+			if !ok {
+				break deployLoop
+			}
+			t.Logf("Deploy: %s", strings.TrimSpace(msg))
+		case err := <-deployDone:
+			require.NoError(t, err, "Deployment should succeed")
+			break deployLoop
+		case <-timeout:
+			t.Fatal("Deployment timed out")
+		}
+	}
+
+	// Wait for containers to stabilize and verify all are running
+	t.Log("Waiting for all containers to be running...")
+
+	var status *ComposeStatus
+	maxWaitTime := 60 * time.Second
+	checkInterval := 5 * time.Second
+	waitTimeout := time.After(maxWaitTime)
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	expectedServiceCount := 23
+
+	for {
+		select {
+		case <-waitTimeout:
+			t.Fatal("Timed out waiting for all containers to be running")
+		case <-ticker.C:
+			status, err = projectManager.GetStatus(createdProject.ID)
+			require.NoError(t, err, "Getting status should succeed")
+			require.NotNil(t, status, "Status should not be nil")
+
+			if status.Status == ComposeProjectStatusRunning {
+				// Check if all containers are running
+				allRunning := true
+				runningCount := 0
+				for _, container := range status.Containers {
+					if container.State == "running" {
+						runningCount++
+					} else {
+						allRunning = false
+					}
+				}
+
+				if allRunning && len(status.Containers) == expectedServiceCount {
+					t.Logf("All %d containers are running", runningCount)
+					goto containersReady
+				} else {
+					t.Logf("Waiting... %d/%d containers running", runningCount, len(status.Containers))
+				}
+			} else {
+				t.Logf("Project status: %s", status.Status)
+			}
+		}
+	}
+
+containersReady:
+
+	// Verify expected test services are present
+	serviceNames := make([]string, len(status.Containers))
+	for i, container := range status.Containers {
+		serviceNames[i] = container.Service
+	}
+
+	expectedServices := []string{
+		"no-user-with-volumes",
+		"root-user-with-volumes",
+		"nonroot-user-with-volumes",
+		"image-defaults-nonroot",
+		"opensearch-nonroot",
+		"no-volumes",
+		"build-no-user",
+		"build-root-user",
+		"build-nonroot-user",
+		"both-build-image-no-user",
+		"both-build-image-root",
+		"both-build-image-nonroot",
+		"both-build-image-defaults",
+		"named-volumes-only",
+		"bind-mounts-only",
+		"mixed-volumes",
+		"file-bind-mount-existing",
+		"file-bind-mount-nonexisting",
+		"directory-bind-mount",
+		"multiple-volumes",
+		"user-group-format",
+		"numeric-user",
+		"complex-paths",
+	}
+
+	for _, expectedService := range expectedServices {
+		assert.Contains(t, serviceNames, expectedService, "Should have service: %s", expectedService)
+	}
+
+	t.Logf("All expected volume mount test services verified: %d services", len(expectedServices))
+
+	// Cleanup: Stop and remove containers
+	t.Log("Stopping and removing containers...")
+
+	stopChan := make(chan string, 100)
+	stopDone := make(chan error, 1)
+
+	go func() {
+		defer close(stopChan)
+		stopDone <- projectManager.StopStreaming(createdProject.ID, stopChan)
+	}()
+
+	// Wait for stop to complete and show output
+	stopTimeout := time.After(60 * time.Second)
+
+stopLoop:
+	for {
+		select {
+		case msg, ok := <-stopChan:
+			if !ok {
+				break stopLoop
+			}
+			t.Logf("Stop: %s", strings.TrimSpace(msg))
+		case err := <-stopDone:
+			require.NoError(t, err, "Stopping should succeed")
+			break stopLoop
+		case <-stopTimeout:
+			t.Fatal("Stop operation timed out")
+		}
+	}
+
+	// Remove the project (this should clean up everything)
+	err = projectManager.Remove(createdProject.ID, true)
+	require.NoError(t, err, "Project removal should succeed")
+
+	// Clean up bind mount files that may be owned by different users
+	// This prevents permission denied errors when the test framework tries to clean up temp directories
+	cleanupBindMountFiles(t, createdProject)
+
+	t.Logf("Volume mounts integration test completed successfully")
+}
+
+// cleanupBindMountFiles uses a privileged container to clean up bind mount files
+// that may be owned by different users, preventing permission denied errors during test cleanup
+func cleanupBindMountFiles(t *testing.T, project *Project) {
+	// After project removal, the working directory is renamed with "deleted-" prefix
+	// So we need to construct the path to the git directory within the deleted project
+	workingDir := GetDeletedDirectoryPath(project.WorkingDir)
+	gitDir := filepath.Join(workingDir, "git")
+
+	// Use a helper container with root privileges to clean up bind mount files
+	// This ensures we can delete files created by any user (including root)
+	containerName := fmt.Sprintf("cleanup-%s", project.Name)
+
+	t.Logf("Cleaning up bind mount files in %s using helper container", gitDir)
+
+	// Create a simple Docker client for cleanup
+	dockerClient, err := NewDockerClient()
+	if err != nil {
+		t.Logf("Warning: Could not create Docker client for cleanup: %v", err)
+		return
+	}
+	defer func() {
+		if closeErr := dockerClient.Close(); closeErr != nil {
+			t.Logf("Warning: Failed to close Docker client: %v", closeErr)
+		}
+	}()
+
+	// Get current user's UID and GID for ownership change
+	currentUID := os.Getuid()
+	currentGID := os.Getgid()
+
+	// Mount the git directory and recursively change ownership back to current user
+	// Also ensure files/directories have proper permissions for cleanup
+	cleanupCommand := fmt.Sprintf("chown -R %d:%d /cleanup && chmod -R u+rw /cleanup",
+		currentUID, currentGID)
+
+	containerMounts := []mount.Mount{
+		{
+			Type:   mount.TypeBind,
+			Source: gitDir,
+			Target: "/cleanup",
+		},
+	}
+
+	// Run cleanup container as root to ensure we can delete any files
+	err = dockerClient.RunVolumeChowningContainer(containerName, cleanupCommand, containerMounts)
+	if err != nil {
+		t.Logf("Warning: Bind mount cleanup failed (this may cause temp directory cleanup issues): %v", err)
+	} else {
+		t.Logf("Successfully cleaned up bind mount files")
+	}
 }

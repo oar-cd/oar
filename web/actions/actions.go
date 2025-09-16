@@ -82,7 +82,7 @@ func DeleteProject(r *http.Request) error {
 	}
 
 	projectService := app.GetProjectService()
-	return projectService.Remove(projectID)
+	return projectService.Remove(projectID, false)
 }
 
 // Streaming action functions

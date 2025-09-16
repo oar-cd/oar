@@ -13,13 +13,13 @@ type MockComposeProject struct {
 	mock.Mock
 }
 
-func (m *MockComposeProject) Up() (string, error) {
-	args := m.Called()
+func (m *MockComposeProject) Up(startServices bool) (string, error) {
+	args := m.Called(startServices)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockComposeProject) Down() (string, error) {
-	args := m.Called()
+func (m *MockComposeProject) Down(removeVolumes bool) (string, error) {
+	args := m.Called(removeVolumes)
 	return args.String(0), args.Error(1)
 }
 
@@ -38,13 +38,13 @@ func (m *MockComposeProject) Status() (*services.ComposeStatus, error) {
 	return args.Get(0).(*services.ComposeStatus), args.Error(1)
 }
 
-func (m *MockComposeProject) UpStreaming(outputChan chan<- string) error {
-	args := m.Called(outputChan)
+func (m *MockComposeProject) UpStreaming(startServices bool, outputChan chan<- string) error {
+	args := m.Called(startServices, outputChan)
 	return args.Error(0)
 }
 
-func (m *MockComposeProject) UpPiping() error {
-	args := m.Called()
+func (m *MockComposeProject) UpPiping(startServices bool) error {
+	args := m.Called(startServices)
 	return args.Error(0)
 }
 

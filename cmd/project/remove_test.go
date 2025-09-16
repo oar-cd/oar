@@ -118,7 +118,7 @@ func TestNewCmdProjectRemove(t *testing.T) {
 					}
 					return tt.mockProject, nil
 				},
-				RemoveFunc: func(projectID uuid.UUID) error {
+				RemoveFunc: func(projectID uuid.UUID, removeVolumes bool) error {
 					return tt.mockRemoveError
 				},
 			}
