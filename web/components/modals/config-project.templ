@@ -7,9 +7,27 @@ templ ConfigProjectModal(proj project.ProjectView, config string) {
 	@LargeModal(proj.Name + " configuration", configProjectBody(proj, config), CloseOnlyFooter())
 }
 
+// ConfigProjectModalWithLoading renders the project configuration modal with loading state
+templ ConfigProjectModalWithLoading(proj project.ProjectView) {
+	@LargeModal(proj.Name + " configuration", configProjectBodyLoading(proj), CloseOnlyFooter())
+}
+
 // configProjectBody renders the modal body content
 templ configProjectBody(proj project.ProjectView, config string) {
 	<div class="config-code-block">
-		<pre class="streaming-output">{ config }</pre>
+		<pre id="config-content" class="streaming-output">{ config }</pre>
+	</div>
+}
+
+// configProjectBodyLoading renders the modal body content with loading state
+templ configProjectBodyLoading(proj project.ProjectView) {
+	<div class="config-code-block">
+		<pre id="config-content"
+			 class="streaming-output loading-state"
+			 hx-get={ "/projects/" + proj.ID.String() + "/config/content" }
+			 hx-trigger="revealed"
+			 hx-swap="outerHTML">
+			<span class="loading-ellipsis">Obtaining configuration</span>
+		</pre>
 	</div>
 }

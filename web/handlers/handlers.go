@@ -249,6 +249,22 @@ func HandleModal(modalFunc func(uuid.UUID) (templ.Component, error), operation s
 	})
 }
 
+// HandleHTMLContent creates a generic handler for HTML content endpoints
+func HandleHTMLContent(htmlFunc func(uuid.UUID) (string, error)) http.HandlerFunc {
+	return withProjectID(func(w http.ResponseWriter, r *http.Request, projectID uuid.UUID) {
+		content, err := htmlFunc(projectID)
+		if err != nil {
+			LogOperationError("html_content", "handlers", err, "project_id", projectID)
+			http.Error(w, fmt.Sprintf("Error: %s", err.Error()), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if _, err := w.Write([]byte(content)); err != nil {
+			LogOperationError("html_content_write", "handlers", err, "project_id", projectID)
+		}
+	})
+}
+
 // HandleStream creates a generic handler for streaming endpoints
 func HandleStream(streamFunc func(uuid.UUID, chan<- string) error, streamType string) http.HandlerFunc {
 	return withProjectID(func(w http.ResponseWriter, r *http.Request, projectID uuid.UUID) {
