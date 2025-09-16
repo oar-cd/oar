@@ -28,7 +28,7 @@ func TestNewCmdProjectStatus(t *testing.T) {
 			name: "project running status",
 			args: []string{testProjectID.String()},
 			mockStatus: &services.ComposeStatus{
-				Status: "running",
+				Status: services.ComposeProjectStatusRunning,
 				Uptime: "2h 30m",
 				Containers: []services.ContainerInfo{
 					{Service: "web", Status: "Up 2 hours", State: "running"},
@@ -43,7 +43,7 @@ func TestNewCmdProjectStatus(t *testing.T) {
 			name: "project stopped status",
 			args: []string{testProjectID.String()},
 			mockStatus: &services.ComposeStatus{
-				Status:     "stopped",
+				Status:     services.ComposeProjectStatusStopped,
 				Containers: []services.ContainerInfo{},
 			},
 			mockError:    nil,
@@ -54,7 +54,7 @@ func TestNewCmdProjectStatus(t *testing.T) {
 			name: "project with failed containers",
 			args: []string{testProjectID.String()},
 			mockStatus: &services.ComposeStatus{
-				Status: "partially running",
+				Status: services.ComposeProjectStatusFailed,
 				Containers: []services.ContainerInfo{
 					{Service: "web", Status: "Up 1 hour", State: "running"},
 					{Service: "db", Status: "Exited (1) 10 minutes ago", State: "exited"},
@@ -62,7 +62,21 @@ func TestNewCmdProjectStatus(t *testing.T) {
 			},
 			mockError:    nil,
 			expectError:  false,
-			expectedText: "Status: partially running",
+			expectedText: "Status: failed",
+		},
+		{
+			name: "project with only successful init containers",
+			args: []string{testProjectID.String()},
+			mockStatus: &services.ComposeStatus{
+				Status: services.ComposeProjectStatusUnknown,
+				Containers: []services.ContainerInfo{
+					{Service: "migrate", Status: "Exited (0) 5 minutes ago", State: "exited", ExitCode: 0},
+					{Service: "collectstatic", Status: "Exited (0) 5 minutes ago", State: "exited", ExitCode: 0},
+				},
+			},
+			mockError:    nil,
+			expectError:  false,
+			expectedText: "Status: unknown",
 		},
 		{
 			name:        "status error",
@@ -115,7 +129,7 @@ func TestNewCmdProjectStatus(t *testing.T) {
 
 				if tt.mockStatus != nil {
 					// Verify uptime is shown for running projects
-					if tt.mockStatus.Status == "running" && tt.mockStatus.Uptime != "" {
+					if tt.mockStatus.Status == services.ComposeProjectStatusRunning && tt.mockStatus.Uptime != "" {
 						assert.Contains(t, stdoutStr, "Uptime:")
 						assert.Contains(t, stdoutStr, tt.mockStatus.Uptime)
 					}

@@ -96,7 +96,7 @@ deployLoop:
 	require.NotNil(t, status, "Status should not be nil")
 
 	// Project should be running after deployment
-	assert.Equal(t, "running", status.Status, "Project should be running after deployment")
+	assert.Equal(t, ComposeProjectStatusRunning, status.Status, "Project should be running after deployment")
 	assert.NotEmpty(t, status.Uptime, "Should have uptime when running")
 
 	// Should have exactly 2 containers: web and redis
@@ -231,7 +231,7 @@ stopLoop:
 	require.NotNil(t, stoppedStatus, "Status should not be nil")
 
 	// Project should be stopped after stopping
-	assert.Equal(t, "stopped", stoppedStatus.Status, "Project should be stopped after stop operation")
+	assert.Equal(t, ComposeProjectStatusStopped, stoppedStatus.Status, "Project should be stopped after stop operation")
 	assert.Empty(t, stoppedStatus.Uptime, "Should have no uptime when stopped")
 
 	// All containers should be stopped or removed
@@ -340,7 +340,7 @@ deployLoop:
 	require.NotNil(t, status, "Status should not be nil")
 
 	// Project should be running
-	assert.Equal(t, "running", status.Status, "Project should be running after deployment")
+	assert.Equal(t, ComposeProjectStatusRunning, status.Status, "Project should be running after deployment")
 
 	// Should have exactly 3 containers: web, redis, db
 	assert.Len(t, status.Containers, 3, "Should have exactly 3 containers (web, redis, db)")

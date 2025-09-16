@@ -62,6 +62,15 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 
 	projectsChecked := 0
 	for _, project := range projects {
+		// Sync Docker status for all projects - detects mismatches and updates database
+		if err := w.syncProjectStatus(ctx, project); err != nil {
+			slog.Error("Failed to sync project status",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"error", err)
+		}
+
+		// Only check git changes for watcher-enabled projects
 		if project.WatcherEnabled {
 			if project.Status == services.ProjectStatusStopped {
 				slog.Info("Project is stopped - skipping git check",
@@ -136,7 +145,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 				"new_commit", remoteCommit)
 		} else {
 			reason = "project in error state"
-			slog.Info("Project in error state, triggering automatic deployment",
+			slog.Warn("Project in error state, triggering automatic deployment",
 				"project_id", project.ID,
 				"project_name", project.Name,
 				"status", project.Status.String(),
@@ -181,6 +190,73 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 			"project_name", project.Name,
 			"reason", reason,
 			"deployed_commit", remoteCommit)
+	}
+
+	return nil
+}
+
+// syncProjectStatus checks if the project's database status matches its actual Docker status and updates it if needed
+func (w *WatcherService) syncProjectStatus(ctx context.Context, project *services.Project) error {
+	// Get the actual Docker status
+	composeStatus, err := w.projectService.GetStatus(project.ID)
+	if err != nil {
+		slog.Error("Failed to get Docker status for project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"error", err)
+
+		// Update database status to unknown since we can't determine actual status
+		if project.Status != services.ProjectStatusUnknown {
+			slog.Warn("Updating project status to unknown due to Docker status error",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"previous_status", project.Status.String())
+
+			project.Status = services.ProjectStatusUnknown
+			if updateErr := w.projectService.Update(project); updateErr != nil {
+				return fmt.Errorf("failed to update project status to unknown: %w", updateErr)
+			}
+		}
+		return fmt.Errorf("failed to get Docker status: %w", err)
+	}
+
+	// Determine what the database status should be based on Docker status
+	var expectedStatus services.ProjectStatus
+	switch composeStatus.Status {
+	case services.ComposeProjectStatusRunning:
+		expectedStatus = services.ProjectStatusRunning
+	case services.ComposeProjectStatusStopped:
+		expectedStatus = services.ProjectStatusStopped
+	case services.ComposeProjectStatusFailed:
+		// For failed status, we'll consider it as error since containers are in mixed states
+		expectedStatus = services.ProjectStatusError
+	case services.ComposeProjectStatusUnknown:
+		// For unknown status, set database to unknown as well
+		expectedStatus = services.ProjectStatusUnknown
+	default:
+		// Should not happen, but default to unknown
+		expectedStatus = services.ProjectStatusUnknown
+	}
+
+	// Check if there's a mismatch
+	if project.Status != expectedStatus {
+		slog.Warn("Project status mismatch detected - updating database",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"database_status", project.Status.String(),
+			"docker_status", composeStatus.Status.String(),
+			"updating_to", expectedStatus.String())
+
+		// Update the project status in the database
+		project.Status = expectedStatus
+		if err := w.projectService.Update(project); err != nil {
+			return fmt.Errorf("failed to update project status: %w", err)
+		}
+
+		slog.Info("Project status updated successfully",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"new_status", expectedStatus.String())
 	}
 
 	return nil

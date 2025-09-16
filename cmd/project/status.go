@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
+	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
 )
 
@@ -44,11 +45,11 @@ func runProjectStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display status in same format as 'oar status'
-	if err := output.FprintPlain(cmd, "Status: %s", projectStatus.Status); err != nil {
+	if err := output.FprintPlain(cmd, "Status: %s", projectStatus.Status.String()); err != nil {
 		return err
 	}
 
-	if projectStatus.Status == "running" && projectStatus.Uptime != "" {
+	if projectStatus.Status == services.ComposeProjectStatusRunning && projectStatus.Uptime != "" {
 		if err := output.FprintPlain(cmd, "Uptime: %s", projectStatus.Uptime); err != nil {
 			return err
 		}

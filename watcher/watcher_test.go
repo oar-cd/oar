@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -237,23 +238,32 @@ func TestWatcherService_checkAllProjects_MixedProjects(t *testing.T) {
 
 	mockProjectService.On("List").Return(projects, nil)
 
-	// Both running and error projects with watcher enabled should be checked (stopped is excluded)
+	// Mock GetStatus calls for all projects (new functionality)
+	runningStatus := &services.ComposeStatus{Status: services.ComposeProjectStatusRunning}
+	stoppedStatus := &services.ComposeStatus{Status: services.ComposeProjectStatusStopped}
+
+	mockProjectService.On("GetStatus", projects[0].ID).Return(runningStatus, nil) // running-with-watcher - matches DB
+	mockProjectService.On("GetStatus", projects[1].ID).Return(stoppedStatus, nil) // stopped-with-watcher - matches DB
+	mockProjectService.On("GetStatus", projects[2].ID).
+		Return(runningStatus, nil)
+		// running-without-watcher - matches DB
+	mockProjectService.On("GetStatus", projects[3].ID).
+		Return(stoppedStatus, nil)
+		// error-with-watcher - mismatch, should update to stopped
+
+	// Error project status should be updated to stopped since Docker shows stopped
+	errorProjectID := projects[3].ID
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == errorProjectID && p.Status == services.ProjectStatusStopped
+	})).Return(nil)
+
+	// Only the running project with watcher enabled should be checked (stopped projects are excluded)
 	mockGitService.On("Fetch", "main", (*services.GitAuthConfig)(nil), "/tmp/test-project-running-with-watcher/git").
 		Return(nil)
 	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-running-with-watcher/git", "main").
 		Return("commit1", nil)
 
-	mockGitService.On("Fetch", "main", (*services.GitAuthConfig)(nil), "/tmp/test-project-error-with-watcher/git").
-		Return(nil)
-	mockGitService.On("GetRemoteLatestCommit", "/tmp/test-project-error-with-watcher/git", "main").
-		Return("commit4", nil)
-
-	// Error project should trigger deployment (even without git changes) and update
-	errorProjectID := projects[3].ID
-	mockProjectService.On("DeployPiping", errorProjectID, true).Return(nil)
-	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
-		return p.ID == errorProjectID && p.LastCommit != nil && *p.LastCommit == "commit4"
-	})).Return(nil)
+	// Note: Error project is no longer checked for git changes because its status was corrected to "stopped"
 
 	err := service.checkAllProjects(context.Background())
 	assert.NoError(t, err)
@@ -460,4 +470,93 @@ func TestWatcherService_checkProject_WithGitAuth(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockGitService.AssertExpectations(t)
+}
+
+// Test for syncProjectStatus when GetStatus fails - should update database to unknown
+func TestWatcherService_syncProjectStatus_GetStatusError(t *testing.T) {
+	mockProjectService := &MockProjectManager{}
+	mockGitService := &MockGitExecutor{}
+	service := NewWatcherService(mockProjectService, mockGitService, time.Minute)
+
+	project := createTestProject(uuid.New(), "test-project", services.ProjectStatusRunning, false, "commit1")
+
+	// Mock GetStatus to return an error
+	mockProjectService.On("GetStatus", project.ID).
+		Return((*services.ComposeStatus)(nil), errors.New("docker not available"))
+
+	// Expect project status to be updated to unknown
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == project.ID && p.Status == services.ProjectStatusUnknown
+	})).Return(nil)
+
+	err := service.syncProjectStatus(context.Background(), project)
+	assert.Error(t, err, "should return error when GetStatus fails")
+
+	mockProjectService.AssertExpectations(t)
+}
+
+// Test for syncProjectStatus with ComposeProjectStatusFailed
+func TestWatcherService_syncProjectStatus_FailedStatus(t *testing.T) {
+	mockProjectService := &MockProjectManager{}
+	mockGitService := &MockGitExecutor{}
+	service := NewWatcherService(mockProjectService, mockGitService, time.Minute)
+
+	project := createTestProject(uuid.New(), "test-project", services.ProjectStatusRunning, false, "commit1")
+
+	// Mock GetStatus to return failed status
+	failedStatus := &services.ComposeStatus{Status: services.ComposeProjectStatusFailed}
+	mockProjectService.On("GetStatus", project.ID).Return(failedStatus, nil)
+
+	// Expect project status to be updated to error (since failed maps to error)
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == project.ID && p.Status == services.ProjectStatusError
+	})).Return(nil)
+
+	err := service.syncProjectStatus(context.Background(), project)
+	assert.NoError(t, err)
+
+	mockProjectService.AssertExpectations(t)
+}
+
+// Test for syncProjectStatus with ComposeProjectStatusUnknown
+func TestWatcherService_syncProjectStatus_UnknownStatus(t *testing.T) {
+	mockProjectService := &MockProjectManager{}
+	mockGitService := &MockGitExecutor{}
+	service := NewWatcherService(mockProjectService, mockGitService, time.Minute)
+
+	project := createTestProject(uuid.New(), "test-project", services.ProjectStatusRunning, false, "commit1")
+
+	// Mock GetStatus to return unknown status
+	unknownStatus := &services.ComposeStatus{Status: services.ComposeProjectStatusUnknown}
+	mockProjectService.On("GetStatus", project.ID).Return(unknownStatus, nil)
+
+	// Expect project status to be updated to unknown
+	mockProjectService.On("Update", mock.MatchedBy(func(p *services.Project) bool {
+		return p.ID == project.ID && p.Status == services.ProjectStatusUnknown
+	})).Return(nil)
+
+	err := service.syncProjectStatus(context.Background(), project)
+	assert.NoError(t, err)
+
+	mockProjectService.AssertExpectations(t)
+}
+
+// Test for syncProjectStatus when status matches (no update needed)
+func TestWatcherService_syncProjectStatus_NoUpdateNeeded(t *testing.T) {
+	mockProjectService := &MockProjectManager{}
+	mockGitService := &MockGitExecutor{}
+	service := NewWatcherService(mockProjectService, mockGitService, time.Minute)
+
+	project := createTestProject(uuid.New(), "test-project", services.ProjectStatusRunning, false, "commit1")
+
+	// Mock GetStatus to return same status as project already has
+	runningStatus := &services.ComposeStatus{Status: services.ComposeProjectStatusRunning}
+	mockProjectService.On("GetStatus", project.ID).Return(runningStatus, nil)
+
+	// No Update call should be made since status matches
+
+	err := service.syncProjectStatus(context.Background(), project)
+	assert.NoError(t, err)
+
+	mockProjectService.AssertExpectations(t)
 }
