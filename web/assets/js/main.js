@@ -219,10 +219,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!gitUrlInput || !testAuthBtn) return;
 
+        const gitUrl = gitUrlInput.value.trim();
         const selectedAuthMethod = Array.from(authMethodInputs).find(input => input.checked)?.value;
 
-        // Test Git Auth: enabled only if auth method is not "none"
-        if (selectedAuthMethod && selectedAuthMethod !== 'none') {
+        // Test Git Auth: enabled only if Git URL is filled AND auth method is not "none" AND required fields are filled
+        let shouldEnableTestBtn = false;
+
+        if (gitUrl !== '' && selectedAuthMethod && selectedAuthMethod !== 'none') {
+            if (selectedAuthMethod === 'http') {
+                const usernameField = document.getElementById('username');
+                const passwordField = document.getElementById('password');
+
+                // For HTTP auth, both username and password are required
+                if (usernameField && passwordField &&
+                    usernameField.value.trim() !== '' &&
+                    passwordField.value.trim() !== '') {
+                    shouldEnableTestBtn = true;
+                }
+            } else if (selectedAuthMethod === 'ssh') {
+                const sshUsernameField = document.getElementById('ssh_username');
+                const privateKeyField = document.getElementById('private_key');
+
+                // For SSH auth, both username and private key are required
+                if (sshUsernameField && privateKeyField &&
+                    sshUsernameField.value.trim() !== '' &&
+                    privateKeyField.value.trim() !== '') {
+                    shouldEnableTestBtn = true;
+                }
+            }
+        }
+
+        if (shouldEnableTestBtn) {
             testAuthBtn.disabled = false;
             testAuthBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
@@ -262,7 +289,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set up event listeners for form validation
     document.addEventListener('input', function(event) {
-        if (event.target.id === 'git_url') {
+        if (event.target.id === 'git_url' ||
+            event.target.id === 'username' ||
+            event.target.id === 'password' ||
+            event.target.id === 'ssh_username' ||
+            event.target.id === 'private_key') {
             updateButtonStates();
         }
     });
