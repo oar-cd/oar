@@ -70,10 +70,12 @@ func RegisterProjectRoutes(r chi.Router) {
 			r.Delete("/", handlers.HandleProjectAction(actions.DeleteProject, "projectDeleted", "delete_project"))
 
 			// Project actions
-			r.Get("/config", handlers.HandleModal(getConfigProjectModal, "config_project_modal"))
+			r.Get("/config", handlers.HandleModal(getConfigProjectModalWithLoading, "config_project_modal"))
+			r.Get("/config/content", handlers.HandleHTMLContent(getConfigProjectContent))
 			r.Get("/deploy", handlers.HandleModal(getDeployProjectModal, "deploy_project_modal"))
 			r.Get("/stop", handlers.HandleModal(getStopProjectModal, "stop_project_modal"))
-			r.Get("/logs", handlers.HandleModal(getLogsProjectModal, "logs_project_modal"))
+			r.Get("/logs", handlers.HandleModal(getLogsProjectModalWithLoading, "logs_project_modal"))
+			r.Get("/logs/content", handlers.HandleHTMLContent(getLogsProjectContent))
 			r.Get("/deployments", handlers.HandleModal(getDeploymentsProjectModal, "deployments_project_modal"))
 
 			// Streaming endpoints
@@ -148,22 +150,6 @@ func getDeleteProjectModal(projectID uuid.UUID) (templ.Component, error) {
 	return modals.DeleteProjectModal(projectView, deletedDirPath), nil
 }
 
-func getConfigProjectModal(projectID uuid.UUID) (templ.Component, error) {
-	projectService := app.GetProjectService()
-	targetProject, err := projectService.Get(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := projectService.GetConfig(projectID)
-	if err != nil {
-		config = fmt.Sprintf("Error getting project configuration:\n\n%s\n", err.Error())
-	}
-
-	projectView := handlers.ConvertProjectToView(targetProject)
-	return modals.ConfigProjectModal(projectView, config), nil
-}
-
 func getDeployProjectModal(projectID uuid.UUID) (templ.Component, error) {
 	projectService := app.GetProjectService()
 	targetProject, err := projectService.Get(projectID)
@@ -186,20 +172,61 @@ func getStopProjectModal(projectID uuid.UUID) (templ.Component, error) {
 	return modals.StopProjectModal(projectView), nil
 }
 
-func getLogsProjectModal(projectID uuid.UUID) (templ.Component, error) {
+// New functions for loading modals and content-only endpoints
+func getConfigProjectModalWithLoading(projectID uuid.UUID) (templ.Component, error) {
 	projectService := app.GetProjectService()
 	targetProject, err := projectService.Get(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	logs, err := projectService.GetLogs(projectID)
+	projectView := handlers.ConvertProjectToView(targetProject)
+	return modals.ConfigProjectModalWithLoading(projectView), nil
+}
+
+func getConfigProjectContent(projectID uuid.UUID) (string, error) {
+	projectService := app.GetProjectService()
+	config, err := projectService.GetConfig(projectID)
 	if err != nil {
-		logs = fmt.Sprintf("Error getting project logs:\n\n%s\n", err.Error())
+		return fmt.Sprintf(`<pre id="config-content" class="streaming-output">Error getting project configuration:
+
+%s</pre>`, err.Error()), nil
+	}
+	return fmt.Sprintf(`<pre id="config-content" class="streaming-output">%s</pre>`, config), nil
+}
+
+func getLogsProjectModalWithLoading(projectID uuid.UUID) (templ.Component, error) {
+	projectService := app.GetProjectService()
+	targetProject, err := projectService.Get(projectID)
+	if err != nil {
+		return nil, err
 	}
 
 	projectView := handlers.ConvertProjectToView(targetProject)
-	return modals.LogsProjectModal(projectView, logs), nil
+	return modals.LogsProjectModalWithLoading(projectView), nil
+}
+
+func getLogsProjectContent(projectID uuid.UUID) (string, error) {
+	projectService := app.GetProjectService()
+	logs, err := projectService.GetLogs(projectID)
+	if err != nil {
+		return fmt.Sprintf(`<pre id="static-logs-content" class="streaming-output">Error getting project logs:
+
+%s</pre><script>
+// Scroll to bottom after content is loaded
+const logsOutput = document.getElementById('logs-output');
+if (logsOutput) {
+	logsOutput.scrollTop = logsOutput.scrollHeight;
+}
+</script>`, err.Error()), nil
+	}
+	return fmt.Sprintf(`<pre id="static-logs-content" class="streaming-output">%s</pre><script>
+// Scroll to bottom after content is loaded
+const logsOutput = document.getElementById('logs-output');
+if (logsOutput) {
+	logsOutput.scrollTop = logsOutput.scrollHeight;
+}
+</script>`, logs), nil
 }
 
 func getProjectStatusPill(projectID uuid.UUID) (templ.Component, error) {

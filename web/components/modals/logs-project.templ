@@ -7,11 +7,16 @@ templ LogsProjectModal(proj project.ProjectView, logs string) {
 	@LargeModal(proj.Name + " logs", logsProjectBody(proj, logs), CloseOnlyFooter())
 }
 
+// LogsProjectModalWithLoading renders the project logs modal with loading state
+templ LogsProjectModalWithLoading(proj project.ProjectView) {
+	@LargeModal(proj.Name + " logs", logsProjectBodyLoading(proj), CloseOnlyFooter())
+}
+
 // logsProjectBody renders the modal body content
 templ logsProjectBody(proj project.ProjectView, logs string) {
 	<div class="logs-output-container">
 		<div id="logs-output" class="logs-code-block">
-			<pre id="static-logs-content" class="static-output">{ logs }</pre>
+			<pre id="static-logs-content" class="streaming-output">{ logs }</pre>
 		</div>
 		<script>
 			// Use htmx:afterSettle to ensure all transitions are complete
@@ -25,5 +30,20 @@ templ logsProjectBody(proj project.ProjectView, logs string) {
 				}
 			}, { once: true });
 		</script>
+	</div>
+}
+
+// logsProjectBodyLoading renders the modal body content with loading state
+templ logsProjectBodyLoading(proj project.ProjectView) {
+	<div class="logs-output-container">
+		<div id="logs-output" class="logs-code-block">
+			<pre id="static-logs-content"
+				 class="streaming-output loading-state"
+				 hx-get={ "/projects/" + proj.ID.String() + "/logs/content" }
+				 hx-trigger="revealed"
+				 hx-swap="outerHTML">
+				<span class="loading-ellipsis">Obtaining logs</span>
+			</pre>
+		</div>
 	</div>
 }
