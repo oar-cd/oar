@@ -94,8 +94,22 @@ templ ProjectForm(data ProjectFormData) {
 		<!-- Authentication method with CSS-only field switching -->
 		<div class="auth-container">
 			<div class="form-group">
+				<label class="form-label">Git Authentication</label>
 				<div class="flex items-center justify-between">
-					<label class="form-label">Git Authentication</label>
+					<div class="flex gap-4">
+						<label class="flex items-center">
+							<input type="radio" name="auth_method" value="none" class="auth-radio mr-2" checked?={ data.AuthMethod == "none" || data.AuthMethod == "" }/>
+							None
+						</label>
+						<label class="flex items-center">
+							<input type="radio" name="auth_method" value="http" class="auth-radio mr-2" checked?={ data.AuthMethod == "http" }/>
+							HTTP
+						</label>
+						<label class="flex items-center">
+							<input type="radio" name="auth_method" value="ssh" class="auth-radio mr-2" checked?={ data.AuthMethod == "ssh" }/>
+							SSH
+						</label>
+					</div>
 					<!-- Test Git Auth button with result indicator -->
 					<div class="flex items-center gap-2">
 						<div id="test-auth-result" class="result-indicator hidden"></div>
@@ -109,23 +123,9 @@ templ ProjectForm(data ProjectFormData) {
 							disabled
 						>
 							@icons.FlaskConical("icon-sm")
-							<span>Test</span>
+							<span>Test authentication</span>
 						</button>
 					</div>
-				</div>
-				<div class="flex gap-4">
-					<label class="flex items-center">
-						<input type="radio" name="auth_method" value="none" class="auth-radio mr-2" checked?={ data.AuthMethod == "none" || data.AuthMethod == "" }/>
-						None
-					</label>
-					<label class="flex items-center">
-						<input type="radio" name="auth_method" value="http" class="auth-radio mr-2" checked?={ data.AuthMethod == "http" }/>
-						HTTP
-					</label>
-					<label class="flex items-center">
-						<input type="radio" name="auth_method" value="ssh" class="auth-radio mr-2" checked?={ data.AuthMethod == "ssh" }/>
-						SSH
-					</label>
 				</div>
 			</div>
 			<!-- Dynamic auth fields (CSS-controlled) -->

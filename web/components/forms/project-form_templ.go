@@ -158,7 +158,37 @@ func ProjectForm(data ProjectFormData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><!-- Authentication method with CSS-only field switching --><div class=\"auth-container\"><div class=\"form-group\"><div class=\"flex items-center justify-between\"><label class=\"form-label\">Git Authentication</label><!-- Test Git Auth button with result indicator --><div class=\"flex items-center gap-2\"><div id=\"test-auth-result\" class=\"result-indicator hidden\"></div><button type=\"button\" id=\"test-auth-btn\" class=\"action-button-inline btn-link-primary opacity-50 cursor-not-allowed\" hx-post=\"/test-git-auth\" hx-include=\"closest form\" hx-swap=\"none\" disabled>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><!-- Authentication method with CSS-only field switching --><div class=\"auth-container\"><div class=\"form-group\"><label class=\"form-label\">Git Authentication</label><div class=\"flex items-center justify-between\"><div class=\"flex gap-4\"><label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"none\" class=\"auth-radio mr-2\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.AuthMethod == "none" || data.AuthMethod == "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "> None</label> <label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"http\" class=\"auth-radio mr-2\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.AuthMethod == "http" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "> HTTP</label> <label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"ssh\" class=\"auth-radio mr-2\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.AuthMethod == "ssh" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "> SSH</label></div><!-- Test Git Auth button with result indicator --><div class=\"flex items-center gap-2\"><div id=\"test-auth-result\" class=\"result-indicator hidden\"></div><button type=\"button\" id=\"test-auth-btn\" class=\"action-button-inline btn-link-primary opacity-50 cursor-not-allowed\" hx-post=\"/test-git-auth\" hx-include=\"closest form\" hx-swap=\"none\" disabled>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -166,37 +196,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span>Test</span></button></div></div><div class=\"flex gap-4\"><label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"none\" class=\"auth-radio mr-2\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if data.AuthMethod == "none" || data.AuthMethod == "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " checked")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "> None</label> <label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"http\" class=\"auth-radio mr-2\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if data.AuthMethod == "http" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " checked")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "> HTTP</label> <label class=\"flex items-center\"><input type=\"radio\" name=\"auth_method\" value=\"ssh\" class=\"auth-radio mr-2\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if data.AuthMethod == "ssh" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " checked")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "> SSH</label></div></div><!-- Dynamic auth fields (CSS-controlled) -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span>Test authentication</span></button></div></div></div><!-- Dynamic auth fields (CSS-controlled) -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
