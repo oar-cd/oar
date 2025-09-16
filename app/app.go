@@ -14,11 +14,10 @@ var (
 	// Version is set at build time via -ldflags
 	Version = "dev"
 
-	database         *gorm.DB
-	projectService   services.ProjectManager
-	discoveryService *services.ProjectDiscoveryService
-	gitService       services.GitExecutor
-	config           *services.Config
+	database       *gorm.DB
+	projectService services.ProjectManager
+	gitService     services.GitExecutor
+	config         *services.Config
 )
 
 // InitializeWithConfig initializes the app with a pre-configured Config
@@ -64,16 +63,11 @@ func InitializeWithConfig(cfg *services.Config) error {
 
 	// Initialize services with dependency injection
 	projectService = services.NewProjectService(projectRepo, deploymentRepo, gitService, config)
-	discoveryService = services.NewProjectDiscoveryService(gitService, config)
 	return nil
 }
 
 func GetProjectService() services.ProjectManager {
 	return projectService
-}
-
-func GetDiscoveryService() *services.ProjectDiscoveryService {
-	return discoveryService
 }
 
 func GetGitService() services.GitExecutor {

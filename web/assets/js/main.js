@@ -176,10 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateResultIndicator('test-auth-result', 'check', 'success', 'Git authentication successful');
                     } else if (successMessage === 'testAuthError') {
                         updateResultIndicator('test-auth-result', 'x', 'error', 'Git authentication failed');
-                    } else if (successMessage === 'discoverSuccess') {
-                        updateResultIndicator('discover-result', 'check', 'success', 'Compose files discovered successfully');
-                    } else if (successMessage === 'discoverError') {
-                        updateResultIndicator('discover-result', 'x', 'error', 'Failed to discover compose files');
                     } else if (successMessage === 'projectCreated') {
                         showToast('Project created successfully', 'success');
                         // Close the modal after successful project creation
@@ -203,11 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = event.detail.requestConfig.path;
 
         // Only show generic error toast for operations that don't have specific error handling
-        if (url !== '/test-git-auth' && url !== '/discover') {
+        if (url !== '/test-git-auth') {
             showToast('Operation failed. Please try again.', 'error');
-        }
-        if (url === '/discover') {
-            updateResultIndicator('discover-result', 'x', 'error', 'Discover failed', false);
         }
 
         // Restore button state on error
@@ -223,11 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const gitUrlInput = document.getElementById('git_url');
         const authMethodInputs = document.querySelectorAll('input[name="auth_method"]');
         const testAuthBtn = document.getElementById('test-auth-btn');
-        const discoverBtn = document.getElementById('discover-btn');
 
-        if (!gitUrlInput || !testAuthBtn || !discoverBtn) return;
+        if (!gitUrlInput || !testAuthBtn) return;
 
-        const gitUrl = gitUrlInput.value.trim();
         const selectedAuthMethod = Array.from(authMethodInputs).find(input => input.checked)?.value;
 
         // Test Git Auth: enabled only if auth method is not "none"
@@ -237,15 +228,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             testAuthBtn.disabled = true;
             testAuthBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-
-        // Discover: enabled only if Git URL is filled
-        if (gitUrl) {
-            discoverBtn.disabled = false;
-            discoverBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        } else {
-            discoverBtn.disabled = true;
-            discoverBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
     }
 

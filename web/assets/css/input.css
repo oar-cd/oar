@@ -407,22 +407,6 @@ body {
     @apply text-red-600;
 }
 
-/* Discovery Results */
-.discovery-results {
-    @apply mt-4 p-4 bg-gray-50 rounded-md;
-}
-
-.discovery-title {
-    @apply font-medium text-gray-900 mb-2;
-}
-
-.discovery-files {
-    @apply space-y-1;
-}
-
-.discovery-file {
-    @apply text-sm text-gray-600 font-mono;
-}
 
 /* Responsive Design Helpers */
 @media (max-width: 640px) {
