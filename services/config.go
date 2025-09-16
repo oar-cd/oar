@@ -227,7 +227,7 @@ func (c *Config) loadFromYamlFile(configPath string) error {
 		return fmt.Errorf("failed to read config file %s: %w", configPath, err)
 	}
 
-	slog.Info("Loading configuration from YAML file", "config_path", configPath)
+	slog.Debug("Loading configuration from YAML file", "config_path", configPath)
 
 	var yamlConfig YamlConfig
 	if err := yaml.Unmarshal(data, &yamlConfig); err != nil {
