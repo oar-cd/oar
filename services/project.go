@@ -297,8 +297,8 @@ func (s *ProjectService) DeployStreaming(
 			// msg is now clean output from Docker, store it and wrap in JSON
 			outputBuffer.WriteString(msg + "\n")
 
-			// Wrap in JSON for web UI
-			msgData := map[string]string{
+			// Forward to user
+			msgData := map[string]interface{}{
 				"type":    "docker",
 				"message": msg,
 			}
@@ -308,8 +308,34 @@ func (s *ProjectService) DeployStreaming(
 		}
 	}()
 
-	// Execute deployment with streaming
-	err = composeProject.UpStreaming(capturingChan)
+	// Create volumes and containers without starting services
+	captureAndSendJSON("Creating containers...", "info", "oar")
+	err = composeProject.UpStreaming(false, capturingChan)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to create containers: %v", err)
+		captureAndSendJSON(errMsg, "error", "oar")
+		deployment.Status = DeploymentStatusFailed
+		if updateErr := s.deploymentRepository.Update(&deployment); updateErr != nil {
+			slog.Error("Failed to update deployment status", "error", updateErr)
+		}
+		return fmt.Errorf("container creation failed: %w", err)
+	}
+
+	// Initialize volume permissions
+	captureAndSendJSON("Initializing volume mounts...", "info", "oar")
+	if err := composeProject.InitializeVolumeMounts(); err != nil {
+		errMsg := fmt.Sprintf("Failed to initialize volume permissions: %v", err)
+		captureAndSendJSON(errMsg, "error", "oar")
+		deployment.Status = DeploymentStatusFailed
+		if updateErr := s.deploymentRepository.Update(&deployment); updateErr != nil {
+			slog.Error("Failed to update deployment status", "error", updateErr)
+		}
+		return fmt.Errorf("volume initialization failed: %w", err)
+	}
+
+	// Start services with streaming
+	captureAndSendJSON("Starting services...", "info", "oar")
+	err = composeProject.UpStreaming(true, capturingChan)
 	close(capturingChan) // Signal that we're done sending to the capturing channel
 	<-done               // Wait for the goroutine to finish processing all messages
 
@@ -470,7 +496,7 @@ func (s *ProjectService) completeDeployment(project *Project, commitHash string,
 	return nil
 }
 
-func (s *ProjectService) Stop(projectID uuid.UUID) error {
+func (s *ProjectService) Stop(projectID uuid.UUID, removeVolumes bool) error {
 	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -488,7 +514,7 @@ func (s *ProjectService) Stop(projectID uuid.UUID) error {
 
 	composeProject := NewComposeProject(project, s.config)
 
-	output, err := composeProject.Down()
+	output, err := composeProject.Down(removeVolumes)
 	if err != nil {
 		slog.Error(
 			"Docker Compose down failed",
@@ -638,7 +664,7 @@ func (s *ProjectService) StopPiping(projectID uuid.UUID) error {
 	return s.Update(project)
 }
 
-func (s *ProjectService) Remove(projectID uuid.UUID) error {
+func (s *ProjectService) Remove(projectID uuid.UUID, removeVolumes bool) error {
 	// Get project
 	project, err := s.Get(projectID)
 	if err != nil {
@@ -646,7 +672,7 @@ func (s *ProjectService) Remove(projectID uuid.UUID) error {
 	}
 
 	// Stop Docker Compose project if running
-	if err := s.Stop(projectID); err != nil {
+	if err := s.Stop(projectID, removeVolumes); err != nil {
 		slog.Warn("Failed to stop project before removal", "project_id", project.ID, "error", err)
 		return fmt.Errorf("failed to stop project before removal: %w", err)
 	}

@@ -242,6 +242,9 @@
   .visible {
     visibility: visible;
   }
+  .\!absolute {
+    position: absolute !important;
+  }
   .\!fixed {
     position: fixed !important;
   }
@@ -268,6 +271,9 @@
   }
   .inset-0 {
     inset: calc(var(--spacing) * 0);
+  }
+  .start-1 {
+    inset-inline-start: calc(var(--spacing) * 1);
   }
   .end-1 {
     inset-inline-end: calc(var(--spacing) * 1);
@@ -317,6 +323,9 @@
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
   .mr-1 {
     margin-right: calc(var(--spacing) * 1);
   }
@@ -325,6 +334,9 @@
   }
   .mr-10 {
     margin-right: calc(var(--spacing) * 10);
+  }
+  .mb-0 {
+    margin-bottom: calc(var(--spacing) * 0);
   }
   .mb-2 {
     margin-bottom: calc(var(--spacing) * 2);
@@ -417,6 +429,9 @@
   }
   .w-1 {
     width: calc(var(--spacing) * 1);
+  }
+  .w-2 {
+    width: calc(var(--spacing) * 2);
   }
   .w-4 {
     width: calc(var(--spacing) * 4);

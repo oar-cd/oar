@@ -38,8 +38,8 @@ func (m *MockProjectManager) Update(project *services.Project) error {
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) Remove(projectID uuid.UUID) error {
-	args := m.Called(projectID)
+func (m *MockProjectManager) Remove(projectID uuid.UUID, removeVolumes bool) error {
+	args := m.Called(projectID, removeVolumes)
 	return args.Error(0)
 }
 
@@ -53,8 +53,8 @@ func (m *MockProjectManager) DeployPiping(projectID uuid.UUID, pull bool) error 
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) Stop(projectID uuid.UUID) error {
-	args := m.Called(projectID)
+func (m *MockProjectManager) Stop(projectID uuid.UUID, removeVolumes bool) error {
+	args := m.Called(projectID, removeVolumes)
 	return args.Error(0)
 }
 

@@ -79,7 +79,7 @@ func (itp *IntegrationTestProject) Cleanup() {
 	}
 
 	// Try to stop and remove all containers for this project
-	_, err := itp.Project.Down()
+	_, err := itp.Project.Down(true)
 	if err != nil {
 		itp.t.Logf("Warning: Failed to clean up Docker containers for project %s: %v", itp.Name, err)
 	}
@@ -175,7 +175,7 @@ func TestComposeProject_Integration_BasicLifecycle(t *testing.T) {
 
 	// Test Up
 	t.Log("Testing Docker Compose Up...")
-	output, err := testProject.Project.Up()
+	output, err := testProject.Project.Up(true)
 	require.NoError(t, err, "Up should succeed")
 	t.Logf("Up output: %s", output)
 
@@ -194,7 +194,7 @@ func TestComposeProject_Integration_BasicLifecycle(t *testing.T) {
 
 	// Test Down
 	t.Log("Testing Docker Compose Down...")
-	output, err = testProject.Project.Down()
+	output, err = testProject.Project.Down(true)
 	require.NoError(t, err, "Down should succeed")
 	t.Logf("Down output: %s", output)
 }
@@ -209,7 +209,7 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 
 	// Test Up
 	t.Log("Starting multi-service project...")
-	output, err := testProject.Project.Up()
+	output, err := testProject.Project.Up(true)
 	require.NoError(t, err, "Up should succeed")
 	t.Logf("Up output: %s", output)
 
@@ -237,7 +237,7 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 
 	// Test Down
 	t.Log("Stopping services...")
-	output, err = testProject.Project.Down()
+	output, err = testProject.Project.Down(true)
 	require.NoError(t, err, "Down should succeed")
 	t.Logf("Down output: %s", output)
 
@@ -264,7 +264,7 @@ func TestComposeProject_Integration_ErrorHandling(t *testing.T) {
 
 	// Up should fail with invalid image
 	t.Log("Testing error handling with invalid image...")
-	output, err := testProject.Project.Up()
+	output, err := testProject.Project.Up(true)
 	assert.Error(t, err, "Up should fail with invalid image")
 	t.Logf("Error output: %s", output)
 }
@@ -284,7 +284,7 @@ func TestComposeProject_Integration_Streaming(t *testing.T) {
 	// Start streaming in goroutine
 	done := make(chan error, 1)
 	go func() {
-		done <- testProject.Project.UpStreaming(outputChan)
+		done <- testProject.Project.UpStreaming(true, outputChan)
 	}()
 
 	// Collect output for a reasonable time

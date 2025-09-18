@@ -120,7 +120,7 @@ func runProjectRemove(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := app.GetProjectService().Remove(projectID); err != nil {
+	if err := app.GetProjectService().Remove(projectID, false); err != nil {
 		return fmt.Errorf("failed to remove project: %w", err)
 	}
 

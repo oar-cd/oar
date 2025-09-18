@@ -11,10 +11,10 @@ type MockProjectManager struct {
 	GetFunc             func(id uuid.UUID) (*services.Project, error)
 	CreateFunc          func(project *services.Project) (*services.Project, error)
 	UpdateFunc          func(project *services.Project) error
-	RemoveFunc          func(projectID uuid.UUID) error
+	RemoveFunc          func(projectID uuid.UUID, removeVolumes bool) error
 	DeployStreamingFunc func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	DeployPipingFunc    func(projectID uuid.UUID, pull bool) error
-	StopFunc            func(projectID uuid.UUID) error
+	StopFunc            func(projectID uuid.UUID, removeVolumes bool) error
 	StopStreamingFunc   func(projectID uuid.UUID, outputChan chan<- string) error
 	StopPipingFunc      func(projectID uuid.UUID) error
 	GetLogsPipingFunc   func(projectID uuid.UUID) error
@@ -52,9 +52,9 @@ func (m *MockProjectManager) Update(project *services.Project) error {
 	return nil
 }
 
-func (m *MockProjectManager) Remove(projectID uuid.UUID) error {
+func (m *MockProjectManager) Remove(projectID uuid.UUID, removeVolumes bool) error {
 	if m.RemoveFunc != nil {
-		return m.RemoveFunc(projectID)
+		return m.RemoveFunc(projectID, removeVolumes)
 	}
 	return nil
 }
@@ -73,9 +73,9 @@ func (m *MockProjectManager) DeployPiping(projectID uuid.UUID, pull bool) error 
 	return nil
 }
 
-func (m *MockProjectManager) Stop(projectID uuid.UUID) error {
+func (m *MockProjectManager) Stop(projectID uuid.UUID, removeVolumes bool) error {
 	if m.StopFunc != nil {
-		return m.StopFunc(projectID)
+		return m.StopFunc(projectID, removeVolumes)
 	}
 	return nil
 }

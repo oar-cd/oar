@@ -17,13 +17,16 @@ type GitExecutor interface {
 
 // ComposeProjectInterface defines the contract for Docker Compose operations
 type ComposeProjectInterface interface {
-	Up() (string, error)
-	Down() (string, error)
+	Up(startServices bool) (string, error)
+	Down(removeVolumes bool) (string, error)
 	Logs() (string, error)
 	GetConfig() (string, error)
+	Pull() (string, error)
+	Build() (string, error)
+	InitializeVolumeMounts() error
 	Status() (*ComposeStatus, error)
-	UpStreaming(outputChan chan<- string) error
-	UpPiping() error
+	UpStreaming(startServices bool, outputChan chan<- string) error
+	UpPiping(startServices bool) error
 	DownStreaming(outputChan chan<- string) error
 	DownPiping() error
 	LogsPiping() error
@@ -35,10 +38,10 @@ type ProjectManager interface {
 	Get(id uuid.UUID) (*Project, error)
 	Create(project *Project) (*Project, error)
 	Update(project *Project) error
-	Remove(projectID uuid.UUID) error
+	Remove(projectID uuid.UUID, removeVolumes bool) error
 	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
 	DeployPiping(projectID uuid.UUID, pull bool) error
-	Stop(projectID uuid.UUID) error
+	Stop(projectID uuid.UUID, removeVolumes bool) error
 	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
 	StopPiping(projectID uuid.UUID) error
 	GetLogs(projectID uuid.UUID) (string, error)

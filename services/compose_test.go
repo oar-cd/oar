@@ -161,7 +161,7 @@ func TestComposeProject_CommandUp(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.commandUp()
+	cmd := composeProject.commandUp(true)
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -177,6 +177,7 @@ func TestComposeProject_CommandUp(t *testing.T) {
 		"--detach",
 		"--wait",
 		"--quiet-pull",
+		"--quiet-build",
 		"--remove-orphans",
 	}
 	assert.Equal(t, expectedArgs, cmd.Args)
@@ -188,7 +189,7 @@ func TestComposeProject_CommandDown(t *testing.T) {
 	composeProject.WorkingDir = tempDir
 
 	// Test
-	cmd := composeProject.commandDown()
+	cmd := composeProject.commandDown(false)
 
 	// Assertions
 	assert.NotNil(t, cmd)
@@ -350,7 +351,7 @@ services:
 	require.NoError(t, err)
 
 	// Test (this would require Docker to be running)
-	output, err := composeProject.Up()
+	output, err := composeProject.Up(true)
 
 	// Assertions (these would need to be adjusted based on actual Docker behavior)
 	// This is more of a placeholder for integration testing

@@ -16,8 +16,18 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/oar-cd/oar/db"
+	"github.com/oar-cd/oar/logging"
 	"github.com/oar-cd/oar/models"
 )
+
+// TestMain sets up global test configuration before running any tests
+func TestMain(m *testing.M) {
+	// Initialize debug logging for all tests
+	logging.InitLogging("debug")
+
+	// Run the tests
+	os.Exit(m.Run())
+}
 
 // setupTestDB creates an in-memory SQLite database for testing
 func setupTestDB(t *testing.T) *gorm.DB {
@@ -197,7 +207,7 @@ func setupProjectService(t *testing.T) (*ProjectService, string) {
 	config := &Config{
 		DataDir:      tempDir,
 		WorkspaceDir: workspaceDir,
-		LogLevel:     "warn",           // Reduce noise in tests
+		LogLevel:     "debug",          // Show debug logs for volume initialization testing
 		GitTimeout:   60 * time.Second, // Allow time for real git operations
 	}
 
