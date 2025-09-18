@@ -452,8 +452,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update button state
             elements.button.disabled = true;
 
-            // Append connecting message (preserve existing content)
-            elements.content.innerHTML += `\n<span class="deploy-text-frontend-generic">${config.connectingMsg}</span>\n`;
+            // Clear existing content and add connecting message
+            elements.content.innerHTML = `<span class="deploy-text-frontend-generic">${config.connectingMsg}</span>\n`;
             elements.content.className = 'streaming-output';
 
             // Create AbortController if needed (for logs)
