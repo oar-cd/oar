@@ -221,7 +221,7 @@ body {
 
 /* Fullscreen toggle button */
 .fullscreen-toggle {
-    @apply text-gray-400 hover:text-gray-600 focus:outline-none ml-2 transition-colors duration-200;
+    @apply inline-flex items-center px-2 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none rounded transition-colors duration-200 ml-2;
 }
 
 .modal-header {
@@ -233,7 +233,7 @@ body {
 }
 
 .modal-close {
-    @apply text-gray-400 hover:text-gray-600 focus:outline-none;
+    @apply inline-flex items-center px-2 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none rounded transition-colors duration-200;
 }
 
 .modal-body {
