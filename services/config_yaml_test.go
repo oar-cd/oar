@@ -135,7 +135,7 @@ data_dir: /yaml/data
 log_level: info
 http:
   host: 127.0.0.1
-  port: 3333
+  port: 4777
 encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 `
 	err := os.WriteFile(configPath, []byte(yamlContent), 0644)
@@ -338,7 +338,7 @@ func TestConfigValidation_HTTPPort(t *testing.T) {
 		valid bool
 	}{
 		{"port_1", "1", true},
-		{"port_3333", "3333", true},
+		{"port_4777", "4777", true},
 		{"port_8080", "8080", true},
 		{"port_65535", "65535", true},
 		{"port_0", "0", false},
@@ -471,7 +471,7 @@ encryption_key: nQbG5l9P8YzM2K8vH3FrT1cE4qL7jN6uR0sX9wB2dA8=
 
 	// Should use defaults for empty nested structures
 	assert.Equal(t, "127.0.0.1", config.HTTPHost) // Default
-	assert.Equal(t, 3333, config.HTTPPort)        // Default
+	assert.Equal(t, 4777, config.HTTPPort)        // Default
 	assert.Equal(t, 5*time.Minute, config.GitTimeout)
 	assert.Equal(t, 5*time.Minute, config.WatcherPollInterval)
 }

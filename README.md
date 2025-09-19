@@ -9,19 +9,59 @@
 
 # Oar
 
-Self-hosted Docker Compose project management with GitOps workflows. All the benefits of declarative deployments without Kubernetes complexity.
+GitOps automation for Docker Compose on a single Docker host. Oar watches a Git branch, runs `docker compose` to apply updates, and records deployment results for review in the CLI or web UI.
 
-## Why Oar?
+## Overview
 
-Turn your Git repositories into the single source of truth for Docker Compose deployments. Push to Git, and Oar automatically syncs your running services - no manual deployments, no configuration drift.
+- Single binary exposing the CLI and web dashboard.
+- Tracks project configuration on disk and can encrypt stored secrets when an encryption key is provided.
+- Automatically reconciles Docker Compose projects without manual intervention.
 
-- **GitOps Made Simple**: ArgoCD-style automation for Docker Compose
-- **Zero Configuration Drift**: Git commits automatically trigger deployments
-- **Self-Hosted**: Complete control over your deployment infrastructure
-- **Zero Setup**: Works with existing Compose files
+## Quick Start
 
-## Installation, upgrade
+#### Prerequisites
+
+- Docker Engine with the Docker Compose plugin on a Linux host.
+- Network access from the host to your Git remote.
+
+#### Installation
 
 ```bash
 curl -sSL https://github.com/oar-cd/oar/releases/latest/download/install.sh | bash
 ```
+
+Access the web UI at http://127.0.0.1:4777
+
+## Target Audience & Use Cases
+
+Oar is designed as "ArgoCD for Docker Compose" - bringing GitOps automation to environments where Kubernetes complexity isn't needed or justified.
+
+### Ideal for
+
+- **Home labs and personal projects** - Simple single-server deployments without operational overhead
+- **Demo environments** - Fast setup and teardown for rapid prototyping and demonstrations
+- **Development and staging environments** - Quick deployment cycles without production-grade complexity
+- **Small-scale applications** - Projects that don't require multi-node orchestration or enterprise features
+- **Learning environments** - Educational setups where Docker Compose is more approachable than Kubernetes
+- **Side projects and experiments** - Personal or small team projects where simplicity trumps scalability
+
+### When to choose Oar over alternatives
+
+- You need GitOps but not the complexity of Kubernetes
+- Downtime during deployments is acceptable (rolling updates not required)
+- You prefer Docker Compose's familiar syntax over Kubernetes manifests
+- You want automated deployments without managing a full cluster
+- You need something that "just works" on a single host
+
+## How Oar Compares
+
+|                                 | Oar | ArgoCD | Portainer | DIY Scripts |
+|---------------------------------|-----|--------|-----------|-------------|
+| **Single host deployment**      | ✓   | ✗      | ✓         | ✓           |
+| **GitOps automation**           | ✓   | ✓      | ✗         | ✗           |
+| **Built-in secrets encryption** | ✓   | ✗      | ✗         | ✗           |
+| **Web dashboard**               | ✓   | ✓      | ✓         | ✗           |
+| **Docker Compose native**       | ✓   | ✗      | ✓         | ✓           |
+| **Zero-config setup**           | ✓   | ✗      | ✗         | ✗           |
+| **Deployment history**          | ✓   | ✓      | ✗         | ✗           |
+| **Auto drift detection**        | ✓   | ✓      | ✗         | ✗           |

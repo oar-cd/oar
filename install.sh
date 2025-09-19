@@ -160,7 +160,7 @@ log_level: info
 
 http:
   host: 127.0.0.1
-  port: 3333
+  port: 4777
 
 watcher:
   enabled: true
@@ -209,7 +209,7 @@ echo
 echo "View logs with:"
 echo "  sudo journalctl -u oar -f"
 echo
-echo -e "Web interface:\t\thttp://127.0.0.1:3333"
+echo -e "Web interface:\t\thttp://127.0.0.1:4777"
 echo ""
 echo -e "Installation directory:\t/opt/oar"
 echo -e "Command line tool:\t/opt/oar/bin/oar"
