@@ -4,6 +4,7 @@ package routes
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
@@ -220,6 +221,11 @@ if (logsOutput) {
 }
 </script>`, err.Error()), nil
 	}
+	// Check if logs are empty or contain only whitespace
+	if len(strings.TrimSpace(logs)) == 0 {
+		logs = "No logs available"
+	}
+
 	return fmt.Sprintf(`<pre id="static-logs-content" class="streaming-output">%s</pre><script>
 // Scroll to bottom after content is loaded
 const logsOutput = document.getElementById('logs-output');
