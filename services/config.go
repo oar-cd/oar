@@ -159,7 +159,7 @@ func (c *Config) setDefaults() {
 	c.DataDir = DataDir
 	c.LogLevel = "info"
 	c.HTTPHost = "127.0.0.1"
-	c.HTTPPort = 3333
+	c.HTTPPort = 4777
 	c.GitTimeout = 5 * time.Minute
 	c.WatcherEnabled = true
 	c.WatcherPollInterval = 5 * time.Minute

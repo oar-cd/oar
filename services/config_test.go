@@ -72,8 +72,8 @@ func TestNewConfigForWebApp(t *testing.T) {
 	if config.HTTPHost != "127.0.0.1" {
 		t.Errorf("NewConfigForWebApp() HTTPHost = %v, want 127.0.0.1", config.HTTPHost)
 	}
-	if config.HTTPPort != 3333 {
-		t.Errorf("NewConfigForWebApp() HTTPPort = %v, want 3333", config.HTTPPort)
+	if config.HTTPPort != 4777 {
+		t.Errorf("NewConfigForWebApp() HTTPPort = %v, want 4777", config.HTTPPort)
 	}
 	if config.WatcherPollInterval != 5*time.Minute {
 		t.Errorf("NewConfigForWebApp() WatcherPollInterval = %v, want 5m", config.WatcherPollInterval)

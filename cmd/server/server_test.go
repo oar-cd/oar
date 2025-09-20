@@ -79,7 +79,7 @@ func TestRunServer_ConfigFilePermissions(t *testing.T) {
 data_dir: /tmp/test-oar
 log_level: info
 http_host: 127.0.0.1
-http_port: 3333
+http_port: 4777
 poll_interval: 5m
 git_timeout: 5m
 docker_command: docker
