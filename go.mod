@@ -83,4 +83,4 @@ require (
 
 // Use fork with fix for issue #53 (untracked file deletion during pull)
 // This can be removed once the fix is included in an official release
-replace github.com/go-git/go-git/v5 => github.com/Ch00k/go-git/v5 v5.0.0-20250712062029-04c89afd5483
+replace github.com/go-git/go-git/v5 => github.com/Ch00k/go-git/v5 v5.0.0-20250920133425-e42117975577
