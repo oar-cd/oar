@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -25,7 +26,7 @@ func TestGitService_Pull_InvalidRepo(t *testing.T) {
 	service := NewGitService(config)
 
 	// Test with non-existent directory
-	err := service.Pull("", nil, "/non/existent/path")
+	err := service.Pull("main", nil, "/non/existent/path")
 	if err == nil {
 		t.Errorf("Pull() expected error for non-existent repository")
 	}
@@ -168,11 +169,53 @@ func TestGitService_Pull_WithBranch(t *testing.T) {
 	if err == nil {
 		t.Errorf("Pull() expected error for non-existent repository with branch")
 	}
+}
 
-	// Test with empty branch (default branch)
-	err = service.Pull("", nil, "/non/existent/path")
+func TestGitService_Pull_EmptyBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with empty branch - should return error immediately
+	err := service.Pull("", nil, "/any/path")
 	if err == nil {
-		t.Errorf("Pull() expected error for non-existent repository with default branch")
+		t.Errorf("Pull() expected error for empty branch")
+	}
+	if !strings.Contains(err.Error(), "git branch is required") {
+		t.Errorf("Pull() expected 'git branch is required' error, got: %v", err)
+	}
+}
+
+func TestGitService_Fetch_EmptyBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with empty branch - should return error immediately
+	err := service.Fetch("", nil, "/any/path")
+	if err == nil {
+		t.Errorf("Fetch() expected error for empty branch")
+	}
+	if !strings.Contains(err.Error(), "git branch is required") {
+		t.Errorf("Fetch() expected 'git branch is required' error, got: %v", err)
+	}
+}
+
+func TestGitService_GetRemoteLatestCommit_EmptyBranch(t *testing.T) {
+	config := &Config{
+		GitTimeout: 5 * time.Minute,
+	}
+	service := NewGitService(config)
+
+	// Test with empty branch - should return error immediately
+	_, err := service.GetRemoteLatestCommit("/any/path", "")
+	if err == nil {
+		t.Errorf("GetRemoteLatestCommit() expected error for empty branch")
+	}
+	if !strings.Contains(err.Error(), "git branch is required") {
+		t.Errorf("GetRemoteLatestCommit() expected 'git branch is required' error, got: %v", err)
 	}
 }
 
@@ -200,12 +243,6 @@ func TestGitService_Fetch_WithBranch(t *testing.T) {
 	if err == nil {
 		t.Errorf("Fetch() expected error for non-existent repository with branch")
 	}
-
-	// Test with empty branch (default branch)
-	err = service.Fetch("", nil, "/non/existent/path")
-	if err == nil {
-		t.Errorf("Fetch() expected error for non-existent repository with default branch")
-	}
 }
 
 func TestGitService_GetRemoteLatestCommit_InvalidRepo(t *testing.T) {
@@ -231,11 +268,5 @@ func TestGitService_GetRemoteLatestCommit_WithBranch(t *testing.T) {
 	_, err := service.GetRemoteLatestCommit("/non/existent/path", "main")
 	if err == nil {
 		t.Errorf("GetRemoteLatestCommit() expected error for non-existent repository with branch")
-	}
-
-	// Test with empty branch (should still fail on non-existent repo)
-	_, err = service.GetRemoteLatestCommit("/non/existent/path", "")
-	if err == nil {
-		t.Errorf("GetRemoteLatestCommit() expected error for non-existent repository with empty branch")
 	}
 }

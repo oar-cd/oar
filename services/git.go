@@ -163,20 +163,23 @@ func (s *GitService) Clone(gitURL string, gitBranch string, gitAuth *GitAuthConf
 }
 
 // Pull pulls latest changes from remote with optional authentication
+// Uses fetch + reset approach to handle force-pushes (equivalent to git fetch && git reset --hard origin/branch)
 func (s *GitService) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 	slog.Debug("Pulling repository changes", "git_branch", gitBranch, "working_dir", workingDir)
 
-	// Create authentication method
-	authMethod, err := s.createAuthMethod(gitAuth)
+	// First, fetch the latest changes from remote
+	err := s.Fetch(gitBranch, gitAuth, workingDir)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
-			"operation", "git_pull_auth",
+			"operation", "git_pull_fetch",
+			"git_branch", gitBranch,
 			"working_dir", workingDir,
 			"error", err)
-		return fmt.Errorf("failed to create auth method: %w", err)
+		return fmt.Errorf("failed to fetch changes: %w", err)
 	}
 
+	// Open the repository
 	repo, err := git.PlainOpen(workingDir)
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -187,6 +190,7 @@ func (s *GitService) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir s
 		return err
 	}
 
+	// Get the worktree
 	worktree, err := repo.Worktree()
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -197,36 +201,65 @@ func (s *GitService) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir s
 		return err
 	}
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), s.config.GitTimeout)
-	defer cancel()
-
-	pullOptions := &git.PullOptions{
-		SingleBranch: true,
-		Auth:         authMethod,
-	}
-
-	// If a specific branch is provided, set the reference name
-	if gitBranch != "" {
-		pullOptions.ReferenceName = plumbing.NewBranchReferenceName(gitBranch)
-	}
-
-	err = worktree.PullContext(ctx, pullOptions)
-	if err != nil && err != git.NoErrAlreadyUpToDate {
+	// Branch name is required - should never be empty in production
+	if gitBranch == "" {
 		slog.Error("Service operation failed",
 			"layer", "git",
 			"operation", "git_pull",
-			"git_branch", gitBranch,
 			"working_dir", workingDir,
-			"error", err)
-		return err
+			"error", "git branch is required")
+		return fmt.Errorf("git branch is required")
+	}
+	branchName := gitBranch
+
+	// Get current commit hash
+	currentCommit, err := s.GetLatestCommit(workingDir)
+	if err != nil {
+		// Continue anyway, this is just for logging
+		currentCommit = "unknown"
 	}
 
-	if err == git.NoErrAlreadyUpToDate {
-		slog.Debug("Repository already up to date", "git_branch", gitBranch, "working_dir", workingDir)
-	} else {
-		slog.Info("Repository changes pulled successfully", "git_branch", gitBranch, "working_dir", workingDir)
+	// Get the remote reference
+	remoteBranchName := fmt.Sprintf("refs/remotes/origin/%s", branchName)
+	ref, err := repo.Reference(plumbing.ReferenceName(remoteBranchName), true)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull_get_remote_ref",
+			"git_branch", branchName,
+			"working_dir", workingDir,
+			"remote_ref", remoteBranchName,
+			"error", err)
+		return fmt.Errorf("failed to get remote reference %s: %w", remoteBranchName, err)
 	}
+
+	// Check if we're already up to date
+	if currentCommit == ref.Hash().String() {
+		slog.Debug("Repository already up to date", "git_branch", branchName, "working_dir", workingDir)
+		return nil
+	}
+
+	// Reset the worktree to the remote branch (equivalent to git reset --hard origin/branch)
+	err = worktree.Reset(&git.ResetOptions{
+		Commit: ref.Hash(),
+		Mode:   git.HardReset,
+	})
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull_reset",
+			"git_branch", branchName,
+			"working_dir", workingDir,
+			"target_commit", ref.Hash().String(),
+			"error", err)
+		return fmt.Errorf("failed to reset to %s: %w", ref.Hash().String(), err)
+	}
+
+	slog.Info("Repository updated successfully",
+		"git_branch", branchName,
+		"working_dir", workingDir,
+		"from_commit", currentCommit,
+		"to_commit", ref.Hash().String())
 
 	return nil
 }
@@ -260,6 +293,16 @@ func (s *GitService) GetLatestCommit(workingDir string) (string, error) {
 func (s *GitService) Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir string) error {
 	slog.Debug("Fetching from Git repository", "git_branch", gitBranch, "working_dir", workingDir)
 
+	// Branch name is required - should never be empty in production
+	if gitBranch == "" {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_fetch",
+			"working_dir", workingDir,
+			"error", "git branch is required")
+		return fmt.Errorf("git branch is required")
+	}
+
 	repo, err := git.PlainOpen(workingDir)
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -282,13 +325,9 @@ func (s *GitService) Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir 
 
 	fetchOptions := &git.FetchOptions{
 		Auth: authMethod,
-	}
-
-	// If a specific branch is provided, fetch only that branch
-	if gitBranch != "" {
-		fetchOptions.RefSpecs = []config.RefSpec{
+		RefSpecs: []config.RefSpec{
 			config.RefSpec(fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", gitBranch, gitBranch)),
-		}
+		},
 	}
 
 	err = repo.FetchContext(ctx, fetchOptions)
@@ -313,6 +352,16 @@ func (s *GitService) Fetch(gitBranch string, gitAuth *GitAuthConfig, workingDir 
 
 // GetRemoteLatestCommit returns the latest commit hash from the remote branch
 func (s *GitService) GetRemoteLatestCommit(workingDir string, gitBranch string) (string, error) {
+	// Branch name is required - should never be empty in production
+	if gitBranch == "" {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_get_remote_commit",
+			"working_dir", workingDir,
+			"error", "git branch is required")
+		return "", fmt.Errorf("git branch is required")
+	}
+
 	repo, err := git.PlainOpen(workingDir)
 	if err != nil {
 		slog.Error("Service operation failed",

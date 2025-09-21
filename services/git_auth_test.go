@@ -252,7 +252,7 @@ func TestGitService_Pull_WithAuth(t *testing.T) {
 	}
 
 	// Test pulling with no auth
-	err = gitService.Pull("", nil, cloneDir)
+	err = gitService.Pull("main", nil, cloneDir)
 	// Don't assert success since remote repo might not exist
 	// Just ensure no panic and method is callable
 	t.Logf("Pull result: %v", err)
