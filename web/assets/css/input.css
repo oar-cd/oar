@@ -313,6 +313,15 @@ body {
     @apply text-red-400 italic;
 }
 
+/* Stdout and stderr specific styling */
+.deploy-text-stdout {
+    @apply text-gray-300;
+}
+
+.deploy-text-stderr {
+    @apply text-orange-300;
+}
+
 .streaming-output {
     @apply whitespace-pre;
 }

@@ -243,11 +243,12 @@ func TestComposeProject_ExecuteCommand_Success(t *testing.T) {
 	cmd := exec.Command("echo", "test output")
 
 	// Test
-	output, err := composeProject.executeCommand(cmd)
+	stdout, stderr, err := composeProject.executeCommand(cmd)
 
 	// Assertions
 	assert.NoError(t, err)
-	assert.Equal(t, "test output\n", output)
+	assert.Equal(t, "test output\n", stdout)
+	assert.Empty(t, stderr)
 }
 
 func TestComposeProject_ExecuteCommand_Error(t *testing.T) {
@@ -261,11 +262,12 @@ func TestComposeProject_ExecuteCommand_Error(t *testing.T) {
 	cmd := exec.Command("false") // 'false' command always exits with code 1
 
 	// Test
-	output, err := composeProject.executeCommand(cmd)
+	stdout, stderr, err := composeProject.executeCommand(cmd)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Empty(t, output)
+	assert.Empty(t, stdout)
+	assert.Empty(t, stderr)
 }
 
 // Tests for executeCommandStreaming
@@ -280,14 +282,14 @@ func TestComposeProject_ExecuteCommandStreaming_Success(t *testing.T) {
 	cmd := exec.Command("sh", "-c", "echo 'line1'; echo 'line2'; echo 'line3'")
 
 	// Create output channel
-	outputChan := make(chan string, 10)
+	outputChan := make(chan StreamMessage, 10)
 	var receivedLines []string
 
 	// Start goroutine to collect output
 	done := make(chan bool)
 	go func() {
-		for line := range outputChan {
-			receivedLines = append(receivedLines, line)
+		for msg := range outputChan {
+			receivedLines = append(receivedLines, msg.Content)
 		}
 		done <- true
 	}()
@@ -320,7 +322,7 @@ func TestComposeProject_ExecuteCommandStreaming_Error(t *testing.T) {
 	cmd := exec.Command("false")
 
 	// Create output channel
-	outputChan := make(chan string, 10)
+	outputChan := make(chan StreamMessage, 10)
 
 	// Test
 	err := composeProject.executeCommandStreaming(cmd, outputChan)
@@ -351,11 +353,12 @@ services:
 	require.NoError(t, err)
 
 	// Test (this would require Docker to be running)
-	output, err := composeProject.Up(true)
+	stdout, stderr, err := composeProject.Up(true)
 
 	// Assertions (these would need to be adjusted based on actual Docker behavior)
 	// This is more of a placeholder for integration testing
-	_ = output
+	_ = stdout
+	_ = stderr
 	_ = err
 }
 
@@ -405,7 +408,7 @@ func TestComposeProject_StreamingChannelManagement(t *testing.T) {
 	composeProject := createTestComposeProject()
 
 	// Test that streaming properly handles channel operations
-	outputChan := make(chan string, 10)
+	outputChan := make(chan StreamMessage, 10)
 
 	// Create a simple command for testing
 	cmd := exec.Command("echo", "streaming test")
@@ -416,8 +419,8 @@ func TestComposeProject_StreamingChannelManagement(t *testing.T) {
 	// Close channel and collect output
 	close(outputChan)
 	var output []string
-	for line := range outputChan {
-		output = append(output, line)
+	for msg := range outputChan {
+		output = append(output, msg.Content)
 	}
 
 	// Assertions
@@ -446,7 +449,7 @@ func TestComposeProject_ConcurrentStreaming(t *testing.T) {
 	// Start multiple streaming operations concurrently
 	for i := range numOps {
 		go func(id int) {
-			outputChan := make(chan string, 10)
+			outputChan := make(chan StreamMessage, 10)
 			// Use a more reliable command that should always produce output
 			cmd := exec.Command("sh", "-c", fmt.Sprintf("printf 'concurrent test %d\\n'", id))
 
@@ -455,8 +458,8 @@ func TestComposeProject_ConcurrentStreaming(t *testing.T) {
 
 			// Collect output to ensure it completes
 			var lines []string
-			for line := range outputChan {
-				lines = append(lines, line)
+			for msg := range outputChan {
+				lines = append(lines, msg.Content)
 			}
 
 			if err != nil {
@@ -669,6 +672,73 @@ func TestParseComposeProjectStatus(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.expectedStatus, status, "status should match expected for input: %s", tt.input)
+		})
+	}
+}
+
+// Tests for ParseComposeLogLine
+func TestParseComposeLogLine(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "structured log with warning",
+			input:    `time="2025-09-22T18:22:35+02:00" level=warning msg="The \"MEED_SMTP_PORT\" variable is not set. Defaulting to a blank string."`,
+			expected: `The "MEED_SMTP_PORT" variable is not set. Defaulting to a blank string.`,
+		},
+		{
+			name:     "structured log with info",
+			input:    `time="2025-09-22T18:22:35+02:00" level=info msg="Container started successfully"`,
+			expected: "Container started successfully",
+		},
+		{
+			name:     "structured log with escaped backslash",
+			input:    `time="2025-09-22T18:22:35+02:00" level=error msg="Path \\\"C:\\\\temp\\\" not found"`,
+			expected: `Path \"C:\\temp\" not found`,
+		},
+		{
+			name:     "structured log with additional fields",
+			input:    `time="2025-09-22T18:22:35+02:00" level=warning msg="Service health check failed" service=web container=web_1`,
+			expected: "Service health check failed",
+		},
+		{
+			name:     "TTY format log (no msg field)",
+			input:    `WARN[0000] The "MEED_SMTP_PORT" variable is not set. Defaulting to a blank string.`,
+			expected: `WARN[0000] The "MEED_SMTP_PORT" variable is not set. Defaulting to a blank string.`,
+		},
+		{
+			name:     "regular log line without structured format",
+			input:    "Building application...",
+			expected: "Building application...",
+		},
+		{
+			name:     "empty line",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "line with msg but not structured format",
+			input:    "This line contains the word msg but is not structured",
+			expected: "This line contains the word msg but is not structured",
+		},
+		{
+			name:     "structured log with empty message",
+			input:    `time="2025-09-22T18:22:35+02:00" level=info msg=""`,
+			expected: "",
+		},
+		{
+			name:     "structured log with complex escaped content",
+			input:    `time="2025-09-22T18:22:35+02:00" level=error msg="JSON parse error: \"field\\n\\tvalue\" at line 10"`,
+			expected: `JSON parse error: "field\n\tvalue" at line 10`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ParseComposeLogLine(tt.input)
+			assert.Equal(t, tt.expected, result, "parsed content should match expected for input: %s", tt.input)
 		})
 	}
 }

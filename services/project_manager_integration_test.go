@@ -56,7 +56,7 @@ func TestProjectManager_Integration_CompleteLifecycle(t *testing.T) {
 	t.Log("Step 2: Deploying project with streaming...")
 
 	// Create output channel for streaming
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	deployDone := make(chan error, 1)
 
 	// Start deployment in goroutine
@@ -76,8 +76,8 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			deployMessages = append(deployMessages, msg)
-			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+			deployMessages = append(deployMessages, msg.Content)
+			t.Logf("Deploy output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -124,9 +124,10 @@ deployLoop:
 	// Step 3: Get project configuration
 	t.Log("Step 3: Getting project configuration...")
 
-	config, err := projectManager.GetConfig(createdProject.ID)
+	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
 	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
 
 	// Verify config contains expected compose content
 	assert.Contains(t, config, "services:", "Config should contain services section")
@@ -135,7 +136,7 @@ deployLoop:
 	// Step 4: Get project logs using streaming
 	t.Log("Step 4: Getting project logs with streaming...")
 
-	logsChan := make(chan string, 100)
+	logsChan := make(chan StreamMessage, 100)
 	logsDone := make(chan error, 1)
 
 	// Get logs (no streaming needed)
@@ -143,16 +144,25 @@ deployLoop:
 	go func() {
 		defer close(logsChan)
 		// Get static logs instead of streaming
-		logs, err := projectManager.GetLogs(createdProject.ID)
+		stdout, stderr, err := projectManager.GetLogs(createdProject.ID)
 		if err != nil {
 			logsDone <- err
 			return
 		}
-		// Send each line to the channel to simulate the old streaming behavior for the test
-		lines := strings.Split(logs, "\n")
+		// Send stdout lines first
+		lines := strings.Split(stdout, "\n")
 		for _, line := range lines {
 			if line != "" {
-				logsChan <- line
+				logsChan <- StreamMessage{Type: "stdout", Content: line}
+			}
+		}
+		// Send stderr lines if any
+		if stderr != "" {
+			stderrLines := strings.Split(stderr, "\n")
+			for _, line := range stderrLines {
+				if line != "" {
+					logsChan <- StreamMessage{Type: "stderr", Content: line}
+				}
 			}
 		}
 		logsDone <- nil
@@ -169,8 +179,8 @@ logsLoop:
 			if !ok {
 				break logsLoop
 			}
-			logMessages = append(logMessages, msg)
-			t.Logf("Log output: %s", strings.TrimSpace(msg))
+			logMessages = append(logMessages, msg.Content)
+			t.Logf("Log output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
 
 			// Stop after getting some logs to avoid infinite collection
 			if len(logMessages) >= 5 {
@@ -195,7 +205,7 @@ logsLoop:
 	// Step 5: Stop the project using streaming
 	t.Log("Step 5: Stopping project with streaming...")
 
-	stopChan := make(chan string, 100)
+	stopChan := make(chan StreamMessage, 100)
 	stopDone := make(chan error, 1)
 
 	go func() {
@@ -214,8 +224,8 @@ stopLoop:
 			if !ok {
 				break stopLoop
 			}
-			stopMessages = append(stopMessages, msg)
-			t.Logf("Stop output: %s", strings.TrimSpace(msg))
+			stopMessages = append(stopMessages, msg.Content)
+			t.Logf("Stop output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
 		case err := <-stopDone:
 			require.NoError(t, err, "Stopping should succeed")
 			break stopLoop
@@ -310,7 +320,7 @@ func TestProjectManager_Integration_MergeStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	deployDone := make(chan error, 1)
 
 	go func() {
@@ -327,7 +337,7 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -362,16 +372,17 @@ deployLoop:
 	t.Logf("Merge strategy status verified: %v", serviceNames)
 
 	// Verify merged configuration
-	config, err := projectManager.GetConfig(createdProject.ID)
+	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
 	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
 
 	// Config should show merged result from both files
 	assert.Contains(t, config, "services:", "Config should contain services section")
 	t.Logf("Merge strategy configuration verified (%d characters)", len(config))
 
 	// Cleanup
-	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	err = projectManager.StopStreaming(createdProject.ID, make(chan StreamMessage, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
 	err = projectManager.Remove(createdProject.ID, true)
@@ -409,7 +420,7 @@ func TestProjectManager_Integration_ExtendStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	deployDone := make(chan error, 1)
 
 	go func() {
@@ -426,7 +437,7 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -436,15 +447,16 @@ deployLoop:
 	}
 
 	// Verify extended configuration
-	config, err := projectManager.GetConfig(createdProject.ID)
+	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
 	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
 
 	assert.Contains(t, config, "services:", "Config should contain services section")
 	t.Logf("Extend strategy configuration verified (%d characters)", len(config))
 
 	// Cleanup
-	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	err = projectManager.StopStreaming(createdProject.ID, make(chan StreamMessage, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
 	err = projectManager.Remove(createdProject.ID, true)
@@ -482,7 +494,7 @@ func TestProjectManager_Integration_IncludeStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	deployDone := make(chan error, 1)
 
 	go func() {
@@ -499,7 +511,7 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -509,15 +521,16 @@ deployLoop:
 	}
 
 	// Verify included configuration
-	config, err := projectManager.GetConfig(createdProject.ID)
+	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
 	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
 
 	assert.Contains(t, config, "services:", "Config should contain services section")
 	t.Logf("Include strategy configuration verified (%d characters)", len(config))
 
 	// Cleanup
-	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	err = projectManager.StopStreaming(createdProject.ID, make(chan StreamMessage, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
 	err = projectManager.Remove(createdProject.ID, true)
@@ -566,7 +579,7 @@ func TestProjectManager_Integration_Variables(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	deployDone := make(chan error, 1)
 
 	go func() {
@@ -583,7 +596,7 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			t.Logf("Deploy output: %s", strings.TrimSpace(msg))
+			t.Logf("Deploy output: %s", strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -593,9 +606,10 @@ deployLoop:
 	}
 
 	// Verify variable interpolation worked
-	config, err := projectManager.GetConfig(createdProject.ID)
+	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
 	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
 
 	// Config should show interpolated values
 	assert.Contains(t, config, "services:", "Config should contain services section")
@@ -605,7 +619,7 @@ deployLoop:
 	t.Logf("Variable interpolation verified in configuration (%d characters)", len(config))
 
 	// Cleanup
-	err = projectManager.StopStreaming(createdProject.ID, make(chan string, 100))
+	err = projectManager.StopStreaming(createdProject.ID, make(chan StreamMessage, 100))
 	require.NoError(t, err, "Stopping should succeed")
 
 	err = projectManager.Remove(createdProject.ID, true)
@@ -648,7 +662,7 @@ func TestProjectManager_Integration_VolumeMounts(t *testing.T) {
 	// Deploy the project
 	t.Log("Deploying project...")
 
-	outputChan := make(chan string, 200)
+	outputChan := make(chan StreamMessage, 200)
 	deployDone := make(chan error, 1)
 
 	go func() {
@@ -666,7 +680,7 @@ deployLoop:
 			if !ok {
 				break deployLoop
 			}
-			t.Logf("Deploy: %s", strings.TrimSpace(msg))
+			t.Logf("Deploy: %s", strings.TrimSpace(msg.Content))
 		case err := <-deployDone:
 			require.NoError(t, err, "Deployment should succeed")
 			break deployLoop
@@ -763,7 +777,7 @@ containersReady:
 	// Cleanup: Stop and remove containers
 	t.Log("Stopping and removing containers...")
 
-	stopChan := make(chan string, 100)
+	stopChan := make(chan StreamMessage, 100)
 	stopDone := make(chan error, 1)
 
 	go func() {
@@ -781,7 +795,7 @@ stopLoop:
 			if !ok {
 				break stopLoop
 			}
-			t.Logf("Stop: %s", strings.TrimSpace(msg))
+			t.Logf("Stop: %s", strings.TrimSpace(msg.Content))
 		case err := <-stopDone:
 			require.NoError(t, err, "Stopping should succeed")
 			break stopLoop

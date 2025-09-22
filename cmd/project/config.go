@@ -2,10 +2,13 @@ package project
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
+	"github.com/oar-cd/oar/services"
 	"github.com/spf13/cobra"
 )
 
@@ -46,9 +49,20 @@ func runProjectConfig(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get configuration
-	config, err := projectService.GetConfig(projectID)
+	config, stderr, err := projectService.GetConfig(projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get project configuration: %w", err)
+	}
+
+	// Output stderr warnings first if any, with parsing
+	if stderr != "" {
+		lines := strings.Split(stderr, "\n")
+		for _, line := range lines {
+			if strings.TrimSpace(line) != "" {
+				parsedLine := services.ParseComposeLogLine(line)
+				fmt.Fprintf(os.Stderr, "%s\n", parsedLine)
+			}
+		}
 	}
 
 	// Output the raw YAML configuration

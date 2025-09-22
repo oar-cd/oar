@@ -104,7 +104,8 @@ func (m *DeploymentMapper) ToDomain(d *models.DeploymentModel) *Deployment {
 		ProjectID:  d.ProjectID,
 		CommitHash: d.CommitHash,
 		Status:     status,
-		Output:     d.Output,
+		Stdout:     d.Stdout,
+		Stderr:     d.Stderr,
 		CreatedAt:  d.CreatedAt,
 		UpdatedAt:  d.UpdatedAt,
 	}
@@ -120,6 +121,7 @@ func (m *DeploymentMapper) ToModel(d *Deployment) *models.DeploymentModel {
 		ProjectID:  d.ProjectID,
 		CommitHash: d.CommitHash,
 		Status:     d.Status.String(),
-		Output:     d.Output,
+		Stdout:     d.Stdout,
+		Stderr:     d.Stderr,
 	}
 }

@@ -128,7 +128,8 @@ func createTestDeployment(projectID uuid.UUID) *Deployment {
 		ProjectID:  projectID,
 		CommitHash: "abc123",
 		Status:     DeploymentStatusCompleted,
-		Output:     "Deployment successful",
+		Stdout:     "Deployment successful",
+		Stderr:     "",
 	}
 }
 

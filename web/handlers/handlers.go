@@ -167,7 +167,7 @@ func SetupSSE(w http.ResponseWriter) {
 }
 
 // StreamOutput handles the streaming of output to SSE clients
-func StreamOutput(w http.ResponseWriter, outputChan <-chan string, streamType string) error {
+func StreamOutput(w http.ResponseWriter, outputChan <-chan services.StreamMessage, streamType string) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
@@ -175,22 +175,26 @@ func StreamOutput(w http.ResponseWriter, outputChan <-chan string, streamType st
 	}
 
 	// Send initial connection message
-	if _, err := fmt.Fprintf(w, "data: {\"type\":\"status\",\"message\":\"Connected to %s stream\"}\n\n", streamType); err != nil {
+	if _, err := fmt.Fprintf(w, "data: {\"type\":\"info\",\"content\":\"Connected to %s stream\"}\n\n", streamType); err != nil {
 		return err
 	}
 	flusher.Flush()
 
 	// Stream output
-	for output := range outputChan {
-		// Output is already JSON from the source (compose.go or project.go)
-		if _, err := fmt.Fprintf(w, "data: %s\n\n", output); err != nil {
+	for msg := range outputChan {
+		// Convert StreamMessage to JSON
+		jsonMsg, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", jsonMsg); err != nil {
 			return err
 		}
 		flusher.Flush()
 	}
 
 	// Send completion message
-	if _, err := fmt.Fprintf(w, "data: {\"type\":\"complete\",\"message\":\"%s finished\"}\n\n", strings.ToUpper(streamType[:1])+streamType[1:]); err != nil {
+	if _, err := fmt.Fprintf(w, "data: {\"type\":\"success\",\"content\":\"%s finished\"}\n\n", strings.ToUpper(streamType[:1])+streamType[1:]); err != nil {
 		return err
 	}
 	flusher.Flush()
@@ -266,31 +270,29 @@ func HandleHTMLContent(htmlFunc func(uuid.UUID) (string, error)) http.HandlerFun
 }
 
 // HandleStream creates a generic handler for streaming endpoints
-func HandleStream(streamFunc func(uuid.UUID, chan<- string) error, streamType string) http.HandlerFunc {
+func HandleStream(streamFunc func(uuid.UUID, chan<- services.StreamMessage) error, streamType string) http.HandlerFunc {
 	return withProjectID(func(w http.ResponseWriter, r *http.Request, projectID uuid.UUID) {
 		SetupSSE(w)
 
-		outputChan := make(chan string, 100)
+		outputChan := make(chan services.StreamMessage, 100)
 
 		// Start streaming in a goroutine
 		go func() {
 			defer close(outputChan) // Close channel when streaming function completes
 			if err := streamFunc(projectID, outputChan); err != nil {
 				LogOperationError(fmt.Sprintf("%s_stream", streamType), "handlers", err, "project_id", projectID)
-				// Send error as JSON message to match deployment format
-				errorMsg := map[string]string{
-					"type": "error",
-					"message": fmt.Sprintf(
+				// Send error as StreamMessage
+				errorMsg := services.StreamMessage{
+					Type: "error",
+					Content: fmt.Sprintf(
 						"%s failed: %s",
 						strings.ToUpper(streamType[:1])+streamType[1:],
 						err.Error(),
 					),
 				}
-				if jsonMsg, jsonErr := json.Marshal(errorMsg); jsonErr == nil {
-					select {
-					case outputChan <- string(jsonMsg):
-					default:
-					}
+				select {
+				case outputChan <- errorMsg:
+				default:
 				}
 			}
 		}()

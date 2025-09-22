@@ -369,13 +369,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // Status updates handled by onComplete
                                     break;
 
-                                case 'docker':
+                                case 'stdout':
+                                case 'stderr':
                                 case 'info':
                                 case 'success':
                                 case 'error':
                                     // All messages now come with proper type field
                                     const messageType = data.type;
-                                    const displayMessage = data.message;
+                                    const displayMessage = data.content;
 
                                     // Track error state
                                     if (messageType === 'error') {
@@ -385,6 +386,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // Style based on message type
                                     let cssClass;
                                     switch(messageType) {
+                                        case 'stdout':
+                                            cssClass = 'deploy-text-stdout';
+                                            break;
+                                        case 'stderr':
+                                            cssClass = 'deploy-text-stderr';
+                                            break;
                                         case 'info':
                                             cssClass = 'deploy-text-info';
                                             break;
@@ -394,7 +401,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         case 'error':
                                             cssClass = 'deploy-text-error';
                                             break;
-                                        case 'docker':
                                         default:
                                             cssClass = 'deploy-text-backend';
                                             break;
@@ -582,13 +588,56 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.closest('.deployment-output-btn')) {
             const button = e.target.closest('.deployment-output-btn');
             const deploymentId = button.getAttribute('data-deployment-id');
-            const output = button.getAttribute('data-deployment-output');
-            showDeploymentOutput(deploymentId, output);
+            const stdout = button.getAttribute('data-deployment-stdout') || '';
+            const stderr = button.getAttribute('data-deployment-stderr') || '';
+            showDeploymentOutput(deploymentId, stdout, stderr);
         }
     });
 
     // Show deployment output in a popup
-    window.showDeploymentOutput = function(deploymentId, output) {
+    window.showDeploymentOutput = function(deploymentId, stdout, stderr) {
+        // Helper function to parse stderr lines
+        function parseStderrLine(line) {
+            // Simple regex to match msg="..." in Docker Compose log format
+            const msgRegex = /msg="((?:[^"\\]|\\.)*)"\s*(?:\s|$)/;
+            const matches = line.match(msgRegex);
+            if (matches && matches[1]) {
+                // Unescape the extracted message
+                let msg = matches[1];
+                msg = msg.replace(/\\"/g, '"');
+                msg = msg.replace(/\\\\/g, '\\');
+                return msg;
+            }
+            return line;
+        }
+
+        // Format the output with proper colors
+        let formattedOutput = '';
+
+        // Add stderr warnings if any (in orange, with log parsing)
+        if (stderr && stderr.trim()) {
+            const stderrLines = stderr.split('\n');
+            formattedOutput += '<span class="deploy-text-stderr">';
+            stderrLines.forEach((line, index) => {
+                if (index > 0) formattedOutput += '\n';
+                const parsedLine = parseStderrLine(line);
+                formattedOutput += parsedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            });
+            formattedOutput += '</span>\n';
+        }
+
+        // Add stdout (in normal color)
+        if (stdout && stdout.trim()) {
+            formattedOutput += '<span class="deploy-text-stdout">';
+            formattedOutput += stdout.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            formattedOutput += '</span>';
+        }
+
+        // If no output at all
+        if (!formattedOutput.trim()) {
+            formattedOutput = 'No output available';
+        }
+
         // Create modal overlay without backdrop (since another modal is already active)
         const overlay = document.createElement('div');
         overlay.className = 'fixed inset-0 z-60 overflow-y-auto';
@@ -605,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="deployment-output-container">
                         <div class="deploy-code-block" style="max-height: 400px;">
-                            <pre class="streaming-output">${output ? output.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'No output available'}</pre>
+                            <pre class="streaming-output">${formattedOutput}</pre>
                         </div>
                     </div>
                 </div>

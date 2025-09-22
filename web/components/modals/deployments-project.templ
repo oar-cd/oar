@@ -72,7 +72,8 @@ templ deploymentsProjectBody(proj project.ProjectView, deployments []*services.D
 										type="button"
 										class="deployment-output-btn text-gray-600 hover:text-gray-800 p-1 rounded inline-flex items-center"
 										data-deployment-id={ deployment.ID.String() }
-										data-deployment-output={ deployment.Output }
+										data-deployment-stdout={ deployment.Stdout }
+										data-deployment-stderr={ deployment.Stderr }
 										title="View deployment output"
 									>
 										@icons.Icon("scroll-text", "w-5 h-5")
@@ -101,4 +102,3 @@ func getDeploymentStatusClass(status string) string {
 		return "deployment-status-unknown"
 	}
 }
-

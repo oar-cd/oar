@@ -16,6 +16,7 @@
     --color-red-800: oklch(44.4% 0.177 26.899);
     --color-orange-50: oklch(98% 0.016 73.684);
     --color-orange-100: oklch(95.4% 0.038 75.164);
+    --color-orange-300: oklch(83.7% 0.128 66.29);
     --color-orange-600: oklch(64.6% 0.222 41.116);
     --color-orange-800: oklch(47% 0.157 37.304);
     --color-yellow-50: oklch(98.7% 0.026 102.212);
@@ -1576,6 +1577,12 @@ body {
 .deploy-text-error {
   color: var(--color-red-400);
   font-style: italic;
+}
+.deploy-text-stdout {
+  color: var(--color-gray-300);
+}
+.deploy-text-stderr {
+  color: var(--color-orange-300);
 }
 .streaming-output {
   white-space: pre;

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
+	"github.com/oar-cd/oar/services"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,35 +72,35 @@ func TestLogOperationError(t *testing.T) {
 func TestStreamOutput(t *testing.T) {
 	tests := []struct {
 		name           string
-		outputMessages []string
+		outputMessages []services.StreamMessage
 		streamType     string
 		expectError    bool
 	}{
 		{
 			name:           "empty stream",
-			outputMessages: []string{},
+			outputMessages: []services.StreamMessage{},
 			streamType:     "deployment",
 			expectError:    false,
 		},
 		{
 			name:           "single message stream",
-			outputMessages: []string{`{"type":"output","message":"Starting deployment"}`},
+			outputMessages: []services.StreamMessage{{Type: "stdout", Content: "Starting deployment"}},
 			streamType:     "deployment",
 			expectError:    false,
 		},
 		{
 			name: "multiple messages stream",
-			outputMessages: []string{
-				`{"type":"output","message":"Step 1: Pulling images"}`,
-				`{"type":"output","message":"Step 2: Starting containers"}`,
-				`{"type":"output","message":"Step 3: Running health checks"}`,
+			outputMessages: []services.StreamMessage{
+				{Type: "stdout", Content: "Step 1: Pulling images"},
+				{Type: "stdout", Content: "Step 2: Starting containers"},
+				{Type: "stdout", Content: "Step 3: Running health checks"},
 			},
 			streamType:  "deployment",
 			expectError: false,
 		},
 		{
 			name:           "logs stream",
-			outputMessages: []string{`{"type":"log","message":"Application started on port 8080"}`},
+			outputMessages: []services.StreamMessage{{Type: "stdout", Content: "Application started on port 8080"}},
 			streamType:     "logs",
 			expectError:    false,
 		},
@@ -111,7 +112,7 @@ func TestStreamOutput(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			// Create a channel and populate it with test messages
-			outputChan := make(chan string, len(tt.outputMessages)+1)
+			outputChan := make(chan services.StreamMessage, len(tt.outputMessages)+1)
 			for _, msg := range tt.outputMessages {
 				outputChan <- msg
 			}
@@ -137,7 +138,7 @@ func TestStreamOutput(t *testing.T) {
 
 				// Should contain all the messages
 				for _, msg := range tt.outputMessages {
-					assert.Contains(t, output, msg)
+					assert.Contains(t, output, msg.Content)
 				}
 
 				// Verify SSE format (data: prefix and double newlines)

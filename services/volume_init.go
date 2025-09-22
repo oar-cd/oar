@@ -260,12 +260,16 @@ func (p *ComposeProject) InitializeVolumeMounts() error {
 		"project_name", p.Name)
 
 	// Get compose config first to check what we need to do
-	configYAML, err := p.GetConfig()
+	configYAML, stderr, err := p.GetConfig()
 	if err != nil {
 		slog.Error("Failed to get compose config",
 			"project_name", p.Name,
 			"error", err)
 		return fmt.Errorf("failed to get compose config: %w", err)
+	}
+	// Log stderr warnings but don't include them in the YAML processing
+	if stderr != "" {
+		slog.Debug("Docker compose config warnings", "project_name", p.Name, "warnings", stderr)
 	}
 
 	var config ComposeConfig

@@ -245,7 +245,8 @@ type MockProjectManager struct {
 	StopPipingFunc       func(projectID uuid.UUID) error
 	GetLogsStreamingFunc func(ctx context.Context, projectID uuid.UUID, outputChan chan<- string) error
 	GetLogsPipingFunc    func(projectID uuid.UUID) error
-	GetConfigFunc        func(projectID uuid.UUID) (string, error)
+	GetLogsFunc          func(projectID uuid.UUID) (string, string, error)
+	GetConfigFunc        func(projectID uuid.UUID) (string, string, error)
 	GetStatusFunc        func(projectID uuid.UUID) (*ComposeStatus, error)
 	ListDeploymentsFunc  func(projectID uuid.UUID) ([]*Deployment, error)
 }
@@ -338,11 +339,18 @@ func (m *MockProjectManager) GetLogsPiping(projectID uuid.UUID) error {
 	return nil
 }
 
-func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
+func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, string, error) {
+	if m.GetLogsFunc != nil {
+		return m.GetLogsFunc(projectID)
+	}
+	return "mock logs", "", nil
+}
+
+func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, string, error) {
 	if m.GetConfigFunc != nil {
 		return m.GetConfigFunc(projectID)
 	}
-	return "mock config", nil
+	return "mock config", "", nil
 }
 
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*ComposeStatus, error) {

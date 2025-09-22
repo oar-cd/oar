@@ -87,11 +87,11 @@ services:
 					}
 					return tt.mockProject, nil
 				},
-				GetConfigFunc: func(projectID uuid.UUID) (string, error) {
+				GetConfigFunc: func(projectID uuid.UUID) (string, string, error) {
 					if tt.mockConfigError != nil {
-						return "", tt.mockConfigError
+						return "", "", tt.mockConfigError
 					}
-					return tt.mockConfig, nil
+					return tt.mockConfig, "", nil
 				},
 			}
 			app.SetProjectServiceForTesting(mockService)

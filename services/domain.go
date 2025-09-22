@@ -56,7 +56,8 @@ type Deployment struct {
 	ProjectID  uuid.UUID
 	CommitHash string
 	Status     DeploymentStatus
-	Output     string
+	Stdout     string
+	Stderr     string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -71,5 +72,6 @@ func NewDeployment(projectID uuid.UUID, commitHash string) Deployment {
 
 type DeploymentResult struct {
 	Status DeploymentStatus
-	Output string
+	Stdout string
+	Stderr string
 }

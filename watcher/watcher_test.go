@@ -43,7 +43,11 @@ func (m *MockProjectManager) Remove(projectID uuid.UUID, removeVolumes bool) err
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error {
+func (m *MockProjectManager) DeployStreaming(
+	projectID uuid.UUID,
+	pull bool,
+	outputChan chan<- services.StreamMessage,
+) error {
 	args := m.Called(projectID, pull, outputChan)
 	return args.Error(0)
 }
@@ -58,7 +62,7 @@ func (m *MockProjectManager) Stop(projectID uuid.UUID, removeVolumes bool) error
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+func (m *MockProjectManager) StopStreaming(projectID uuid.UUID, outputChan chan<- services.StreamMessage) error {
 	args := m.Called(projectID, outputChan)
 	return args.Error(0)
 }
@@ -82,14 +86,14 @@ func (m *MockProjectManager) GetLogsPiping(projectID uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
+func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, string, error) {
 	args := m.Called(projectID)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, error) {
+func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, string, error) {
 	args := m.Called(projectID)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeStatus, error) {
