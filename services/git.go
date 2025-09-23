@@ -239,20 +239,34 @@ func (s *GitService) Pull(gitBranch string, gitAuth *GitAuthConfig, workingDir s
 		return nil
 	}
 
-	// Reset the worktree to the remote branch (equivalent to git reset --hard origin/branch)
-	err = worktree.Reset(&git.ResetOptions{
-		Commit: ref.Hash(),
-		Mode:   git.HardReset,
+	// Checkout to the new commit while preserving untracked files (like Docker bind mounts)
+	err = worktree.Checkout(&git.CheckoutOptions{
+		Hash: ref.Hash(),
+		Keep: true, // Keep untracked files
 	})
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
-			"operation", "git_pull_reset",
+			"operation", "git_pull_checkout",
 			"git_branch", branchName,
 			"working_dir", workingDir,
 			"target_commit", ref.Hash().String(),
 			"error", err)
-		return fmt.Errorf("failed to reset to %s: %w", ref.Hash().String(), err)
+		return fmt.Errorf("failed to checkout files from %s: %w", ref.Hash().String(), err)
+	}
+
+	// Reset only tracked files to match the remote commit exactly
+	// This ensures local changes to tracked files are discarded while preserving untracked files
+	err = s.resetTrackedFiles(worktree)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull_reset_tracked",
+			"git_branch", branchName,
+			"working_dir", workingDir,
+			"target_commit", ref.Hash().String(),
+			"error", err)
+		return fmt.Errorf("failed to reset tracked files: %w", err)
 	}
 
 	slog.Info("Repository updated successfully",
@@ -501,4 +515,32 @@ func (s *GitService) GetDefaultBranch(gitURL string, gitAuth *GitAuthConfig) (st
 	// Could not determine default branch
 	slog.Error("Could not determine default branch", "git_url", gitURL)
 	return "", fmt.Errorf("could not determine default branch for repository %s", gitURL)
+}
+
+// resetTrackedFiles resets all tracked files in the worktree to their last committed state
+// while leaving untracked files intact.
+func (s *GitService) resetTrackedFiles(worktree *git.Worktree) error {
+	changedFiles, err := worktree.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	resetFiles := make([]string, 0, len(changedFiles))
+	for file, status := range changedFiles {
+		if status.Staging != git.Untracked {
+			resetFiles = append(resetFiles, file)
+		}
+	}
+
+	if len(resetFiles) > 0 {
+		err = worktree.Reset(&git.ResetOptions{
+			Mode:  git.HardReset,
+			Files: resetFiles,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to reset tracked files: %w", err)
+		}
+	}
+
+	return nil
 }

@@ -143,3 +143,134 @@ func TestGitService_Pull_ForcePush(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "different remote content", string(content), "File content should match force-pushed version")
 }
+
+// TestGitService_Pull_PreservesUntrackedFiles tests that pull preserves untracked files like Docker bind mounts
+// while properly overwriting local changes to tracked files
+func TestGitService_Pull_PreservesUntrackedFiles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Create temporary directories for "remote" and "local" repositories
+	tempDir := t.TempDir()
+	remoteDir := filepath.Join(tempDir, "remote")
+	localDir := filepath.Join(tempDir, "local")
+
+	// Initialize the "remote" repository
+	_, err := git.PlainInit(remoteDir, true) // bare repository
+	require.NoError(t, err)
+
+	// Create a working repository to push to remote
+	workingDir := filepath.Join(tempDir, "working")
+	workingRepo, err := git.PlainInit(workingDir, false)
+	require.NoError(t, err)
+
+	// Configure the working repository
+	worktree, err := workingRepo.Worktree()
+	require.NoError(t, err)
+
+	// Create initial commit
+	testFile := filepath.Join(workingDir, "test.txt")
+	err = os.WriteFile(testFile, []byte("initial content"), 0644)
+	require.NoError(t, err)
+
+	_, err = worktree.Add("test.txt")
+	require.NoError(t, err)
+
+	_, err = worktree.Commit("Initial commit", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Test User",
+			Email: "test@example.com",
+			When:  time.Now(),
+		},
+	})
+	require.NoError(t, err)
+
+	// Add remote and push
+	_, err = workingRepo.CreateRemote(&config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{remoteDir},
+	})
+	require.NoError(t, err)
+
+	err = workingRepo.Push(&git.PushOptions{})
+	require.NoError(t, err)
+
+	// Set up the GitService
+	config := &Config{
+		GitTimeout: 30 * time.Second,
+	}
+	gitService := NewGitService(config)
+
+	// Clone the remote repository to local directory
+	err = gitService.Clone(remoteDir, "master", nil, localDir)
+	require.NoError(t, err)
+
+	// Create untracked files and directories (simulating Docker bind mounts)
+	bindMountDir := filepath.Join(localDir, "bind-mount-dir")
+	err = os.MkdirAll(bindMountDir, 0755)
+	require.NoError(t, err)
+
+	bindMountFile := filepath.Join(bindMountDir, "container-data.txt")
+	err = os.WriteFile(bindMountFile, []byte("container created this file"), 0644)
+	require.NoError(t, err)
+
+	untrackedFile := filepath.Join(localDir, "untracked.log")
+	err = os.WriteFile(untrackedFile, []byte("some log data"), 0644)
+	require.NoError(t, err)
+
+	// Make local changes to tracked file (these should be overwritten)
+	localTrackedFile := filepath.Join(localDir, "test.txt")
+	err = os.WriteFile(localTrackedFile, []byte("local changes that should be discarded"), 0644)
+	require.NoError(t, err)
+
+	// Create a new commit in the working repository and push it
+	err = os.WriteFile(testFile, []byte("updated content from remote"), 0644)
+	require.NoError(t, err)
+
+	_, err = worktree.Add("test.txt")
+	require.NoError(t, err)
+
+	_, err = worktree.Commit("Update content", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Remote User",
+			Email: "remote@example.com",
+			When:  time.Now(),
+		},
+	})
+	require.NoError(t, err)
+
+	err = workingRepo.Push(&git.PushOptions{})
+	require.NoError(t, err)
+
+	// Now pull the changes in local repository
+	err = gitService.Pull("master", nil, localDir)
+	require.NoError(t, err, "Pull should succeed")
+
+	// Verify that tracked file was updated (local changes overwritten)
+	content, err := os.ReadFile(filepath.Join(localDir, "test.txt"))
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"updated content from remote",
+		string(content),
+		"Tracked file should be updated to remote version, overwriting local changes",
+	)
+
+	// Verify that untracked files and directories are preserved
+	_, err = os.Stat(bindMountDir)
+	assert.NoError(t, err, "Bind mount directory should be preserved")
+
+	preservedContent, err := os.ReadFile(bindMountFile)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"container created this file",
+		string(preservedContent),
+		"Bind mount file content should be preserved",
+	)
+
+	preservedUntrackedContent, err := os.ReadFile(untrackedFile)
+	require.NoError(t, err)
+	assert.Equal(t, "some log data", string(preservedUntrackedContent), "Untracked file content should be preserved")
+}
