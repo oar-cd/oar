@@ -295,6 +295,12 @@ func (s *ProjectService) DeployStreaming(
 	sendMessage("Creating containers...", "info")
 	err = composeProject.UpStreaming(false, capturingChan)
 	if err != nil {
+		// Ensure we capture any output that was generated before failure
+		close(capturingChan)
+		<-done
+		deployment.Stdout = stdoutBuffer.String()
+		deployment.Stderr = stderrBuffer.String()
+
 		errMsg := fmt.Sprintf("Failed to create containers: %v", err)
 		sendMessage(errMsg, "error")
 		deployment.Status = DeploymentStatusFailed
@@ -307,6 +313,12 @@ func (s *ProjectService) DeployStreaming(
 	// Initialize volume permissions
 	sendMessage("Initializing volume mounts...", "info")
 	if err := composeProject.InitializeVolumeMounts(); err != nil {
+		// Ensure we capture any output that was generated before failure
+		close(capturingChan)
+		<-done
+		deployment.Stdout = stdoutBuffer.String()
+		deployment.Stderr = stderrBuffer.String()
+
 		errMsg := fmt.Sprintf("Failed to initialize volume permissions: %v", err)
 		sendMessage(errMsg, "error")
 		deployment.Status = DeploymentStatusFailed
