@@ -2,15 +2,23 @@ package services
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
+
+// StreamMessage represents a message in the streaming output
+type StreamMessage struct {
+	Type    string `json:"type"`    // "stdout", "stderr", "info", "success", "error"
+	Content string `json:"content"` // the actual message content
+}
 
 type ComposeProjectStatus int
 
@@ -102,12 +110,16 @@ func NewComposeProject(p *Project, config *Config) *ComposeProject {
 	}
 }
 
-func (p *ComposeProject) Up(startServices bool) (string, error) {
+func (p *ComposeProject) Up(startServices bool) (string, string, error) {
 	cmd := p.commandUp(startServices)
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
-func (p *ComposeProject) UpStreaming(startServices bool, outputChan chan<- string) error {
+func (p *ComposeProject) UpStreaming(startServices bool, outputChan chan<- StreamMessage) error {
 	cmd := p.commandUp(startServices)
 	return p.executeCommandStreaming(cmd, outputChan)
 }
@@ -117,12 +129,16 @@ func (p *ComposeProject) UpPiping(startServices bool) error {
 	return p.executeCommandPiping(cmd)
 }
 
-func (p *ComposeProject) Down(removeVolumes bool) (string, error) {
+func (p *ComposeProject) Down(removeVolumes bool) (string, string, error) {
 	cmd := p.commandDown(removeVolumes)
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
-func (p *ComposeProject) DownStreaming(outputChan chan<- string) error {
+func (p *ComposeProject) DownStreaming(outputChan chan<- StreamMessage) error {
 	cmd := p.commandDown(false)
 	return p.executeCommandStreaming(cmd, outputChan)
 }
@@ -132,9 +148,13 @@ func (p *ComposeProject) DownPiping() error {
 	return p.executeCommandPiping(cmd)
 }
 
-func (p *ComposeProject) Logs() (string, error) {
+func (p *ComposeProject) Logs() (string, string, error) {
 	cmd := p.commandLogs(false) // No follow for static logs
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
 func (p *ComposeProject) LogsPiping() error {
@@ -142,19 +162,31 @@ func (p *ComposeProject) LogsPiping() error {
 	return p.executeCommandPiping(cmd)
 }
 
-func (p *ComposeProject) GetConfig() (string, error) {
+func (p *ComposeProject) GetConfig() (string, string, error) {
 	cmd := p.commandConfig()
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
-func (p *ComposeProject) Pull() (string, error) {
+func (p *ComposeProject) Pull() (string, string, error) {
 	cmd := p.commandPull()
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
-func (p *ComposeProject) Build() (string, error) {
+func (p *ComposeProject) Build() (string, string, error) {
 	cmd := p.commandBuild()
-	return p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
+	if err != nil {
+		return "", "", err
+	}
+	return stdout, stderr, nil
 }
 
 func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd {
@@ -199,22 +231,29 @@ func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd
 	return cmd
 }
 
-func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (string, error) {
-	out, err := cmd.CombinedOutput()
-	output := string(out)
+func (p *ComposeProject) executeCommand(cmd *exec.Cmd) (stdout string, stderr string, err error) {
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	err = cmd.Run()
+	stdout = stdoutBuf.String()
+	stderr = stderrBuf.String()
+
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",
 			"operation", "docker_compose_execute",
 			"project_name", p.Name,
 			"error", err,
-			"output", output)
-		return "", err
+			"stdout", stdout,
+			"stderr", stderr)
+		return stdout, stderr, err
 	}
-	return output, nil
+	return stdout, stderr, nil
 }
 
-func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<- string) error {
+func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<- StreamMessage) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -261,7 +300,7 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			select {
-			case outputChan <- scanner.Text():
+			case outputChan <- StreamMessage{Type: "stdout", Content: scanner.Text()}:
 			default:
 				return
 			}
@@ -279,8 +318,11 @@ func (p *ComposeProject) executeCommandStreaming(cmd *exec.Cmd, outputChan chan<
 		}()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
+			rawLine := scanner.Text()
+			// Parse Docker Compose structured logs to extract just the message
+			parsedContent := ParseComposeLogLine(rawLine)
 			select {
-			case outputChan <- scanner.Text():
+			case outputChan <- StreamMessage{Type: "stderr", Content: parsedContent}:
 			default:
 				return
 			}
@@ -373,18 +415,19 @@ func (p *ComposeProject) commandPs() *exec.Cmd {
 func (p *ComposeProject) Status() (*ComposeStatus, error) {
 	cmd := p.commandPs()
 
-	output, err := p.executeCommand(cmd)
+	stdout, stderr, err := p.executeCommand(cmd)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "docker_compose",
 			"operation", "docker_compose_status",
 			"project_name", p.Name,
-			"error", err)
+			"error", err,
+			"stderr", stderr)
 		return nil, err
 	}
 
 	var containers []ContainerInfo
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(stdout), "\n")
 
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
@@ -439,4 +482,23 @@ func (p *ComposeProject) Status() (*ComposeStatus, error) {
 		Containers: containers,
 		Uptime:     uptime,
 	}, nil
+}
+
+// ParseComposeLogLine parses Docker Compose structured log format and extracts the msg value
+// Format: time="..." level="..." msg="..." [other fields]
+// Returns the msg value if found, otherwise returns the original line
+func ParseComposeLogLine(line string) string {
+	// Regex to match msg="..." handling escaped quotes
+	msgRegex := regexp.MustCompile(`msg="((?:[^"\\]|\\.)*)"\s*(?:\s|$)`)
+	matches := msgRegex.FindStringSubmatch(line)
+	if len(matches) > 1 {
+		// Unescape the extracted message
+		msg := matches[1]
+		// First replace escaped quotes, then escaped backslashes (order matters)
+		msg = strings.ReplaceAll(msg, `\"`, `"`)
+		msg = strings.ReplaceAll(msg, `\\`, `\`)
+		return msg
+	}
+	// If no msg field found, return original line
+	return line
 }

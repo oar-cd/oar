@@ -12,14 +12,14 @@ type MockProjectManager struct {
 	CreateFunc          func(project *services.Project) (*services.Project, error)
 	UpdateFunc          func(project *services.Project) error
 	RemoveFunc          func(projectID uuid.UUID, removeVolumes bool) error
-	DeployStreamingFunc func(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	DeployStreamingFunc func(projectID uuid.UUID, pull bool, outputChan chan<- services.StreamMessage) error
 	DeployPipingFunc    func(projectID uuid.UUID, pull bool) error
 	StopFunc            func(projectID uuid.UUID, removeVolumes bool) error
-	StopStreamingFunc   func(projectID uuid.UUID, outputChan chan<- string) error
+	StopStreamingFunc   func(projectID uuid.UUID, outputChan chan<- services.StreamMessage) error
 	StopPipingFunc      func(projectID uuid.UUID) error
 	GetLogsPipingFunc   func(projectID uuid.UUID) error
-	GetConfigFunc       func(projectID uuid.UUID) (string, error)
-	GetLogsFunc         func(projectID uuid.UUID) (string, error)
+	GetConfigFunc       func(projectID uuid.UUID) (string, string, error)
+	GetLogsFunc         func(projectID uuid.UUID) (string, string, error)
 	GetStatusFunc       func(projectID uuid.UUID) (*services.ComposeStatus, error)
 	ListDeploymentsFunc func(projectID uuid.UUID) ([]*services.Deployment, error)
 }
@@ -59,7 +59,11 @@ func (m *MockProjectManager) Remove(projectID uuid.UUID, removeVolumes bool) err
 	return nil
 }
 
-func (m *MockProjectManager) DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error {
+func (m *MockProjectManager) DeployStreaming(
+	projectID uuid.UUID,
+	pull bool,
+	outputChan chan<- services.StreamMessage,
+) error {
 	if m.DeployStreamingFunc != nil {
 		return m.DeployStreamingFunc(projectID, pull, outputChan)
 	}
@@ -80,7 +84,7 @@ func (m *MockProjectManager) Stop(projectID uuid.UUID, removeVolumes bool) error
 	return nil
 }
 
-func (m *MockProjectManager) StopStreaming(projectID uuid.UUID, outputChan chan<- string) error {
+func (m *MockProjectManager) StopStreaming(projectID uuid.UUID, outputChan chan<- services.StreamMessage) error {
 	if m.StopStreamingFunc != nil {
 		return m.StopStreamingFunc(projectID, outputChan)
 	}
@@ -101,18 +105,18 @@ func (m *MockProjectManager) GetLogsPiping(projectID uuid.UUID) error {
 	return nil
 }
 
-func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, error) {
+func (m *MockProjectManager) GetConfig(projectID uuid.UUID) (string, string, error) {
 	if m.GetConfigFunc != nil {
 		return m.GetConfigFunc(projectID)
 	}
-	return "mock config", nil
+	return "mock config", "", nil
 }
 
-func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, error) {
+func (m *MockProjectManager) GetLogs(projectID uuid.UUID) (string, string, error) {
 	if m.GetLogsFunc != nil {
 		return m.GetLogsFunc(projectID)
 	}
-	return "mock logs output", nil
+	return "mock logs output", "", nil
 }
 
 func (m *MockProjectManager) GetStatus(projectID uuid.UUID) (*services.ComposeStatus, error) {

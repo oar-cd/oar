@@ -79,7 +79,7 @@ func (itp *IntegrationTestProject) Cleanup() {
 	}
 
 	// Try to stop and remove all containers for this project
-	_, err := itp.Project.Down(true)
+	_, _, err := itp.Project.Down(true)
 	if err != nil {
 		itp.t.Logf("Warning: Failed to clean up Docker containers for project %s: %v", itp.Name, err)
 	}
@@ -175,9 +175,9 @@ func TestComposeProject_Integration_BasicLifecycle(t *testing.T) {
 
 	// Test Up
 	t.Log("Testing Docker Compose Up...")
-	output, err := testProject.Project.Up(true)
+	stdout, stderr, err := testProject.Project.Up(true)
 	require.NoError(t, err, "Up should succeed")
-	t.Logf("Up output: %s", output)
+	t.Logf("Up stdout: %s, stderr: %s", stdout, stderr)
 
 	// Wait for services to be running
 	t.Log("Waiting for services to start...")
@@ -194,9 +194,9 @@ func TestComposeProject_Integration_BasicLifecycle(t *testing.T) {
 
 	// Test Down
 	t.Log("Testing Docker Compose Down...")
-	output, err = testProject.Project.Down(true)
+	stdout, stderr, err = testProject.Project.Down(true)
 	require.NoError(t, err, "Down should succeed")
-	t.Logf("Down output: %s", output)
+	t.Logf("Down stdout: %s, stderr: %s", stdout, stderr)
 }
 
 // TestComposeProject_Integration_MultiService tests with multiple long-running services
@@ -209,9 +209,9 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 
 	// Test Up
 	t.Log("Starting multi-service project...")
-	output, err := testProject.Project.Up(true)
+	stdout, stderr, err := testProject.Project.Up(true)
 	require.NoError(t, err, "Up should succeed")
-	t.Logf("Up output: %s", output)
+	t.Logf("Up stdout: %s, stderr: %s", stdout, stderr)
 
 	// Wait for services to be ready
 	err = testProject.WaitForServices(30 * time.Second)
@@ -230,16 +230,16 @@ func TestComposeProject_Integration_MultiService(t *testing.T) {
 	t.Log("Getting logs...")
 	// Note: For integration tests, we might want to limit log retrieval
 	// since logs() follows by default
-	config, err := testProject.Project.GetConfig()
+	config, _, err := testProject.Project.GetConfig()
 	require.NoError(t, err, "Config should be retrievable")
 	assert.Contains(t, config, "nginx", "Config should contain nginx service")
 	assert.Contains(t, config, "redis", "Config should contain redis service")
 
 	// Test Down
 	t.Log("Stopping services...")
-	output, err = testProject.Project.Down(true)
+	stdout, stderr, err = testProject.Project.Down(true)
 	require.NoError(t, err, "Down should succeed")
-	t.Logf("Down output: %s", output)
+	t.Logf("Down stdout: %s, stderr: %s", stdout, stderr)
 
 	// Verify services are stopped
 	status, err = testProject.Project.Status()
@@ -264,9 +264,9 @@ func TestComposeProject_Integration_ErrorHandling(t *testing.T) {
 
 	// Up should fail with invalid image
 	t.Log("Testing error handling with invalid image...")
-	output, err := testProject.Project.Up(true)
+	stdout, stderr, err := testProject.Project.Up(true)
 	assert.Error(t, err, "Up should fail with invalid image")
-	t.Logf("Error output: %s", output)
+	t.Logf("Error stdout: %s, stderr: %s", stdout, stderr)
 }
 
 // TestComposeProject_Integration_Streaming tests real-time streaming functionality
@@ -279,7 +279,7 @@ func TestComposeProject_Integration_Streaming(t *testing.T) {
 
 	// Test streaming Up
 	t.Log("Testing streaming Up...")
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 
 	// Start streaming in goroutine
 	done := make(chan error, 1)
@@ -295,8 +295,8 @@ collectLoop:
 	for {
 		select {
 		case msg := <-outputChan:
-			messages = append(messages, msg)
-			t.Logf("Received streaming message: %s", msg)
+			messages = append(messages, msg.Content)
+			t.Logf("Received streaming message [%s]: %s", msg.Type, msg.Content)
 		case err := <-done:
 			require.NoError(t, err, "UpStreaming should succeed")
 			break collectLoop

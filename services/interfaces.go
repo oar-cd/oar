@@ -17,17 +17,17 @@ type GitExecutor interface {
 
 // ComposeProjectInterface defines the contract for Docker Compose operations
 type ComposeProjectInterface interface {
-	Up(startServices bool) (string, error)
-	Down(removeVolumes bool) (string, error)
-	Logs() (string, error)
-	GetConfig() (string, error)
-	Pull() (string, error)
-	Build() (string, error)
+	Up(startServices bool) (string, string, error)
+	Down(removeVolumes bool) (string, string, error)
+	Logs() (string, string, error)
+	GetConfig() (string, string, error)
+	Pull() (string, string, error)
+	Build() (string, string, error)
 	InitializeVolumeMounts() error
 	Status() (*ComposeStatus, error)
-	UpStreaming(startServices bool, outputChan chan<- string) error
+	UpStreaming(startServices bool, outputChan chan<- StreamMessage) error
 	UpPiping(startServices bool) error
-	DownStreaming(outputChan chan<- string) error
+	DownStreaming(outputChan chan<- StreamMessage) error
 	DownPiping() error
 	LogsPiping() error
 }
@@ -39,14 +39,14 @@ type ProjectManager interface {
 	Create(project *Project) (*Project, error)
 	Update(project *Project) error
 	Remove(projectID uuid.UUID, removeVolumes bool) error
-	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- string) error
+	DeployStreaming(projectID uuid.UUID, pull bool, outputChan chan<- StreamMessage) error
 	DeployPiping(projectID uuid.UUID, pull bool) error
 	Stop(projectID uuid.UUID, removeVolumes bool) error
-	StopStreaming(projectID uuid.UUID, outputChan chan<- string) error
+	StopStreaming(projectID uuid.UUID, outputChan chan<- StreamMessage) error
 	StopPiping(projectID uuid.UUID) error
-	GetLogs(projectID uuid.UUID) (string, error)
+	GetLogs(projectID uuid.UUID) (string, string, error)
 	GetLogsPiping(projectID uuid.UUID) error
-	GetConfig(projectID uuid.UUID) (string, error)
+	GetConfig(projectID uuid.UUID) (string, string, error)
 	GetStatus(projectID uuid.UUID) (*ComposeStatus, error)
 	ListDeployments(projectID uuid.UUID) ([]*Deployment, error)
 }

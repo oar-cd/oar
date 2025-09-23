@@ -552,13 +552,13 @@ func TestProjectService_DeployStreaming_CommitHashDisplay(t *testing.T) {
 	}
 
 	// Create output channel to capture streaming messages
-	outputChan := make(chan string, 100)
+	outputChan := make(chan StreamMessage, 100)
 	done := make(chan bool)
 
 	var messages []string
 	go func() {
 		for msg := range outputChan {
-			messages = append(messages, msg)
+			messages = append(messages, msg.Content)
 		}
 		done <- true
 	}()

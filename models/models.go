@@ -39,7 +39,8 @@ type DeploymentModel struct {
 	ProjectID  uuid.UUID `gorm:"not null;index"`
 	CommitHash string    `gorm:"not null;check:commit_hash <> ''"`
 	Status     string    `gorm:"not null;check:status <> ''"` // in_progress, success, failed
-	Output     string    `gorm:"type:text"`                   // Command output/logs
+	Stdout     string    `gorm:"type:text"`                   // Command stdout output
+	Stderr     string    `gorm:"type:text"`                   // Command stderr output
 
 	Project ProjectModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
 }

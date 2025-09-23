@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
+	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/web/handlers"
 )
 
@@ -88,13 +89,13 @@ func DeleteProject(r *http.Request) error {
 // Streaming action functions
 
 // DeployProject handles project deployment streaming
-func DeployProject(projectID uuid.UUID, outputChan chan<- string) error {
+func DeployProject(projectID uuid.UUID, outputChan chan<- services.StreamMessage) error {
 	projectService := app.GetProjectService()
 	return projectService.DeployStreaming(projectID, true, outputChan)
 }
 
 // StopProject handles project stop streaming
-func StopProject(projectID uuid.UUID, outputChan chan<- string) error {
+func StopProject(projectID uuid.UUID, outputChan chan<- services.StreamMessage) error {
 	projectService := app.GetProjectService()
 	return projectService.StopStreaming(projectID, outputChan)
 }

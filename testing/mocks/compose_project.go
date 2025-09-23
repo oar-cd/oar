@@ -13,24 +13,39 @@ type MockComposeProject struct {
 	mock.Mock
 }
 
-func (m *MockComposeProject) Up(startServices bool) (string, error) {
+func (m *MockComposeProject) Up(startServices bool) (string, string, error) {
 	args := m.Called(startServices)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockComposeProject) Down(removeVolumes bool) (string, error) {
+func (m *MockComposeProject) Down(removeVolumes bool) (string, string, error) {
 	args := m.Called(removeVolumes)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockComposeProject) Logs() (string, error) {
+func (m *MockComposeProject) Logs() (string, string, error) {
 	args := m.Called()
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockComposeProject) GetConfig() (string, error) {
+func (m *MockComposeProject) GetConfig() (string, string, error) {
 	args := m.Called()
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func (m *MockComposeProject) Pull() (string, string, error) {
+	args := m.Called()
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func (m *MockComposeProject) Build() (string, string, error) {
+	args := m.Called()
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func (m *MockComposeProject) InitializeVolumeMounts() error {
+	args := m.Called()
+	return args.Error(0)
 }
 
 func (m *MockComposeProject) Status() (*services.ComposeStatus, error) {
@@ -38,7 +53,7 @@ func (m *MockComposeProject) Status() (*services.ComposeStatus, error) {
 	return args.Get(0).(*services.ComposeStatus), args.Error(1)
 }
 
-func (m *MockComposeProject) UpStreaming(startServices bool, outputChan chan<- string) error {
+func (m *MockComposeProject) UpStreaming(startServices bool, outputChan chan<- services.StreamMessage) error {
 	args := m.Called(startServices, outputChan)
 	return args.Error(0)
 }
@@ -48,7 +63,7 @@ func (m *MockComposeProject) UpPiping(startServices bool) error {
 	return args.Error(0)
 }
 
-func (m *MockComposeProject) DownStreaming(outputChan chan<- string) error {
+func (m *MockComposeProject) DownStreaming(outputChan chan<- services.StreamMessage) error {
 	args := m.Called(outputChan)
 	return args.Error(0)
 }

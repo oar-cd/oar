@@ -53,7 +53,8 @@ func createTestDeploymentModel(projectID uuid.UUID) *DeploymentModel {
 		ProjectID:  projectID,
 		CommitHash: "def456",
 		Status:     "success",
-		Output:     "Container started successfully",
+		Stdout:     "Container started successfully",
+		Stderr:     "",
 	}
 }
 

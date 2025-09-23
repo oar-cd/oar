@@ -185,15 +185,46 @@ func getConfigProjectModalWithLoading(projectID uuid.UUID) (templ.Component, err
 	return modals.ConfigProjectModalWithLoading(projectView), nil
 }
 
+// formatStdoutStderr formats stdout and stderr with proper styling and parsing
+func formatStdoutStderr(stdout, stderr string) string {
+	var content strings.Builder
+
+	// Add stderr warnings if any (in orange, with log parsing)
+	if stderr != "" {
+		content.WriteString(`<span class="deploy-text-stderr">`)
+		// Parse each line of stderr to extract clean messages
+		lines := strings.Split(stderr, "\n")
+		for i, line := range lines {
+			if i > 0 {
+				content.WriteString("\n")
+			}
+			parsedLine := services.ParseComposeLogLine(line)
+			content.WriteString(parsedLine)
+		}
+		content.WriteString("</span>\n")
+	}
+
+	// Add main stdout (in normal color)
+	if stdout != "" {
+		content.WriteString(`<span class="deploy-text-stdout">`)
+		content.WriteString(stdout)
+		content.WriteString("</span>")
+	}
+
+	return content.String()
+}
+
 func getConfigProjectContent(projectID uuid.UUID) (string, error) {
 	projectService := app.GetProjectService()
-	config, err := projectService.GetConfig(projectID)
+	config, stderr, err := projectService.GetConfig(projectID)
 	if err != nil {
 		return fmt.Sprintf(`<pre id="config-content" class="streaming-output">Error getting project configuration:
 
 %s</pre>`, err.Error()), nil
 	}
-	return fmt.Sprintf(`<pre id="config-content" class="streaming-output">%s</pre>`, config), nil
+
+	formattedContent := formatStdoutStderr(config, stderr)
+	return fmt.Sprintf(`<pre id="config-content" class="streaming-output">%s</pre>`, formattedContent), nil
 }
 
 func getLogsProjectModalWithLoading(projectID uuid.UUID) (templ.Component, error) {
@@ -209,7 +240,7 @@ func getLogsProjectModalWithLoading(projectID uuid.UUID) (templ.Component, error
 
 func getLogsProjectContent(projectID uuid.UUID) (string, error) {
 	projectService := app.GetProjectService()
-	logs, err := projectService.GetLogs(projectID)
+	stdout, stderr, err := projectService.GetLogs(projectID)
 	if err != nil {
 		return fmt.Sprintf(`<pre id="static-logs-content" class="streaming-output">Error getting project logs:
 
@@ -221,18 +252,20 @@ if (logsOutput) {
 }
 </script>`, err.Error()), nil
 	}
-	// Check if logs are empty or contain only whitespace
-	if len(strings.TrimSpace(logs)) == 0 {
-		logs = "No logs available"
+
+	// Check if stdout is empty - if so, show "No logs available"
+	if len(strings.TrimSpace(stdout)) == 0 {
+		stdout = "No logs available"
 	}
 
+	formattedContent := formatStdoutStderr(stdout, stderr)
 	return fmt.Sprintf(`<pre id="static-logs-content" class="streaming-output">%s</pre><script>
 // Scroll to bottom after content is loaded
 const logsOutput = document.getElementById('logs-output');
 if (logsOutput) {
 	logsOutput.scrollTop = logsOutput.scrollHeight;
 }
-</script>`, logs), nil
+</script>`, formattedContent), nil
 }
 
 func getProjectStatusPill(projectID uuid.UUID) (templ.Component, error) {
