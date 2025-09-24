@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -91,6 +94,17 @@ deployLoop:
 
 	// Wait a bit for containers to stabilize
 	time.Sleep(5 * time.Second)
+
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	} else {
+		t.Logf("No named volumes found after deployment")
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
 
 	// Step 2.5: Verify project status after deployment
 	t.Log("Step 2.5: Verifying project status after deployment...")
@@ -346,6 +360,15 @@ deployLoop:
 		}
 	}
 
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
+
 	// Verify project status after deployment (merge strategy should have web, redis, db)
 	t.Log("Verifying merge strategy project status...")
 
@@ -446,6 +469,15 @@ deployLoop:
 		}
 	}
 
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
+
 	// Verify extended configuration
 	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
@@ -519,6 +551,15 @@ deployLoop:
 			t.Fatal("Deployment timed out")
 		}
 	}
+
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
 
 	// Verify included configuration
 	config, stderr, err := projectManager.GetConfig(createdProject.ID)
@@ -605,6 +646,15 @@ deployLoop:
 		}
 	}
 
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
+
 	// Verify variable interpolation worked
 	config, stderr, err := projectManager.GetConfig(createdProject.ID)
 	require.NoError(t, err, "Getting config should succeed")
@@ -688,6 +738,15 @@ deployLoop:
 			t.Fatal("Deployment timed out")
 		}
 	}
+
+	// IMMEDIATELY capture volumes after deployment (regardless of outcome)
+	volumes := getProjectNamedVolumes(t, createdProject)
+	if len(volumes) > 0 {
+		t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
+	}
+
+	// Update cleanup to use captured volumes instead of nil
+	setupProjectCleanup(t, projectManager, createdProject, volumes)
 
 	// Wait for containers to stabilize and verify all are running
 	t.Log("Waiting for all containers to be running...")
@@ -808,11 +867,89 @@ stopLoop:
 	err = projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
-	// Clean up bind mount files that may be owned by different users
-	// This prevents permission denied errors when the test framework tries to clean up temp directories
-	cleanupBindMountFiles(t, createdProject)
-
 	t.Logf("Volume mounts integration test completed successfully")
+}
+
+// setupProjectCleanup registers a cleanup function that ensures the project is properly removed
+// regardless of test outcome, including Docker resources and bind mount files
+func setupProjectCleanup(
+	t *testing.T,
+	projectManager ProjectManager,
+	createdProject *Project,
+	capturedVolumes []string,
+) {
+	t.Cleanup(func() {
+		t.Logf("Cleaning up test project: %s", createdProject.ID)
+
+		// Try to get the project from database first
+		_, err := projectManager.Get(createdProject.ID)
+		if err == nil {
+			// Project still exists in database - normal cleanup
+			t.Logf("Project %s found in database, removing normally", createdProject.ID)
+
+			if removeErr := projectManager.Remove(createdProject.ID, true); removeErr != nil {
+				t.Logf("Warning: Failed to remove existing project during cleanup: %v", removeErr)
+			}
+
+			// Always cleanup bind mount files after removal
+			cleanupBindMountFiles(t, createdProject)
+		} else {
+			// Project not in database - fallback cleanup logic
+			t.Logf("Project %s not found in database, checking for deleted directory", createdProject.ID)
+
+			deletedDirPath := GetDeletedDirectoryPath(createdProject.WorkingDir)
+
+			if _, statErr := os.Stat(deletedDirPath); statErr == nil {
+				t.Logf("Found deleted directory at %s, creating temporary project for cleanup", deletedDirPath)
+
+				// Create temporary project with SAME ID pointing to deleted directory
+				tempProject := &Project{
+					ID:           createdProject.ID, // Use original ID, not uuid.New()
+					Name:         fmt.Sprintf("cleanup-%s", createdProject.Name),
+					GitURL:       createdProject.GitURL,
+					GitBranch:    createdProject.GitBranch,
+					WorkingDir:   deletedDirPath,
+					ComposeFiles: createdProject.ComposeFiles,
+					Variables:    createdProject.Variables,
+					Status:       ProjectStatusStopped,
+				}
+
+				// Get the project repository from the project manager (cast to ProjectService)
+				if projectService, ok := projectManager.(*ProjectService); ok {
+					// Create project directly in database (skip Git operations)
+					_, createErr := projectService.projectRepository.Create(tempProject)
+					if createErr != nil {
+						t.Logf("Warning: Failed to create temporary project in database for cleanup: %v", createErr)
+						return
+					}
+
+					t.Logf("Created temporary project %s in database for cleanup, calling Remove", tempProject.ID)
+
+					if removeErr := projectManager.Remove(tempProject.ID, true); removeErr != nil {
+						t.Logf("Warning: Failed to remove temporary project during cleanup: %v", removeErr)
+					}
+				} else {
+					t.Logf("Warning: Could not cast projectManager to *ProjectService for cleanup")
+				}
+
+				cleanupBindMountFiles(t, tempProject)
+			} else {
+				t.Logf("No deleted directory found at %s, project may have been fully cleaned up already", deletedDirPath)
+			}
+		}
+
+		// Finally, explicitly clean up any captured volumes
+		if len(capturedVolumes) > 0 {
+			t.Logf("Explicitly removing %d captured volumes", len(capturedVolumes))
+			for _, volume := range capturedVolumes {
+				if err := removeDockerVolume(t, volume); err != nil {
+					t.Logf("Warning: Failed to remove volume %s: %v", volume, err)
+				} else {
+					t.Logf("Successfully removed volume: %s", volume)
+				}
+			}
+		}
+	})
 }
 
 // cleanupBindMountFiles uses a privileged container to clean up bind mount files
@@ -865,4 +1002,93 @@ func cleanupBindMountFiles(t *testing.T, project *Project) {
 	} else {
 		t.Logf("Successfully cleaned up bind mount files")
 	}
+}
+
+// getProjectNamedVolumes inspects running containers for the project and returns all named volume names
+// using Docker SDK instead of shelling out to docker-compose
+func getProjectNamedVolumes(t *testing.T, project *Project) []string {
+	dockerClient, err := NewDockerClient()
+	if err != nil {
+		t.Logf("Failed to create Docker client for volume inspection: %v", err)
+		return nil
+	}
+	defer func() {
+		if closeErr := dockerClient.Close(); closeErr != nil {
+			t.Logf("Warning: Failed to close Docker client: %v", closeErr)
+		}
+	}()
+
+	ctx := context.Background()
+
+	// Filter containers by compose project label
+	options := container.ListOptions{
+		Filters: filters.NewArgs(
+			filters.KeyValuePair{
+				Key:   "label",
+				Value: fmt.Sprintf("com.docker.compose.project=%s", project.Name),
+			},
+		),
+	}
+
+	containers, err := dockerClient.cli.ContainerList(ctx, options)
+	if err != nil {
+		t.Logf("Failed to list containers for project %s: %v", project.Name, err)
+		return nil
+	}
+
+	if len(containers) == 0 {
+		t.Logf("No containers found for project %s", project.Name)
+		return nil
+	}
+
+	var volumes []string
+	for _, container := range containers {
+		// Inspect each container to get its volume mounts
+		containerJSON, err := dockerClient.cli.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			t.Logf("Failed to inspect container %s: %v", container.ID, err)
+			continue
+		}
+
+		// Extract volume names from mounts (skip bind mounts)
+		for _, mount := range containerJSON.Mounts {
+			if mount.Type == "volume" && mount.Name != "" {
+				// Collect all named volumes (both anonymous and explicit)
+				volumes = append(volumes, mount.Name)
+			}
+		}
+	}
+
+	// Remove duplicates
+	volumeSet := make(map[string]bool)
+	var uniqueVolumes []string
+	for _, volume := range volumes {
+		if !volumeSet[volume] {
+			volumeSet[volume] = true
+			uniqueVolumes = append(uniqueVolumes, volume)
+		}
+	}
+
+	return uniqueVolumes
+}
+
+// removeDockerVolume removes a Docker volume using Docker SDK with force option
+func removeDockerVolume(t *testing.T, volumeName string) error {
+	dockerClient, err := NewDockerClient()
+	if err != nil {
+		return fmt.Errorf("failed to create Docker client: %v", err)
+	}
+	defer func() {
+		if closeErr := dockerClient.Close(); closeErr != nil {
+			t.Logf("Warning: Failed to close Docker client: %v", closeErr)
+		}
+	}()
+
+	ctx := context.Background()
+	// Use force=true to not fail on non-existent volumes
+	err = dockerClient.cli.VolumeRemove(ctx, volumeName, true)
+	if err != nil {
+		return fmt.Errorf("failed to remove volume %s: %v", volumeName, err)
+	}
+	return nil
 }
