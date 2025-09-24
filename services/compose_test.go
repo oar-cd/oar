@@ -175,7 +175,6 @@ func TestComposeProject_CommandUp(t *testing.T) {
 		"--file", tempDir + "/docker-compose.yml",
 		"up",
 		"--detach",
-		"--wait",
 		"--quiet-pull",
 		"--quiet-build",
 		"--remove-orphans",

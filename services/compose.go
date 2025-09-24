@@ -373,7 +373,7 @@ func (p *ComposeProject) executeCommandPiping(cmd *exec.Cmd) error {
 }
 
 func (p *ComposeProject) commandUp(startServices bool) *exec.Cmd {
-	args := []string{"--detach", "--wait", "--quiet-pull", "--quiet-build", "--remove-orphans"}
+	args := []string{"--detach", "--quiet-pull", "--quiet-build", "--remove-orphans"}
 	if !startServices {
 		args = append(args, "--no-start")
 	}
