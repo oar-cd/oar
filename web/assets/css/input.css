@@ -12,7 +12,6 @@ body {
     @apply max-w-7xl mx-auto px-4 py-8;
 }
 
-
 /* Button Components */
 .btn-primary {
     @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
@@ -27,19 +26,31 @@ body {
 }
 
 .btn-link {
-    @apply inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:underline transition-colors duration-200;
+    @apply inline-flex items-center px-0 py-0 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-300 focus:outline-none transition-colors duration-200;
+    /*line-height: 1;*/
+    /*padding: 0 !important;*/
+    height: 1.5rem;
 }
 
 .btn-link-primary {
-    @apply inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none focus:underline transition-colors duration-200;
+    @apply inline-flex items-center px-0 py-0 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-300 focus:outline-none transition-colors duration-200;
+    /*line-height: 1;*/
+    /*padding: 0 !important;*/
+    height: 1.5rem;
 }
 
 .btn-link-danger {
-    @apply inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 focus:outline-none focus:underline transition-colors duration-200;
+    @apply inline-flex items-center px-0 py-0 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-300 focus:outline-none transition-colors duration-200;
+    /*line-height: 1;*/
+    /*padding: 0 !important;*/
+    height: 1.5rem;
 }
 
 .btn-link-warning {
-    @apply inline-flex items-center text-sm font-medium text-orange-600 hover:text-orange-800 focus:outline-none focus:underline transition-colors duration-200;
+    @apply inline-flex items-center px-0 py-0 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-gray-100 hover:bg-gray-300 focus:outline-none transition-colors duration-200;
+    /*line-height: 1;*/
+    /*padding: 0 !important;*/
+    height: 1.5rem;
 }
 
 /* Form Components */
@@ -111,7 +122,7 @@ body {
 }
 
 .project-actions {
-    @apply flex flex-wrap gap-1 pt-4 border-t border-gray-200 justify-center mt-auto;
+    @apply flex flex-wrap gap-3 pt-4 border-t border-gray-200 justify-center mt-auto;
 }
 
 /* Base styles for action buttons */
@@ -121,7 +132,7 @@ body {
 }
 
 .action-button {
-    @apply px-2 py-1;
+    @apply px-1 py-1;
 }
 
 .action-button:focus,
@@ -135,19 +146,19 @@ body {
 
 /* Action button hover backgrounds */
 .btn-link-primary:hover {
-    @apply bg-blue-50;
+    @apply bg-gray-200;
 }
 
 .btn-link-danger:hover {
-    @apply bg-red-50;
+    @apply bg-gray-200;
 }
 
 .btn-link-warning:hover {
-    @apply bg-orange-50;
+    @apply bg-gray-200;
 }
 
 .btn-link:hover {
-    @apply bg-gray-50;
+    @apply bg-gray-200;
 }
 
 .btn-link-success:hover {
@@ -397,8 +408,6 @@ body {
     @apply animate-spin;
 }
 
-
-
 /* Git Authentication Fields */
 .auth-fields {
     @apply mt-4 space-y-4;
@@ -423,7 +432,8 @@ body {
 }
 
 @keyframes loading-dots {
-    0%, 20% {
+    0%,
+    20% {
         content: '';
     }
     40% {
@@ -432,7 +442,8 @@ body {
     60% {
         content: '..';
     }
-    80%, 100% {
+    80%,
+    100% {
         content: '...';
     }
 }
@@ -461,7 +472,6 @@ body {
 .monospace {
     @apply font-mono;
 }
-
 
 /* Result Indicators */
 .result-indicator {
