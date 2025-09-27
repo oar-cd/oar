@@ -14,10 +14,8 @@
     --color-red-600: oklch(57.7% 0.245 27.325);
     --color-red-700: oklch(50.5% 0.213 27.518);
     --color-red-800: oklch(44.4% 0.177 26.899);
-    --color-orange-50: oklch(98% 0.016 73.684);
     --color-orange-100: oklch(95.4% 0.038 75.164);
     --color-orange-300: oklch(83.7% 0.128 66.29);
-    --color-orange-600: oklch(64.6% 0.222 41.116);
     --color-orange-800: oklch(47% 0.157 37.304);
     --color-yellow-50: oklch(98.7% 0.026 102.212);
     --color-yellow-100: oklch(97.3% 0.071 103.193);
@@ -948,11 +946,18 @@ body {
 .btn-link {
   display: inline-flex;
   align-items: center;
+  border-radius: var(--radius-md);
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: var(--color-gray-300);
+  background-color: var(--color-gray-100);
+  padding-inline: calc(var(--spacing) * 0);
+  padding-block: calc(var(--spacing) * 0);
   font-size: var(--text-sm);
   line-height: var(--tw-leading, var(--text-sm--line-height));
   --tw-font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
-  color: var(--color-gray-600);
+  color: var(--color-gray-700);
   transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
   transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
   transition-duration: var(--tw-duration, var(--default-transition-duration));
@@ -960,25 +965,30 @@ body {
   transition-duration: 200ms;
   &:hover {
     @media (hover: hover) {
-      color: var(--color-gray-900);
+      background-color: var(--color-gray-300);
     }
-  }
-  &:focus {
-    text-decoration-line: underline;
   }
   &:focus {
     --tw-outline-style: none;
     outline-style: none;
   }
+  height: 1.5rem;
 }
 .btn-link-primary {
   display: inline-flex;
   align-items: center;
+  border-radius: var(--radius-md);
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: var(--color-gray-300);
+  background-color: var(--color-gray-100);
+  padding-inline: calc(var(--spacing) * 0);
+  padding-block: calc(var(--spacing) * 0);
   font-size: var(--text-sm);
   line-height: var(--tw-leading, var(--text-sm--line-height));
   --tw-font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
-  color: var(--color-blue-600);
+  color: var(--color-gray-700);
   transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
   transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
   transition-duration: var(--tw-duration, var(--default-transition-duration));
@@ -986,25 +996,30 @@ body {
   transition-duration: 200ms;
   &:hover {
     @media (hover: hover) {
-      color: var(--color-blue-800);
+      background-color: var(--color-gray-300);
     }
-  }
-  &:focus {
-    text-decoration-line: underline;
   }
   &:focus {
     --tw-outline-style: none;
     outline-style: none;
   }
+  height: 1.5rem;
 }
 .btn-link-danger {
   display: inline-flex;
   align-items: center;
+  border-radius: var(--radius-md);
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: var(--color-gray-300);
+  background-color: var(--color-gray-100);
+  padding-inline: calc(var(--spacing) * 0);
+  padding-block: calc(var(--spacing) * 0);
   font-size: var(--text-sm);
   line-height: var(--tw-leading, var(--text-sm--line-height));
   --tw-font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
-  color: var(--color-red-600);
+  color: var(--color-gray-700);
   transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
   transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
   transition-duration: var(--tw-duration, var(--default-transition-duration));
@@ -1012,25 +1027,30 @@ body {
   transition-duration: 200ms;
   &:hover {
     @media (hover: hover) {
-      color: var(--color-red-800);
+      background-color: var(--color-gray-300);
     }
-  }
-  &:focus {
-    text-decoration-line: underline;
   }
   &:focus {
     --tw-outline-style: none;
     outline-style: none;
   }
+  height: 1.5rem;
 }
 .btn-link-warning {
   display: inline-flex;
   align-items: center;
+  border-radius: var(--radius-md);
+  border-style: var(--tw-border-style);
+  border-width: 1px;
+  border-color: var(--color-gray-300);
+  background-color: var(--color-gray-100);
+  padding-inline: calc(var(--spacing) * 0);
+  padding-block: calc(var(--spacing) * 0);
   font-size: var(--text-sm);
   line-height: var(--tw-leading, var(--text-sm--line-height));
   --tw-font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
-  color: var(--color-orange-600);
+  color: var(--color-gray-700);
   transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
   transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
   transition-duration: var(--tw-duration, var(--default-transition-duration));
@@ -1038,16 +1058,14 @@ body {
   transition-duration: 200ms;
   &:hover {
     @media (hover: hover) {
-      color: var(--color-orange-800);
+      background-color: var(--color-gray-300);
     }
-  }
-  &:focus {
-    text-decoration-line: underline;
   }
   &:focus {
     --tw-outline-style: none;
     outline-style: none;
   }
+  height: 1.5rem;
 }
 .form-input {
   display: block;
@@ -1224,7 +1242,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: calc(var(--spacing) * 1);
+  gap: calc(var(--spacing) * 3);
   border-top-style: var(--tw-border-style);
   border-top-width: 1px;
   border-color: var(--color-gray-200);
@@ -1246,23 +1264,23 @@ body {
   transition-duration: 200ms;
 }
 .action-button {
-  padding-inline: calc(var(--spacing) * 2);
+  padding-inline: calc(var(--spacing) * 1);
   padding-block: calc(var(--spacing) * 1);
 }
 .action-button:focus, .action-button:active, .action-button:hover, .action-button-inline:focus, .action-button-inline:active, .action-button-inline:hover {
   text-decoration-line: none;
 }
 .btn-link-primary:hover {
-  background-color: var(--color-blue-50);
+  background-color: var(--color-gray-200);
 }
 .btn-link-danger:hover {
-  background-color: var(--color-red-50);
+  background-color: var(--color-gray-200);
 }
 .btn-link-warning:hover {
-  background-color: var(--color-orange-50);
+  background-color: var(--color-gray-200);
 }
 .btn-link:hover {
-  background-color: var(--color-gray-50);
+  background-color: var(--color-gray-200);
 }
 .btn-link-success:hover {
   background-color: var(--color-green-50);
