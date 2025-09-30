@@ -58,7 +58,7 @@ jobs:
           docker compose version
 
       - name: Run tests
-        run: make test_ci
+        run: make test-ci
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -89,7 +89,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build app
-        run: make build_release
+        run: make build-release
         env:
           OAR_VERSION: ${{ steps.version.outputs.version }}
 

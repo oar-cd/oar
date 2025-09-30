@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/docker"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +59,7 @@ func runProjectConfig(cmd *cobra.Command, args []string) error {
 		lines := strings.Split(stderr, "\n")
 		for _, line := range lines {
 			if strings.TrimSpace(line) != "" {
-				parsedLine := services.ParseComposeLogLine(line)
+				parsedLine := docker.ParseComposeLogLine(line)
 				fmt.Fprintf(os.Stderr, "%s\n", parsedLine)
 			}
 		}

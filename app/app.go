@@ -4,9 +4,12 @@ package app
 import (
 	"os"
 
+	"github.com/oar-cd/oar/config"
 	"github.com/oar-cd/oar/db"
-	"github.com/oar-cd/oar/models"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/encryption"
+	"github.com/oar-cd/oar/git"
+	"github.com/oar-cd/oar/project"
+	"github.com/oar-cd/oar/repository"
 	"gorm.io/gorm"
 )
 
@@ -15,66 +18,66 @@ var (
 	Version = "dev"
 
 	database       *gorm.DB
-	projectService services.ProjectManager
-	gitService     services.GitExecutor
-	config         *services.Config
+	projectService project.ProjectManager
+	gitService     *git.GitService
+	appConfig      *config.Config
 )
 
 // InitializeWithConfig initializes the app with a pre-configured Config
-func InitializeWithConfig(cfg *services.Config) error {
+func InitializeWithConfig(cfg *config.Config) error {
 	var err error
 
 	// Store the provided config
-	config = cfg
+	appConfig = cfg
 
 	// Ensure required directories exist
-	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+	if err := os.MkdirAll(appConfig.DataDir, 0755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(config.TmpDir, 0755); err != nil {
+	if err := os.MkdirAll(appConfig.TmpDir, 0755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(config.WorkspaceDir, 0755); err != nil {
+	if err := os.MkdirAll(appConfig.WorkspaceDir, 0755); err != nil {
 		return err
 	}
 
 	// Initialize database using config
-	database, err = db.InitDB(config.DataDir)
+	database, err = db.InitDB(appConfig.DataDir)
 	if err != nil {
 		return err
 	}
 
 	// Run database migrations
-	if err := models.AutoMigrateAll(database); err != nil {
+	if err := db.AutoMigrateAll(database); err != nil {
 		return err
 	}
 
-	gitService = services.NewGitService(config)
+	gitService = git.NewGitService(appConfig)
 
 	// Initialize encryption service
-	encryption, err := services.NewEncryptionService(config.EncryptionKey)
+	encryptionSvc, err := encryption.NewEncryptionService(appConfig.EncryptionKey)
 	if err != nil {
 		return err
 	}
 
 	// Initialize repositories
-	projectRepo := services.NewProjectRepository(database, encryption)
-	deploymentRepo := services.NewDeploymentRepository(database)
+	projectRepo := repository.NewProjectRepository(database, encryptionSvc)
+	deploymentRepo := repository.NewDeploymentRepository(database)
 
 	// Initialize services with dependency injection
-	projectService = services.NewProjectService(projectRepo, deploymentRepo, gitService, config)
+	projectService = project.NewProjectService(projectRepo, deploymentRepo, gitService, appConfig)
 	return nil
 }
 
-func GetProjectService() services.ProjectManager {
+func GetProjectService() project.ProjectManager {
 	return projectService
 }
 
-func GetGitService() services.GitExecutor {
+func GetGitService() *git.GitService {
 	return gitService
 }
 
 // SetProjectServiceForTesting allows overriding the project service for testing purposes
-func SetProjectServiceForTesting(service services.ProjectManager) {
+func SetProjectServiceForTesting(service project.ProjectManager) {
 	projectService = service
 }

@@ -13,8 +13,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
-	"github.com/oar-cd/oar/services"
-	"github.com/oar-cd/oar/web/components/project"
+	"github.com/oar-cd/oar/docker"
+	"github.com/oar-cd/oar/domain"
+	projectcomponent "github.com/oar-cd/oar/web/components/project"
 )
 
 // GetVersion returns the server version for use in templates
@@ -40,7 +41,7 @@ func ParseProjectID(r *http.Request) (uuid.UUID, error) {
 }
 
 // BuildGitAuthConfig creates GitAuthConfig from form values
-func BuildGitAuthConfig(r *http.Request) *services.GitAuthConfig {
+func BuildGitAuthConfig(r *http.Request) *domain.GitAuthConfig {
 	authMethod := r.FormValue("auth_method")
 
 	switch authMethod {
@@ -48,8 +49,8 @@ func BuildGitAuthConfig(r *http.Request) *services.GitAuthConfig {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 		if username != "" || password != "" {
-			return &services.GitAuthConfig{
-				HTTPAuth: &services.GitHTTPAuthConfig{
+			return &domain.GitAuthConfig{
+				HTTPAuth: &domain.GitHTTPAuthConfig{
 					Username: username,
 					Password: password,
 				},
@@ -59,8 +60,8 @@ func BuildGitAuthConfig(r *http.Request) *services.GitAuthConfig {
 		sshUsername := r.FormValue("ssh_username")
 		privateKey := r.FormValue("private_key")
 		if privateKey != "" {
-			return &services.GitAuthConfig{
-				SSHAuth: &services.GitSSHAuthConfig{
+			return &domain.GitAuthConfig{
+				SSHAuth: &domain.GitSSHAuthConfig{
 					PrivateKey: privateKey,
 					User:       sshUsername,
 				},
@@ -72,8 +73,8 @@ func BuildGitAuthConfig(r *http.Request) *services.GitAuthConfig {
 }
 
 // ConvertProjectToView converts a backend Project to frontend ProjectView
-func ConvertProjectToView(p *services.Project) project.ProjectView {
-	return project.ProjectView{
+func ConvertProjectToView(p *domain.Project) projectcomponent.ProjectView {
+	return projectcomponent.ProjectView{
 		ID:             p.ID,
 		Name:           p.Name,
 		GitURL:         p.GitURL,
@@ -90,8 +91,8 @@ func ConvertProjectToView(p *services.Project) project.ProjectView {
 }
 
 // ConvertProjectsToViews converts backend projects to frontend ProjectView
-func ConvertProjectsToViews(projects []*services.Project) []project.ProjectView {
-	views := make([]project.ProjectView, len(projects))
+func ConvertProjectsToViews(projects []*domain.Project) []projectcomponent.ProjectView {
+	views := make([]projectcomponent.ProjectView, len(projects))
 	for i, p := range projects {
 		views[i] = ConvertProjectToView(p)
 	}
@@ -99,22 +100,22 @@ func ConvertProjectsToViews(projects []*services.Project) []project.ProjectView 
 }
 
 // ConvertGitAuthConfig converts backend GitAuthConfig to frontend GitAuthConfig
-func ConvertGitAuthConfig(auth *services.GitAuthConfig) *project.GitAuthConfig {
+func ConvertGitAuthConfig(auth *domain.GitAuthConfig) *projectcomponent.GitAuthConfig {
 	if auth == nil {
 		return nil
 	}
 
-	result := &project.GitAuthConfig{}
+	result := &projectcomponent.GitAuthConfig{}
 
 	if auth.HTTPAuth != nil {
-		result.HTTPAuth = &project.GitHTTPAuthConfig{
+		result.HTTPAuth = &projectcomponent.GitHTTPAuthConfig{
 			Username: auth.HTTPAuth.Username,
 			Password: auth.HTTPAuth.Password,
 		}
 	}
 
 	if auth.SSHAuth != nil {
-		result.SSHAuth = &project.GitSSHAuthConfig{
+		result.SSHAuth = &projectcomponent.GitSSHAuthConfig{
 			PrivateKey: auth.SSHAuth.PrivateKey,
 			User:       auth.SSHAuth.User,
 		}
@@ -137,7 +138,7 @@ func renderProjectGrid(w http.ResponseWriter, r *http.Request, trigger string) e
 	}
 
 	projectViews := ConvertProjectsToViews(projects)
-	component := project.ProjectGrid(projectViews, len(projectViews) > 0)
+	component := projectcomponent.ProjectGrid(projectViews, len(projectViews) > 0)
 
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("HX-Trigger-After-Settle", trigger)
@@ -167,7 +168,7 @@ func SetupSSE(w http.ResponseWriter) {
 }
 
 // StreamOutput handles the streaming of output to SSE clients
-func StreamOutput(w http.ResponseWriter, outputChan <-chan services.StreamMessage, streamType string) error {
+func StreamOutput(w http.ResponseWriter, outputChan <-chan docker.StreamMessage, streamType string) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
@@ -270,11 +271,11 @@ func HandleHTMLContent(htmlFunc func(uuid.UUID) (string, error)) http.HandlerFun
 }
 
 // HandleStream creates a generic handler for streaming endpoints
-func HandleStream(streamFunc func(uuid.UUID, chan<- services.StreamMessage) error, streamType string) http.HandlerFunc {
+func HandleStream(streamFunc func(uuid.UUID, chan<- docker.StreamMessage) error, streamType string) http.HandlerFunc {
 	return withProjectID(func(w http.ResponseWriter, r *http.Request, projectID uuid.UUID) {
 		SetupSSE(w)
 
-		outputChan := make(chan services.StreamMessage, 100)
+		outputChan := make(chan docker.StreamMessage, 100)
 
 		// Start streaming in a goroutine
 		go func() {
@@ -282,7 +283,7 @@ func HandleStream(streamFunc func(uuid.UUID, chan<- services.StreamMessage) erro
 			if err := streamFunc(projectID, outputChan); err != nil {
 				LogOperationError(fmt.Sprintf("%s_stream", streamType), "handlers", err, "project_id", projectID)
 				// Send error as StreamMessage
-				errorMsg := services.StreamMessage{
+				errorMsg := docker.StreamMessage{
 					Type: "error",
 					Content: fmt.Sprintf(
 						"%s failed: %s",

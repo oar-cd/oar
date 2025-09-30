@@ -8,7 +8,7 @@ import (
 
 	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -107,7 +107,7 @@ func runProjectAdd(cmd *cobra.Command) error {
 	}
 
 	// Create project struct from CLI input
-	project := services.NewProject(name, gitURL, composeFiles, variables)
+	project := domain.NewProject(name, gitURL, composeFiles, variables)
 	project.GitBranch = branch
 	project.GitAuth = gitAuth
 
@@ -131,7 +131,7 @@ func runProjectAdd(cmd *cobra.Command) error {
 }
 
 // buildGitAuthFromFlags constructs GitAuthConfig from command flags
-func buildGitAuthFromFlags(cmd *cobra.Command) (*services.GitAuthConfig, error) {
+func buildGitAuthFromFlags(cmd *cobra.Command) (*domain.GitAuthConfig, error) {
 	authMethod, _ := cmd.Flags().GetString("git-auth")
 
 	// No authentication specified
@@ -148,8 +148,8 @@ func buildGitAuthFromFlags(cmd *cobra.Command) (*services.GitAuthConfig, error) 
 			return nil, fmt.Errorf("HTTP authentication requires --git-username and --git-password")
 		}
 
-		return &services.GitAuthConfig{
-			HTTPAuth: &services.GitHTTPAuthConfig{
+		return &domain.GitAuthConfig{
+			HTTPAuth: &domain.GitHTTPAuthConfig{
 				Username: username,
 				Password: password,
 			},
@@ -176,8 +176,8 @@ func buildGitAuthFromFlags(cmd *cobra.Command) (*services.GitAuthConfig, error) 
 			sshUser = "git"
 		}
 
-		return &services.GitAuthConfig{
-			SSHAuth: &services.GitSSHAuthConfig{
+		return &domain.GitAuthConfig{
+			SSHAuth: &domain.GitSSHAuthConfig{
 				PrivateKey: privateKey,
 				User:       sshUser,
 			},

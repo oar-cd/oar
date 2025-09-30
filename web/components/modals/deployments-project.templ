@@ -2,13 +2,13 @@ package modals
 
 import (
 	"fmt"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 	"github.com/oar-cd/oar/web/components/project"
 	"github.com/oar-cd/oar/web/components/icons"
 )
 
 // DeploymentsProjectModal renders the project deployments modal
-templ DeploymentsProjectModal(proj project.ProjectView, deployments []*services.Deployment) {
+templ DeploymentsProjectModal(proj project.ProjectView, deployments []*domain.Deployment) {
 	<div class="modal" id="modal-container">
 		<div class="modal-backdrop"></div>
 		<div class="modal-container">
@@ -32,7 +32,7 @@ templ DeploymentsProjectModal(proj project.ProjectView, deployments []*services.
 }
 
 // deploymentsProjectBody renders the modal body content
-templ deploymentsProjectBody(proj project.ProjectView, deployments []*services.Deployment) {
+templ deploymentsProjectBody(proj project.ProjectView, deployments []*domain.Deployment) {
 	<div class="deployments-container">
 		if len(deployments) == 0 {
 			<div class="text-center text-gray-500 py-8">
