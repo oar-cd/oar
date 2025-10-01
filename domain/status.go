@@ -6,10 +6,10 @@ import "fmt"
 type ProjectStatus int
 
 const (
-	ProjectStatusRunning ProjectStatus = iota
+	ProjectStatusUnknown ProjectStatus = iota
+	ProjectStatusRunning
 	ProjectStatusStopped
 	ProjectStatusError
-	ProjectStatusUnknown
 )
 
 func (s ProjectStatus) String() string {
@@ -46,10 +46,10 @@ func ParseProjectStatus(s string) (ProjectStatus, error) {
 type DeploymentStatus int
 
 const (
-	DeploymentStatusStarted DeploymentStatus = iota
+	DeploymentStatusUnknown DeploymentStatus = iota
+	DeploymentStatusStarted
 	DeploymentStatusCompleted
 	DeploymentStatusFailed
-	DeploymentStatusUnknown
 )
 
 func (s DeploymentStatus) String() string {
