@@ -109,14 +109,7 @@ func TestCompleteLifecycle(t *testing.T) {
 	assert.Len(t, status.Containers, 2, "Should have exactly 2 containers (web, redis)")
 
 	// Verify expected services are present
-	serviceNames := make([]string, len(status.Containers))
-	for i, container := range status.Containers {
-		serviceNames[i] = container.Service
-		assert.Equal(t, "running", container.State, "Container %s should be in running state", container.Service)
-		assert.Contains(t, container.Name, testProjectName, "Container name should contain project name")
-		assert.NotEmpty(t, container.Status, "Container should have status description")
-		assert.NotEmpty(t, container.RunningFor, "Container should have running duration")
-	}
+	serviceNames := verifyContainersRunning(t, status.Containers, testProjectName)
 	assert.Contains(t, serviceNames, "web", "Should have web service")
 	assert.Contains(t, serviceNames, "redis", "Should have redis service")
 
@@ -178,37 +171,10 @@ func TestCompleteLifecycle(t *testing.T) {
 	}()
 
 	// Collect some log output
-	var logMessages []string
-	logsTimeout := time.After(10 * time.Second) // Shorter timeout for logs
-
-logsLoop:
-	for {
-		select {
-		case msg, ok := <-logsChan:
-			if !ok {
-				break logsLoop
-			}
-			logMessages = append(logMessages, msg.Content)
-			t.Logf("Log output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
-
-			// Stop after getting some logs to avoid infinite collection
-			if len(logMessages) >= 5 {
-				// No need to cancel since we're using static logs
-				break logsLoop
-			}
-		case err := <-logsDone:
-			// Log streaming might return error when cancelled, which is expected
-			if err != nil {
-				t.Logf("Log streaming ended: %v", err)
-			}
-			break logsLoop
-		case <-logsTimeout:
-			// No timeout needed since we're using static logs
-			t.Log("Log collection timeout reached")
-			break logsLoop
-		}
+	logMessages, err := collectLogMessages(t, logsChan, logsDone, 10*time.Second, 5)
+	if err != nil {
+		t.Logf("Log streaming ended: %v", err)
 	}
-
 	t.Logf("Collected %d log messages", len(logMessages))
 
 	// Step 5: Stop the project for the first time
@@ -223,23 +189,8 @@ logsLoop:
 	}()
 
 	// Wait for first stop to complete
-	firstStopTimeout := time.After(30 * time.Second)
-
-firstStopLoop:
-	for {
-		select {
-		case msg, ok := <-firstStopChan:
-			if !ok {
-				break firstStopLoop
-			}
-			t.Logf("First stop output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
-		case err := <-firstStopDone:
-			require.NoError(t, err, "First stop should succeed")
-			break firstStopLoop
-		case <-firstStopTimeout:
-			t.Fatal("First stop operation timed out")
-		}
-	}
+	_, err = consumeStreamingMessages(t, firstStopChan, firstStopDone, 30*time.Second, "First stop output")
+	require.NoError(t, err, "First stop should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusStopped, 30*time.Second)
 	require.NoError(t, err, "Project should reach stopped status after first stop")
@@ -316,25 +267,8 @@ firstStopLoop:
 	}()
 
 	// Collect stop output
-	var stopMessages []string
-	stopTimeout := time.After(30 * time.Second)
-
-stopLoop:
-	for {
-		select {
-		case msg, ok := <-stopChan:
-			if !ok {
-				break stopLoop
-			}
-			stopMessages = append(stopMessages, msg.Content)
-			t.Logf("Stop output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
-		case err := <-stopDone:
-			require.NoError(t, err, "Stopping should succeed")
-			break stopLoop
-		case <-stopTimeout:
-			t.Fatal("Stop operation timed out")
-		}
-	}
+	stopMessages, err := consumeStreamingMessages(t, stopChan, stopDone, 30*time.Second, "Stop output")
+	require.NoError(t, err, "Stopping should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusStopped, 30*time.Second)
 	require.NoError(t, err, "Project should reach stopped status after first stop")
@@ -359,15 +293,7 @@ stopLoop:
 	assert.Empty(t, stoppedStatus.Uptime, "Should have no uptime when stopped")
 
 	// All containers should be stopped or removed
-	for _, container := range stoppedStatus.Containers {
-		assert.NotEqual(
-			t,
-			"running",
-			container.State,
-			"Container %s should not be running after stop",
-			container.Service,
-		)
-	}
+	verifyContainersNotRunning(t, stoppedStatus.Containers)
 
 	t.Logf("Project status verified after stop: %s", stoppedStatus.Status)
 
@@ -390,12 +316,7 @@ stopLoop:
 	t.Logf("Project removal verified")
 
 	// Verify project is not in list
-	allProjects, err := ctx.projectManager.List()
-	require.NoError(t, err, "Listing projects should succeed")
-
-	for _, p := range allProjects {
-		assert.NotEqual(t, createdProject.ID, p.ID, "Removed project should not be in list")
-	}
+	verifyProjectNotInList(t, ctx.projectManager, createdProject.ID)
 
 	t.Logf("Complete project lifecycle test passed")
 }
@@ -450,14 +371,8 @@ func TestMergeStrategy(t *testing.T) {
 	assert.Len(t, status.Containers, 3, "Should have exactly 3 containers (web, redis, db)")
 
 	// Verify expected services are present
-	serviceNames := make([]string, len(status.Containers))
-	for i, container := range status.Containers {
-		serviceNames[i] = container.Service
-		assert.Equal(t, "running", container.State, "Container %s should be running", container.Service)
-	}
-	assert.Contains(t, serviceNames, "web", "Should have web service")
-	assert.Contains(t, serviceNames, "redis", "Should have redis service")
-	assert.Contains(t, serviceNames, "db", "Should have db service")
+	serviceNames := verifyContainersRunning(t, status.Containers, testProjectName)
+	verifyExpectedServices(t, serviceNames, []string{"web", "redis", "db"})
 
 	t.Logf("Merge strategy status verified: %v", serviceNames)
 
@@ -706,55 +621,18 @@ func TestVolumeMounts(t *testing.T) {
 	// Wait for containers to stabilize and verify all are running
 	t.Log("Waiting for all containers to be running...")
 
-	var status *docker.ComposeStatus
-	maxWaitTime := 30 * time.Second
-	checkInterval := 500 * time.Millisecond
-	waitTimeout := time.After(maxWaitTime)
-	ticker := time.NewTicker(checkInterval)
-	defer ticker.Stop()
-
 	expectedServiceCount := 21
-
-	for {
-		select {
-		case <-waitTimeout:
-			t.Fatal("Timed out waiting for all containers to be running")
-		case <-ticker.C:
-			status, err = ctx.projectManager.GetStatus(createdProject.ID)
-			require.NoError(t, err, "Getting status should succeed")
-			require.NotNil(t, status, "Status should not be nil")
-
-			if status.Status == docker.ComposeProjectStatusRunning {
-				// Check if all containers are running
-				allRunning := true
-				runningCount := 0
-				for _, container := range status.Containers {
-					if container.State == "running" {
-						runningCount++
-					} else {
-						allRunning = false
-					}
-				}
-
-				if allRunning && len(status.Containers) == expectedServiceCount {
-					t.Logf("All %d containers are running", runningCount)
-					goto containersReady
-				} else {
-					t.Logf("Waiting... %d/%d containers running", runningCount, len(status.Containers))
-				}
-			} else {
-				t.Logf("Project status: %s", status.Status)
-			}
-		}
-	}
-
-containersReady:
+	status, err := waitForAllContainersRunning(
+		t,
+		ctx.projectManager,
+		createdProject.ID,
+		expectedServiceCount,
+		30*time.Second,
+	)
+	require.NoError(t, err)
 
 	// Verify expected test services are present
-	serviceNames := make([]string, len(status.Containers))
-	for i, container := range status.Containers {
-		serviceNames[i] = container.Service
-	}
+	serviceNames := collectServiceNames(status.Containers)
 
 	expectedServices := []string{
 		"no-user-with-volumes",
@@ -781,9 +659,7 @@ containersReady:
 		"complex-paths",
 	}
 
-	for _, expectedService := range expectedServices {
-		assert.Contains(t, serviceNames, expectedService, "Should have service: %s", expectedService)
-	}
+	verifyExpectedServices(t, serviceNames, expectedServices)
 
 	t.Logf("All expected volume mount test services verified: %d services", len(expectedServices))
 
@@ -799,23 +675,8 @@ containersReady:
 	}()
 
 	// Wait for stop to complete and show output
-	stopTimeout := time.After(60 * time.Second)
-
-stopLoop:
-	for {
-		select {
-		case msg, ok := <-stopChan:
-			if !ok {
-				break stopLoop
-			}
-			t.Logf("Stop: %s", strings.TrimSpace(msg.Content))
-		case err := <-stopDone:
-			require.NoError(t, err, "Stopping should succeed")
-			break stopLoop
-		case <-stopTimeout:
-			t.Fatal("Stop operation timed out")
-		}
-	}
+	_, err = consumeStreamingMessages(t, stopChan, stopDone, 60*time.Second, "Stop")
+	require.NoError(t, err, "Stopping should succeed")
 
 	// Remove the project (this should clean up everything)
 	err = ctx.projectManager.Remove(createdProject.ID, true)

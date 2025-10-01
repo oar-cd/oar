@@ -224,3 +224,176 @@ func normalizeComposeConfig(config string, workingDir string) string {
 
 	return normalized
 }
+
+// collectServiceNames extracts service names from container statuses
+func collectServiceNames(containers []docker.ContainerInfo) []string {
+	serviceNames := make([]string, len(containers))
+	for i, container := range containers {
+		serviceNames[i] = container.Service
+	}
+	return serviceNames
+}
+
+// verifyContainersRunning verifies that all containers are in running state with all expected fields
+func verifyContainersRunning(t *testing.T, containers []docker.ContainerInfo, projectName string) []string {
+	serviceNames := make([]string, len(containers))
+	for i, container := range containers {
+		serviceNames[i] = container.Service
+		require.Equal(t, "running", container.State, "Container %s should be in running state", container.Service)
+		require.Contains(t, container.Name, projectName, "Container name should contain project name")
+		require.NotEmpty(t, container.Status, "Container should have status description")
+		require.NotEmpty(t, container.RunningFor, "Container should have running duration")
+		require.Equal(t, 0, container.ExitCode, "Container %s should have exit code 0 when running", container.Service)
+	}
+	return serviceNames
+}
+
+// verifyContainersNotRunning verifies that all containers are not in running state
+func verifyContainersNotRunning(t *testing.T, containers []docker.ContainerInfo) {
+	for _, container := range containers {
+		require.NotEqual(
+			t,
+			"running",
+			container.State,
+			"Container %s should not be running after stop",
+			container.Service,
+		)
+	}
+}
+
+// verifyExpectedServices verifies that all expected services are present in the service names list
+func verifyExpectedServices(t *testing.T, serviceNames []string, expectedServices []string) {
+	for _, expectedService := range expectedServices {
+		require.Contains(t, serviceNames, expectedService, "Should have service: %s", expectedService)
+	}
+}
+
+// verifyProjectNotInList verifies that the project is not in the list of all projects
+func verifyProjectNotInList(t *testing.T, projectManager project.ProjectManager, projectID uuid.UUID) {
+	allProjects, err := projectManager.List()
+	require.NoError(t, err, "Listing projects should succeed")
+
+	for _, p := range allProjects {
+		require.NotEqual(t, projectID, p.ID, "Removed project should not be in list")
+	}
+}
+
+// consumeStreamingMessages consumes messages from a streaming channel with timeout and logs them
+// Returns collected messages and any error from the done channel
+func consumeStreamingMessages(
+	t *testing.T,
+	msgChan <-chan docker.StreamMessage,
+	doneChan <-chan error,
+	timeout time.Duration,
+	logPrefix string,
+) ([]string, error) {
+	var messages []string
+	timeoutChan := time.After(timeout)
+
+	for {
+		select {
+		case msg, ok := <-msgChan:
+			if !ok {
+				// Channel closed, return any error from done channel
+				return messages, <-doneChan
+			}
+			messages = append(messages, msg.Content)
+			t.Logf("%s [%s]: %s", logPrefix, msg.Type, strings.TrimSpace(msg.Content))
+		case err := <-doneChan:
+			// Operation completed, consume any remaining messages
+			for msg := range msgChan {
+				messages = append(messages, msg.Content)
+				t.Logf("%s [%s]: %s", logPrefix, msg.Type, strings.TrimSpace(msg.Content))
+			}
+			return messages, err
+		case <-timeoutChan:
+			return messages, fmt.Errorf("%s operation timed out", logPrefix)
+		}
+	}
+}
+
+// collectLogMessages collects log messages from a streaming channel up to a limit
+// Returns collected messages and any error
+func collectLogMessages(
+	t *testing.T,
+	logsChan <-chan docker.StreamMessage,
+	logsDone <-chan error,
+	timeout time.Duration,
+	maxMessages int,
+) ([]string, error) {
+	var logMessages []string
+	logsTimeout := time.After(timeout)
+
+	for {
+		select {
+		case msg, ok := <-logsChan:
+			if !ok {
+				return logMessages, nil
+			}
+			logMessages = append(logMessages, msg.Content)
+			t.Logf("Log output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
+
+			if len(logMessages) >= maxMessages {
+				return logMessages, nil
+			}
+		case err := <-logsDone:
+			if err != nil {
+				t.Logf("Log streaming ended: %v", err)
+			}
+			return logMessages, err
+		case <-logsTimeout:
+			t.Log("Log collection timeout reached")
+			return logMessages, nil
+		}
+	}
+}
+
+// waitForAllContainersRunning waits for all containers to be running with a ticker
+// Returns the final status when all containers are running
+func waitForAllContainersRunning(
+	t *testing.T,
+	projectManager project.ProjectManager,
+	projectID uuid.UUID,
+	expectedCount int,
+	maxWaitTime time.Duration,
+) (*docker.ComposeStatus, error) {
+	checkInterval := 500 * time.Millisecond
+	waitTimeout := time.After(maxWaitTime)
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-waitTimeout:
+			return nil, fmt.Errorf("timed out waiting for all containers to be running")
+		case <-ticker.C:
+			status, err := projectManager.GetStatus(projectID)
+			if err != nil {
+				return nil, fmt.Errorf("getting status should succeed: %w", err)
+			}
+			if status == nil {
+				return nil, fmt.Errorf("status should not be nil")
+			}
+
+			if status.Status == docker.ComposeProjectStatusRunning {
+				allRunning := true
+				runningCount := 0
+				for _, container := range status.Containers {
+					if container.State == "running" {
+						runningCount++
+					} else {
+						allRunning = false
+					}
+				}
+
+				if allRunning && len(status.Containers) == expectedCount {
+					t.Logf("All %d containers are running", runningCount)
+					return status, nil
+				}
+				t.Logf("Waiting... %d/%d containers running", runningCount, len(status.Containers))
+			} else {
+				t.Logf("Project status: %s", status.Status)
+			}
+		}
+	}
+}
