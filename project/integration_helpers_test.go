@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -205,4 +206,21 @@ func (ctx *testContext) setupCleanup(proj *domain.Project) {
 		ctx.t.Logf("Captured %d named volumes after deployment: %v", len(volumes), volumes)
 	}
 	setupProjectCleanup(ctx.t, ctx.projectManager, ctx.projectRepo, proj, volumes)
+}
+
+// normalizeComposeConfig normalizes a Docker Compose config YAML by replacing the project's
+// WorkingDir with a placeholder. This allows comparing configs between test runs that use
+// different temporary directories.
+//
+// The WorkingDir appears in:
+// - Bind volume mount sources (e.g., /path/to/workdir/git/data:/app/data)
+// - Build contexts (e.g., context: /path/to/workdir/git)
+func normalizeComposeConfig(config string, workingDir string) string {
+	// The actual git directory path that appears in the config
+	gitDir := filepath.Join(workingDir, "git")
+
+	// Replace all occurrences of the git directory with a placeholder
+	normalized := strings.ReplaceAll(config, gitDir, "WORKING_DIR")
+
+	return normalized
 }

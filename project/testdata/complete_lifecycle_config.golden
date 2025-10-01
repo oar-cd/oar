@@ -1,0 +1,55 @@
+name: test-project-lifecycle
+services:
+  redis:
+    command:
+      - httpd
+      - -f
+      - -p
+      - "8081"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:8081
+      timeout: 1s
+      interval: 1s
+      retries: 10
+    image: busybox:uclibc
+    init: true
+    networks:
+      default: null
+  task:
+    command:
+      - sh
+      - -c
+      - echo 'Task completed successfully'
+    image: busybox:uclibc
+    networks:
+      default: null
+  web:
+    command:
+      - httpd
+      - -f
+      - -p
+      - "8080"
+    depends_on:
+      redis:
+        condition: service_started
+        required: true
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://127.0.0.1:8080
+      timeout: 1s
+      interval: 1s
+      retries: 10
+    image: busybox:uclibc
+    init: true
+    networks:
+      default: null
+networks:
+  default:
+    name: test-project-lifecycle_default
