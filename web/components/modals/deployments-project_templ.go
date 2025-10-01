@@ -10,13 +10,13 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"fmt"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 	"github.com/oar-cd/oar/web/components/icons"
 	"github.com/oar-cd/oar/web/components/project"
 )
 
 // DeploymentsProjectModal renders the project deployments modal
-func DeploymentsProjectModal(proj project.ProjectView, deployments []*services.Deployment) templ.Component {
+func DeploymentsProjectModal(proj project.ProjectView, deployments []*domain.Deployment) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -75,7 +75,7 @@ func DeploymentsProjectModal(proj project.ProjectView, deployments []*services.D
 }
 
 // deploymentsProjectBody renders the modal body content
-func deploymentsProjectBody(proj project.ProjectView, deployments []*services.Deployment) templ.Component {
+func deploymentsProjectBody(proj project.ProjectView, deployments []*domain.Deployment) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 )
 
 // ProjectCreateRequest represents the data needed to create a project
@@ -15,7 +15,7 @@ type ProjectCreateRequest struct {
 	GitBranch      string
 	ComposeFiles   string
 	Variables      string
-	GitAuth        *services.GitAuthConfig
+	GitAuth        *domain.GitAuthConfig
 	WatcherEnabled bool
 }
 
@@ -25,7 +25,7 @@ type ProjectUpdateRequest struct {
 	Name           string
 	ComposeFiles   string
 	Variables      string
-	GitAuth        *services.GitAuthConfig
+	GitAuth        *domain.GitAuthConfig
 	WatcherEnabled bool
 }
 
@@ -71,8 +71,8 @@ func parseVariables(variables string) []string {
 }
 
 // buildProjectFromCreateRequest converts create request to Project struct
-func buildProjectFromCreateRequest(req *ProjectCreateRequest) *services.Project {
-	return &services.Project{
+func buildProjectFromCreateRequest(req *ProjectCreateRequest) *domain.Project {
+	return &domain.Project{
 		ID:             uuid.New(),
 		Name:           req.Name,
 		GitURL:         req.GitURL,
@@ -80,13 +80,13 @@ func buildProjectFromCreateRequest(req *ProjectCreateRequest) *services.Project 
 		GitAuth:        req.GitAuth,
 		ComposeFiles:   parseComposeFiles(req.ComposeFiles),
 		Variables:      parseVariables(req.Variables),
-		Status:         services.ProjectStatusStopped,
+		Status:         domain.ProjectStatusStopped,
 		WatcherEnabled: req.WatcherEnabled,
 	}
 }
 
 // applyProjectUpdateRequest applies update request to existing project
-func applyProjectUpdateRequest(project *services.Project, req *ProjectUpdateRequest) {
+func applyProjectUpdateRequest(project *domain.Project, req *ProjectUpdateRequest) {
 	project.Name = req.Name
 	project.GitAuth = req.GitAuth
 	project.ComposeFiles = parseComposeFiles(req.ComposeFiles)

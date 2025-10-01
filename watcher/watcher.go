@@ -7,18 +7,21 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/docker"
+	"github.com/oar-cd/oar/domain"
+	"github.com/oar-cd/oar/git"
+	"github.com/oar-cd/oar/project"
 )
 
 type WatcherService struct {
-	projectService services.ProjectManager
-	gitService     services.GitExecutor
+	projectService project.ProjectManager
+	gitService     *git.GitService
 	pollInterval   time.Duration
 }
 
 func NewWatcherService(
-	projectService services.ProjectManager,
-	gitService services.GitExecutor,
+	projectService project.ProjectManager,
+	gitService *git.GitService,
 	pollInterval time.Duration,
 ) *WatcherService {
 	return &WatcherService{
@@ -72,7 +75,7 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 
 		// Only check git changes for watcher-enabled projects
 		if project.WatcherEnabled {
-			if project.Status == services.ProjectStatusStopped {
+			if project.Status == domain.ProjectStatusStopped {
 				slog.Info("Project is stopped - skipping git check",
 					"project_id", project.ID,
 					"project_name", project.Name,
@@ -102,7 +105,7 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 	return nil
 }
 
-func (w *WatcherService) checkProject(ctx context.Context, project *services.Project) error {
+func (w *WatcherService) checkProject(ctx context.Context, project *domain.Project) error {
 	currentCommit := project.LastCommitStr()
 
 	gitDir, err := project.GitDir()
@@ -131,7 +134,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 
 	// Deploy if there are git changes OR if project is not in running/stopped state
 	hasGitChanges := currentCommit != remoteCommit
-	isInErrorState := project.Status != services.ProjectStatusRunning && project.Status != services.ProjectStatusStopped
+	isInErrorState := project.Status != domain.ProjectStatusRunning && project.Status != domain.ProjectStatusStopped
 	shouldDeploy := hasGitChanges || isInErrorState
 
 	if shouldDeploy {
@@ -196,7 +199,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *services.Pro
 }
 
 // syncProjectStatus checks if the project's database status matches its actual Docker status and updates it if needed
-func (w *WatcherService) syncProjectStatus(ctx context.Context, project *services.Project) error {
+func (w *WatcherService) syncProjectStatus(ctx context.Context, project *domain.Project) error {
 	// Get the actual Docker status
 	composeStatus, err := w.projectService.GetStatus(project.ID)
 	if err != nil {
@@ -206,13 +209,13 @@ func (w *WatcherService) syncProjectStatus(ctx context.Context, project *service
 			"error", err)
 
 		// Update database status to unknown since we can't determine actual status
-		if project.Status != services.ProjectStatusUnknown {
+		if project.Status != domain.ProjectStatusUnknown {
 			slog.Warn("Updating project status to unknown due to Docker status error",
 				"project_id", project.ID,
 				"project_name", project.Name,
 				"previous_status", project.Status.String())
 
-			project.Status = services.ProjectStatusUnknown
+			project.Status = domain.ProjectStatusUnknown
 			if updateErr := w.projectService.Update(project); updateErr != nil {
 				return fmt.Errorf("failed to update project status to unknown: %w", updateErr)
 			}
@@ -221,21 +224,21 @@ func (w *WatcherService) syncProjectStatus(ctx context.Context, project *service
 	}
 
 	// Determine what the database status should be based on Docker status
-	var expectedStatus services.ProjectStatus
+	var expectedStatus domain.ProjectStatus
 	switch composeStatus.Status {
-	case services.ComposeProjectStatusRunning:
-		expectedStatus = services.ProjectStatusRunning
-	case services.ComposeProjectStatusStopped:
-		expectedStatus = services.ProjectStatusStopped
-	case services.ComposeProjectStatusFailed:
+	case docker.ComposeProjectStatusRunning:
+		expectedStatus = domain.ProjectStatusRunning
+	case docker.ComposeProjectStatusStopped:
+		expectedStatus = domain.ProjectStatusStopped
+	case docker.ComposeProjectStatusFailed:
 		// For failed status, we'll consider it as error since containers are in mixed states
-		expectedStatus = services.ProjectStatusError
-	case services.ComposeProjectStatusUnknown:
+		expectedStatus = domain.ProjectStatusError
+	case docker.ComposeProjectStatusUnknown:
 		// For unknown status, set database to unknown as well
-		expectedStatus = services.ProjectStatusUnknown
+		expectedStatus = domain.ProjectStatusUnknown
 	default:
 		// Should not happen, but default to unknown
-		expectedStatus = services.ProjectStatusUnknown
+		expectedStatus = domain.ProjectStatusUnknown
 	}
 
 	// Check if there's a mismatch

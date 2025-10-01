@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
@@ -87,7 +87,7 @@ func PrintTable(header []string, data [][]string) (string, error) {
 	return buf.String(), nil
 }
 
-func PrintProjectDetails(project *services.Project, short bool) (string, error) {
+func PrintProjectDetails(project *domain.Project, short bool) (string, error) {
 	gitDir, err := project.GitDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get git directory: %w", err)
@@ -168,7 +168,7 @@ func PrintProjectDetails(project *services.Project, short bool) (string, error) 
 }
 
 // getAuthenticationInfo returns the authentication method and user from a project
-func getAuthenticationInfo(project *services.Project) (method, user string) {
+func getAuthenticationInfo(project *domain.Project) (method, user string) {
 	if project.GitAuth == nil {
 		return "None", ""
 	}
@@ -185,7 +185,7 @@ func getAuthenticationInfo(project *services.Project) (method, user string) {
 }
 
 // getAuthenticationCredential returns the masked credential for display
-func getAuthenticationCredential(project *services.Project) string {
+func getAuthenticationCredential(project *domain.Project) string {
 	if project.GitAuth == nil {
 		return ""
 	}
@@ -255,7 +255,7 @@ func formatStringList(items []string) string {
 	return result.String()
 }
 
-func PrintProjectList(projects []*services.Project) (string, error) {
+func PrintProjectList(projects []*domain.Project) (string, error) {
 	if len(projects) == 0 {
 		return PrintMessage(Plain, "No projects found."), nil
 	}
@@ -304,7 +304,7 @@ func PrintProjectList(projects []*services.Project) (string, error) {
 	return table, nil
 }
 
-func PrintDeploymentList(deployments []*services.Deployment, projectName string) (string, error) {
+func PrintDeploymentList(deployments []*domain.Deployment, projectName string) (string, error) {
 	if len(deployments) == 0 {
 		return PrintMessage(Plain, "No deployments found for project '%s'.", projectName), nil
 	}

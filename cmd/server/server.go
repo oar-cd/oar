@@ -15,8 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/oar-cd/oar/app"
+	"github.com/oar-cd/oar/config"
 	"github.com/oar-cd/oar/logging"
-	"github.com/oar-cd/oar/services"
 	"github.com/oar-cd/oar/watcher"
 	"github.com/oar-cd/oar/web/routes"
 	"github.com/spf13/cobra"
@@ -41,7 +41,7 @@ func NewCmdServer() *cobra.Command {
 // runServer runs both web and watcher services
 func runServer(configPath string) error {
 	// Initialize configuration from YAML file
-	config, err := services.NewConfig(configPath)
+	config, err := config.NewConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to initialize configuration: %w", err)
 	}
@@ -76,7 +76,7 @@ func runServer(configPath string) error {
 }
 
 // startWebServer starts the HTTP server
-func startWebServer(ctx context.Context, config *services.Config) error {
+func startWebServer(ctx context.Context, config *config.Config) error {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
@@ -120,7 +120,7 @@ func startWebServer(ctx context.Context, config *services.Config) error {
 }
 
 // startWatcherService starts the watcher service
-func startWatcherService(ctx context.Context, config *services.Config) error {
+func startWatcherService(ctx context.Context, config *config.Config) error {
 
 	// Initialize and run watcher service if enabled
 	if config.WatcherEnabled {

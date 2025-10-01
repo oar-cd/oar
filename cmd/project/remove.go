@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
 	"github.com/oar-cd/oar/cmd/output"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -75,7 +75,7 @@ func runProjectRemove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check if project is running and warn
-	if project.Status == services.ProjectStatusRunning {
+	if project.Status == domain.ProjectStatusRunning {
 		if !forceRemoval {
 			if err := output.FprintError(cmd, "ERROR: Project is currently RUNNING!\n"); err != nil {
 				return err

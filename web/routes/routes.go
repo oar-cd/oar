@@ -10,10 +10,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/oar-cd/oar/app"
-	"github.com/oar-cd/oar/services"
+	"github.com/oar-cd/oar/docker"
+	"github.com/oar-cd/oar/domain"
 	"github.com/oar-cd/oar/web/actions"
 	"github.com/oar-cd/oar/web/components/modals"
-	"github.com/oar-cd/oar/web/components/project"
+	projectcomponent "github.com/oar-cd/oar/web/components/project"
 	"github.com/oar-cd/oar/web/handlers"
 	"github.com/oar-cd/oar/web/pages"
 )
@@ -146,7 +147,7 @@ func getDeleteProjectModal(projectID uuid.UUID) (templ.Component, error) {
 		return nil, err
 	}
 
-	deletedDirPath := services.GetDeletedDirectoryPath(targetProject.WorkingDir)
+	deletedDirPath := domain.GetDeletedDirectoryPath(targetProject.WorkingDir)
 	projectView := handlers.ConvertProjectToView(targetProject)
 	return modals.DeleteProjectModal(projectView, deletedDirPath), nil
 }
@@ -198,7 +199,7 @@ func formatStdoutStderr(stdout, stderr string) string {
 			if i > 0 {
 				content.WriteString("\n")
 			}
-			parsedLine := services.ParseComposeLogLine(line)
+			parsedLine := docker.ParseComposeLogLine(line)
 			content.WriteString(parsedLine)
 		}
 		content.WriteString("</span>\n")
@@ -276,7 +277,7 @@ func getProjectStatusPill(projectID uuid.UUID) (templ.Component, error) {
 	}
 
 	projectView := handlers.ConvertProjectToView(targetProject)
-	return project.StatusPill(projectView.ID.String(), projectView.Status), nil
+	return projectcomponent.StatusPill(projectView.ID.String(), projectView.Status), nil
 }
 
 func getDeploymentsProjectModal(projectID uuid.UUID) (templ.Component, error) {

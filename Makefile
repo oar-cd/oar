@@ -1,4 +1,4 @@
-.PHONY: lint test test_verbose test_ci templ templ_watch tailwind tailwind_watch generate air build dev release release_patch release_minor release_major
+.PHONY: lint test test-verbose test-one test-ci templ templ-watch tailwind tailwind-watch generate air build dev release release-patch release-minor release-major build-release
 
 .EXPORT_ALL_VARIABLES:
 
@@ -14,22 +14,29 @@ lint:
 test:
 	gotestsum --format testname ./...
 
-test_verbose:
-	gotestsum --format standard-verbose ./...
+test-verbose:
+	gotestsum --format standard-verbose -- -v -count=1 ./...
 
-test_ci:
+test-one:
+	@if [ -z "$(TEST)" ]; then \
+		echo "Usage: make test-one TEST=TestName"; \
+		exit 1; \
+	fi
+	gotestsum --format standard-verbose -- -v -count=1 -run "^$(TEST)$$" ./...
+
+test-ci:
 	go run gotest.tools/gotestsum@latest --format testname -- -coverprofile=coverage.txt ./...
 
 templ:
 	templ generate
 
-templ_watch:
+templ-watch:
 	templ generate --watch
 
 tailwind:
 	tailwindcss -i ./web/assets/css/input.css -o ./web/assets/css/output.css
 
-tailwind_watch:
+tailwind-watch:
 	tailwindcss -i ./web/assets/css/input.css -o ./web/assets/css/output.css --watch
 
 generate: tailwind templ
@@ -43,10 +50,10 @@ build:
 assets:
 	tar -czf ./${OAR_BUILD_ARTIFACTS_DIR}/${OAR_WEB_ASSETS_FILENAME} web/assets
 
-build_release: build assets
+build-release: build assets
 
 dev:
-	make -j4 tailwind_watch templ_watch air
+	make -j4 tailwind-watch templ-watch air
 
 release:
 	@echo "Available release types:"
@@ -54,11 +61,11 @@ release:
 	@echo "  make release-minor  # Minor version (x.Y.0)"
 	@echo "  make release-major  # Major version (X.0.0)"
 
-release_patch:
+release-patch:
 	./release.sh patch
 
-release_minor:
+release-minor:
 	./release.sh minor
 
-release_major:
+release-major:
 	./release.sh major
