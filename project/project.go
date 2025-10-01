@@ -125,6 +125,9 @@ func (s *ProjectService) Create(project *domain.Project) (*domain.Project, error
 	commit, _ := s.gitService.GetLatestCommit(gitDir)
 	project.LastCommit = &commit
 
+	// Set initial status to stopped
+	project.Status = domain.ProjectStatusStopped
+
 	// Save working directory for cleanup before repository call
 	workingDir := project.WorkingDir
 

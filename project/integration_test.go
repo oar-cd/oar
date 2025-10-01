@@ -50,10 +50,36 @@ func TestCompleteLifecycle(t *testing.T) {
 	require.NoError(t, err, "Project creation should succeed")
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
+	workingDir := filepath.Join(ctx.workspaceDir, fmt.Sprintf("%s-%s", createdProject.ID, testProjectName))
+
+	gitDir, err := createdProject.GitDir()
+	if err != nil {
+		t.Fatalf("Failed to get Git directory: %v", err)
+	}
+
+	localCommit, err := ctx.gitService.GetLatestCommit(gitDir)
+	if err != nil {
+		t.Fatalf("Failed to get latest commit after project creation: %v", err)
+	}
+
+	remoteCommit, err := ctx.gitService.GetRemoteLatestCommit(gitDir, proj.GitBranch)
+	if err != nil {
+		t.Fatalf("Failed to get remote latest commit after project creation: %v", err)
+	}
+
 	assert.Equal(t, testProjectName, createdProject.Name)
 	assert.Equal(t, ctx.testRepoURL, createdProject.GitURL)
-	assert.NotEmpty(t, createdProject.WorkingDir)
+	assert.Equal(t, "main", createdProject.GitBranch)
+	assert.Nil(t, createdProject.GitAuth)
+	assert.Equal(t, workingDir, createdProject.WorkingDir)
+	assert.Equal(t, []string{"compose.yaml"}, createdProject.ComposeFiles)
+	assert.Equal(t, []string{}, createdProject.Variables)
+	assert.Equal(t, domain.ProjectStatusStopped, createdProject.Status)
+	assert.Equal(t, localCommit, remoteCommit)
+	assert.Equal(t, remoteCommit, createdProject.LastCommitStr())
+	assert.False(t, createdProject.WatcherEnabled)
 	assert.NotNil(t, createdProject.CreatedAt)
+	assert.NotNil(t, createdProject.UpdatedAt)
 
 	t.Logf("Project created successfully with ID: %s", createdProject.ID)
 
