@@ -73,7 +73,9 @@ func setupTestEncryption(t *testing.T) *encryption.EncryptionService {
 }
 
 // setupProjectService creates a project service with real Git and Docker dependencies for integration testing
-func setupProjectService(t *testing.T) (*project.ProjectService, repository.ProjectRepository, string) {
+func setupProjectService(
+	t *testing.T,
+) (*project.ProjectService, *git.GitService, repository.ProjectRepository, string) {
 	// Create temporary directory for test data
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "projects")
@@ -104,29 +106,33 @@ func setupProjectService(t *testing.T) (*project.ProjectService, repository.Proj
 	gitService := git.NewGitService(cfg)
 
 	// Create project.ProjectService with real dependencies
-	service := project.NewProjectService(projectRepo, deploymentRepo, gitService, cfg)
+	projectService := project.NewProjectService(projectRepo, deploymentRepo, gitService, cfg)
 
-	return service, projectRepo, tempDir
+	return projectService, gitService, projectRepo, tempDir
 }
 
 // testContext holds common test setup
 type testContext struct {
 	t              *testing.T
-	service        *project.ProjectService
+	projectService *project.ProjectService
+	gitService     *git.GitService
 	projectRepo    repository.ProjectRepository
 	projectManager project.ProjectManager
 	testRepoURL    string
+	workspaceDir   string
 }
 
 // setupTest creates common test context used by all integration tests
 func setupTest(t *testing.T) *testContext {
-	service, projectRepo, _ := setupProjectService(t)
+	projectService, gitService, projectRepo, tempDir := setupProjectService(t)
 	return &testContext{
 		t:              t,
-		service:        service,
+		projectService: projectService,
+		gitService:     gitService,
 		projectRepo:    projectRepo,
-		projectManager: project.ProjectManager(service),
+		projectManager: project.ProjectManager(projectService),
 		testRepoURL:    "https://github.com/oar-cd/test-project.git",
+		workspaceDir:   filepath.Join(tempDir, "projects"),
 	}
 }
 
