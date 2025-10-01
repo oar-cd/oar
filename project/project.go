@@ -270,6 +270,15 @@ func (s *ProjectService) DeployStreaming(
 		if updateErr := s.deploymentRepository.Update(&deployment); updateErr != nil {
 			slog.Error("Failed to update deployment status", "error", updateErr)
 		}
+
+		// Update project status to error
+		project.Status = domain.ProjectStatusError
+		if updateErr := s.projectRepository.Update(project); updateErr != nil {
+			slog.Error("Failed to update project status to error",
+				"project_id", project.ID,
+				"error", updateErr)
+		}
+
 		return fmt.Errorf("container creation failed: %w", err)
 	}
 
@@ -288,6 +297,15 @@ func (s *ProjectService) DeployStreaming(
 		if updateErr := s.deploymentRepository.Update(&deployment); updateErr != nil {
 			slog.Error("Failed to update deployment status", "error", updateErr)
 		}
+
+		// Update project status to error
+		project.Status = domain.ProjectStatusError
+		if updateErr := s.projectRepository.Update(project); updateErr != nil {
+			slog.Error("Failed to update project status to error",
+				"project_id", project.ID,
+				"error", updateErr)
+		}
+
 		return fmt.Errorf("volume initialization failed: %w", err)
 	}
 
