@@ -41,7 +41,6 @@ func TestCompleteLifecycle(t *testing.T) {
 		ID:           uuid.New(),
 		Name:         testProjectName,
 		GitURL:       ctx.testRepoURL,
-		GitBranch:    "main",                   // Use main branch for basic test
 		GitAuth:      nil,                      // Public repository, no auth needed
 		ComposeFiles: []string{"compose.yaml"}, // Basic compose file in main branch
 	}
@@ -62,7 +61,7 @@ func TestCompleteLifecycle(t *testing.T) {
 		t.Fatalf("Failed to get latest commit after project creation: %v", err)
 	}
 
-	remoteCommit, err := ctx.gitService.GetRemoteLatestCommit(gitDir, proj.GitBranch)
+	remoteCommit, err := ctx.gitService.GetRemoteLatestCommit(gitDir, createdProject.GitBranch)
 	if err != nil {
 		t.Fatalf("Failed to get remote latest commit after project creation: %v", err)
 	}
@@ -86,7 +85,7 @@ func TestCompleteLifecycle(t *testing.T) {
 	// Step 2: Deploy the project using streaming
 	t.Log("Step 2: Deploying project with streaming...")
 
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -200,7 +199,7 @@ func TestCompleteLifecycle(t *testing.T) {
 	// Step 6: Deploy the project again (second deployment)
 	t.Log("Step 6: Deploying project again to create second deployment...")
 
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Second deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -349,7 +348,7 @@ func TestMergeStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -423,7 +422,7 @@ func TestExtendStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -477,7 +476,7 @@ func TestIncludeStrategy(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -547,7 +546,7 @@ func TestVariableInterpolation(t *testing.T) {
 	require.NotNil(t, createdProject, "Created project should not be nil")
 
 	// Deploy the project
-	err = ctx.deployProject(createdProject.ID, false, 60)
+	err = ctx.deployProject(createdProject.ID, true, 60)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
@@ -610,7 +609,7 @@ func TestVolumeMounts(t *testing.T) {
 	// Deploy the project
 	t.Log("Deploying projects...")
 
-	err = ctx.deployProject(createdProject.ID, false, 180)
+	err = ctx.deployProject(createdProject.ID, true, 180)
 	require.NoError(t, err, "Deployment should succeed")
 
 	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
