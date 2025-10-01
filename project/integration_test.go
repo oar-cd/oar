@@ -211,8 +211,101 @@ logsLoop:
 
 	t.Logf("Collected %d log messages", len(logMessages))
 
-	// Step 5: Stop the project using streaming
-	t.Log("Step 5: Stopping project with streaming...")
+	// Step 5: Stop the project for the first time
+	t.Log("Step 5: Stopping project after first deployment...")
+
+	firstStopChan := make(chan docker.StreamMessage, 100)
+	firstStopDone := make(chan error, 1)
+
+	go func() {
+		defer close(firstStopChan)
+		firstStopDone <- ctx.projectManager.StopStreaming(createdProject.ID, firstStopChan)
+	}()
+
+	// Wait for first stop to complete
+	firstStopTimeout := time.After(30 * time.Second)
+
+firstStopLoop:
+	for {
+		select {
+		case msg, ok := <-firstStopChan:
+			if !ok {
+				break firstStopLoop
+			}
+			t.Logf("First stop output [%s]: %s", msg.Type, strings.TrimSpace(msg.Content))
+		case err := <-firstStopDone:
+			require.NoError(t, err, "First stop should succeed")
+			break firstStopLoop
+		case <-firstStopTimeout:
+			t.Fatal("First stop operation timed out")
+		}
+	}
+
+	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusStopped, 30*time.Second)
+	require.NoError(t, err, "Project should reach stopped status after first stop")
+
+	t.Log("First stop completed successfully")
+
+	// Step 6: Deploy the project again (second deployment)
+	t.Log("Step 6: Deploying project again to create second deployment...")
+
+	err = ctx.deployProject(createdProject.ID, false, 60)
+	require.NoError(t, err, "Second deployment should succeed")
+
+	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
+	require.NoError(t, err, "Project should reach running status after second deployment")
+
+	t.Log("Second deployment completed successfully")
+
+	// Step 7: List deployments and verify
+	t.Log("Step 7: Listing deployments and verifying data...")
+
+	deployments, err := ctx.projectManager.ListDeployments(createdProject.ID)
+	require.NoError(t, err, "ListDeployments should succeed")
+	require.Len(t, deployments, 2, "Should have exactly 2 deployments")
+
+	// Deployments are ordered by created_at DESC, so [0] is the most recent (second deployment)
+	// Verify second deployment (most recent)
+	assert.NotEqual(t, uuid.Nil, deployments[0].ID, "Second deployment should have valid ID")
+	assert.Equal(t, createdProject.ID, deployments[0].ProjectID, "Second deployment should reference correct project")
+	assert.Equal(t, localCommit, deployments[0].CommitHash, "Second deployment should have correct commit hash")
+	assert.Equal(t, domain.DeploymentStatusCompleted, deployments[0].Status, "Second deployment should be completed")
+	assert.True(
+		t,
+		deployments[0].Stdout != "" || deployments[0].Stderr != "",
+		"Second deployment should have stdout or stderr",
+	)
+	assert.NotNil(t, deployments[0].CreatedAt, "Second deployment should have creation time")
+	assert.NotNil(t, deployments[0].UpdatedAt, "Second deployment should have update time")
+
+	// Verify first deployment (oldest)
+	assert.NotEqual(t, uuid.Nil, deployments[1].ID, "First deployment should have valid ID")
+	assert.Equal(t, createdProject.ID, deployments[1].ProjectID, "First deployment should reference correct project")
+	assert.Equal(t, localCommit, deployments[1].CommitHash, "First deployment should have correct commit hash")
+	assert.Equal(t, domain.DeploymentStatusCompleted, deployments[1].Status, "First deployment should be completed")
+	assert.True(
+		t,
+		deployments[1].Stdout != "" || deployments[1].Stderr != "",
+		"First deployment should have stdout or stderr",
+	)
+	assert.NotNil(t, deployments[1].CreatedAt, "First deployment should have creation time")
+	assert.NotNil(t, deployments[1].UpdatedAt, "First deployment should have update time")
+
+	// Verify deployments are different
+	assert.NotEqual(t, deployments[0].ID, deployments[1].ID, "Deployments should have different IDs")
+
+	// Verify deployments are ordered by creation time DESC (most recent first)
+	assert.True(
+		t,
+		deployments[0].CreatedAt.After(deployments[1].CreatedAt) ||
+			deployments[0].CreatedAt.Equal(deployments[1].CreatedAt),
+		"Second deployment should be created after or at same time as first deployment",
+	)
+
+	t.Logf("Verified 2 deployments: second=%s, first=%s", deployments[0].ID, deployments[1].ID)
+
+	// Step 8: Stop the project using streaming
+	t.Log("Step 8: Stopping project with streaming...")
 
 	stopChan := make(chan docker.StreamMessage, 100)
 	stopDone := make(chan error, 1)
@@ -243,11 +336,14 @@ stopLoop:
 		}
 	}
 
+	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusStopped, 30*time.Second)
+	require.NoError(t, err, "Project should reach stopped status after first stop")
+
 	assert.Greater(t, len(stopMessages), 0, "Should receive stop messages")
 	t.Logf("Project stopped successfully with %d output messages", len(stopMessages))
 
-	// Step 6: Verify project is stopped by checking container status
-	t.Log("Step 6: Verifying project status after stopping...")
+	// Step 9: Verify project is stopped by checking container status
+	t.Log("Step 9: Verifying project status after stopping...")
 
 	stoppedStatus, err := ctx.projectManager.GetStatus(createdProject.ID)
 	require.NoError(t, err, "Getting status should succeed")
@@ -275,16 +371,16 @@ stopLoop:
 
 	t.Logf("Project status verified after stop: %s", stoppedStatus.Status)
 
-	// Step 7: Remove the project
-	t.Log("Step 7: Removing projects...")
+	// Step 10: Remove the project
+	t.Log("Step 10: Removing projects...")
 
 	err = ctx.projectManager.Remove(createdProject.ID, true)
 	require.NoError(t, err, "Project removal should succeed")
 
 	t.Logf("Project removed successfully")
 
-	// Step 8: Verify project is removed
-	t.Log("Step 8: Verifying project removal...")
+	// Step 11: Verify project is removed
+	t.Log("Step 11: Verifying project removal...")
 
 	removedProject, err := ctx.projectManager.Get(createdProject.ID)
 	assert.Error(t, err, "Getting removed project should fail")
