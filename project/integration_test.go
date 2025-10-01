@@ -131,9 +131,16 @@ func TestCompleteLifecycle(t *testing.T) {
 	require.NotEmpty(t, config, "Config should not be empty")
 	t.Logf("Config stderr: %s", stderr)
 
-	// Verify config contains expected compose content
-	assert.Contains(t, config, "services:", "Config should contain services section")
-	t.Logf("Project configuration retrieved (%d characters)", len(config))
+	// Normalize the config to replace WorkingDir paths with placeholder
+	normalizedConfig := normalizeComposeConfig(config, createdProject.WorkingDir)
+
+	// Load golden file and compare
+	goldenPath := filepath.Join("testdata", "complete_lifecycle_config.golden")
+	goldenContent, err := os.ReadFile(goldenPath)
+	require.NoError(t, err, "Failed to read golden file")
+
+	assert.Equal(t, string(goldenContent), normalizedConfig, "Config should match golden file")
+	t.Logf("Project configuration retrieved and verified against golden file (%d characters)", len(config))
 
 	// Step 4: Get project logs using streaming
 	t.Log("Step 4: Getting project logs with streaming...")
