@@ -82,6 +82,9 @@ func TestCompleteLifecycle(t *testing.T) {
 
 	t.Logf("Project created successfully with ID: %s", createdProject.ID)
 
+	// Get initial status - should be stopped
+	ctx.verifyProjectStatus(createdProject.ID, docker.ComposeProjectStatusStopped, domain.ProjectStatusStopped)
+
 	// Step 2: Deploy the project using streaming
 	t.Log("Step 2: Deploying project with streaming...")
 
@@ -96,12 +99,13 @@ func TestCompleteLifecycle(t *testing.T) {
 	// Step 2.5: Verify project status after deployment
 	t.Log("Step 2.5: Verifying project status after deployment...")
 
-	status, err := ctx.projectManager.GetStatus(createdProject.ID)
-	require.NoError(t, err, "Getting status should succeed")
-	require.NotNil(t, status, "Status should not be nil")
+	status := ctx.verifyProjectStatus(
+		createdProject.ID,
+		docker.ComposeProjectStatusRunning,
+		domain.ProjectStatusRunning,
+	)
 
 	// Project should be running after deployment
-	assert.Equal(t, docker.ComposeProjectStatusRunning, status.Status, "Project should be running after deployment")
 	assert.NotEmpty(t, status.Uptime, "Should have uptime when running")
 
 	// Should have exactly 2 containers: web and redis
@@ -176,6 +180,7 @@ func TestCompleteLifecycle(t *testing.T) {
 	}
 	t.Logf("Collected %d log messages", len(logMessages))
 
+	// TODO: Stopping the project between deployments is probably unnecessary
 	// Step 5: Stop the project for the first time
 	t.Log("Step 5: Stopping project after first deployment...")
 
@@ -196,16 +201,38 @@ func TestCompleteLifecycle(t *testing.T) {
 
 	t.Log("First stop completed successfully")
 
+	// Step 5.5: Break the compose.yaml for second deployment to simulate failure
+	t.Log("Step 5.5: Breaking compose.yaml to simulate deployment failure...")
+
+	composeFilePath := filepath.Join(gitDir, "compose.yaml")
+
+	// Read current content
+	content, err := os.ReadFile(composeFilePath)
+	require.NoError(t, err, "Failed to read compose file")
+
+	// Replace first occurrence of busybox:uclibc with non-existent tag (web service)
+	brokenContent := strings.Replace(string(content), "httpd", "nonexistent_command", 1)
+
+	err = os.WriteFile(composeFilePath, []byte(brokenContent), 0o644)
+	require.NoError(t, err, "Failed to write broken compose file")
+
+	t.Log("Compose file modified to use non-existent image tag for web service")
+
 	// Step 6: Deploy the project again (second deployment)
 	t.Log("Step 6: Deploying project again to create second deployment...")
 
-	err = ctx.deployProject(createdProject.ID, true, 60)
-	require.NoError(t, err, "Second deployment should succeed")
+	// Note: Docker compose up will succeed (exit 0) even though the container will immediately fail
+	// But we check container states after and return an error if they're not running
+	err = ctx.deployProject(createdProject.ID, false, 60)
+	require.Error(t, err, "Deployment should fail because containers are not running")
 
-	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
-	require.NoError(t, err, "Project should reach running status after second deployment")
+	// Project should be in failed state because container exits with non-zero
+	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusFailed, 30*time.Second)
+	require.NoError(t, err, "Project should be in failed state after container fails")
 
-	t.Log("Second deployment completed successfully")
+	ctx.verifyProjectStatus(createdProject.ID, docker.ComposeProjectStatusFailed, domain.ProjectStatusError)
+
+	t.Log("Second deployment failed as expected (containers not running)")
 
 	// Step 7: List deployments and verify
 	t.Log("Step 7: Listing deployments and verifying data...")
@@ -215,11 +242,16 @@ func TestCompleteLifecycle(t *testing.T) {
 	require.Len(t, deployments, 2, "Should have exactly 2 deployments")
 
 	// Deployments are ordered by created_at DESC, so [0] is the most recent (second deployment)
-	// Verify second deployment (most recent)
+	// Verify second deployment (most recent) - should be failed because containers are not running
 	assert.NotEqual(t, uuid.Nil, deployments[0].ID, "Second deployment should have valid ID")
 	assert.Equal(t, createdProject.ID, deployments[0].ProjectID, "Second deployment should reference correct project")
 	assert.Equal(t, localCommit, deployments[0].CommitHash, "Second deployment should have correct commit hash")
-	assert.Equal(t, domain.DeploymentStatusCompleted, deployments[0].Status, "Second deployment should be completed")
+	assert.Equal(
+		t,
+		domain.DeploymentStatusFailed,
+		deployments[0].Status,
+		"Second deployment should be failed (containers not running)",
+	)
 	assert.True(
 		t,
 		deployments[0].Stdout != "" || deployments[0].Stderr != "",
@@ -278,17 +310,13 @@ func TestCompleteLifecycle(t *testing.T) {
 	// Step 9: Verify project is stopped by checking container status
 	t.Log("Step 9: Verifying project status after stopping...")
 
-	stoppedStatus, err := ctx.projectManager.GetStatus(createdProject.ID)
-	require.NoError(t, err, "Getting status should succeed")
-	require.NotNil(t, stoppedStatus, "Status should not be nil")
+	stoppedStatus := ctx.verifyProjectStatus(
+		createdProject.ID,
+		docker.ComposeProjectStatusStopped,
+		domain.ProjectStatusStopped,
+	)
 
 	// Project should be stopped after stopping
-	assert.Equal(
-		t,
-		docker.ComposeProjectStatusStopped,
-		stoppedStatus.Status,
-		"Project should be stopped after stop operation",
-	)
 	assert.Empty(t, stoppedStatus.Uptime, "Should have no uptime when stopped")
 
 	// All containers should be stopped or removed
@@ -359,12 +387,11 @@ func TestMergeStrategy(t *testing.T) {
 	// Verify project status after deployment (merge strategy should have web, redis, db)
 	t.Log("Verifying merge strategy project status...")
 
-	status, err := ctx.projectManager.GetStatus(createdProject.ID)
-	require.NoError(t, err, "Getting status should succeed")
-	require.NotNil(t, status, "Status should not be nil")
-
-	// Project should be running
-	assert.Equal(t, docker.ComposeProjectStatusRunning, status.Status, "Project should be running after deployment")
+	status := ctx.verifyProjectStatus(
+		createdProject.ID,
+		docker.ComposeProjectStatusRunning,
+		domain.ProjectStatusRunning,
+	)
 
 	// Should have exactly 3 containers: web, redis, db
 	assert.Len(t, status.Containers, 3, "Should have exactly 3 containers (web, redis, db)")
