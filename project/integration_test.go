@@ -395,6 +395,104 @@ func TestMergeStrategy(t *testing.T) {
 	t.Logf("Merge strategy test completed successfully")
 }
 
+// TestProjectManager_Integration_ComposeOverride tests the compose override functionality
+// using ComposeOverride field instead of a separate compose.override.yaml file
+func TestComposeOverride(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	ctx := setupTest(t)
+
+	testProjectName := "test-project-compose-override"
+
+	t.Log("Testing compose override functionality...")
+
+	// This is the content from compose.override.yaml in the compose-files-merge branch
+	overrideContent := `services:
+  web:
+    environment:
+      NGINX_ENV: development
+      DEBUG: true
+    command: ["httpd", "-f", "-p", "8080"]
+    init: true
+
+  db:
+    image: busybox:uclibc
+    environment:
+      LISTEN_PORT: 24224
+    command: ["httpd", "-f", "-p", "8080"]
+    init: true`
+
+	proj := &domain.Project{
+		ID:              uuid.New(),
+		Name:            testProjectName,
+		GitURL:          ctx.testRepoURL,
+		GitBranch:       "compose-files-merge", // Use same branch as merge strategy test
+		GitAuth:         nil,
+		ComposeFiles:    []string{"compose.yaml"}, // Only base file, override via ComposeOverride
+		ComposeOverride: &overrideContent,         // Override content inline
+	}
+
+	createdProject, err := ctx.projectManager.Create(proj)
+	require.NoError(t, err, "Project creation should succeed")
+	require.NotNil(t, createdProject, "Created project should not be nil")
+
+	// Deploy the project
+	err = ctx.deployProject(createdProject.ID, true, 60)
+	require.NoError(t, err, "Deployment should succeed")
+
+	err = ctx.waitForProjectStatus(createdProject.ID, docker.ComposeProjectStatusRunning, 30*time.Second)
+	require.NoError(t, err, "Project should reach running status")
+
+	ctx.setupCleanup(createdProject)
+
+	// Verify project status after deployment (should have same result as merge strategy: web, redis, db)
+	t.Log("Verifying compose override project status...")
+
+	status, err := ctx.projectManager.GetStatus(createdProject.ID)
+	require.NoError(t, err, "Getting status should succeed")
+	require.NotNil(t, status, "Status should not be nil")
+
+	// Project should be running
+	assert.Equal(t, docker.ComposeProjectStatusRunning, status.Status, "Project should be running after deployment")
+
+	// Should have exactly 3 containers: web, redis, db (same as merge strategy test)
+	assert.Len(t, status.Containers, 3, "Should have exactly 3 containers (web, redis, db)")
+
+	// Verify expected services are present
+	serviceNames := verifyContainersRunning(t, status.Containers, testProjectName)
+	verifyExpectedServices(t, serviceNames, []string{"web", "redis", "db"})
+
+	t.Logf("Compose override status verified: %v", serviceNames)
+
+	// Verify merged configuration matches expected result
+	config, stderr, err := ctx.projectManager.GetConfig(createdProject.ID)
+	require.NoError(t, err, "Getting config should succeed")
+	require.NotEmpty(t, config, "Config should not be empty")
+	t.Logf("Config stderr: %s", stderr)
+
+	// Normalize the config to replace WorkingDir paths with placeholder
+	normalizedConfig := normalizeComposeConfig(config, createdProject.WorkingDir)
+
+	// Load golden file and compare
+	goldenPath := filepath.Join("testdata", "compose_override_config.golden")
+	goldenContent, err := os.ReadFile(goldenPath)
+	require.NoError(t, err, "Failed to read golden file")
+
+	assert.Equal(t, string(goldenContent), normalizedConfig, "Config should match golden file")
+	t.Logf("Compose override configuration verified against golden file (%d characters)", len(config))
+
+	// Cleanup
+	err = ctx.projectManager.StopStreaming(createdProject.ID, make(chan docker.StreamMessage, 100))
+	require.NoError(t, err, "Stopping should succeed")
+
+	err = ctx.projectManager.Remove(createdProject.ID, true)
+	require.NoError(t, err, "Project removal should succeed")
+
+	t.Logf("Compose override test completed successfully")
+}
+
 // TestProjectManager_Integration_ExtendStrategy tests the extend strategy where one compose file extends another
 func TestExtendStrategy(t *testing.T) {
 	if testing.Short() {

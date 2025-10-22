@@ -11,18 +11,19 @@ templ EditProjectModal(proj project.ProjectView) {
 // editProjectBody renders the modal body content
 templ editProjectBody(proj project.ProjectView) {
 	@forms.ProjectForm(forms.ProjectFormData{
-		IsEdit:         true,
-		ProjectID:      proj.ID.String(),
-		Name:           proj.Name,
-		GitURL:         proj.GitURL,
-		GitBranch:      proj.GitBranch,
-		AuthMethod:     getAuthMethodFromProject(proj),
-		Username:       getUsernameFromProject(proj),
-		Password:       getPasswordFromProject(proj),
-		PrivateKey:     getPrivateKeyFromProject(proj),
-		ComposeFiles:   joinStringSlice(proj.ComposeFiles, "\n"),
-		Variables:      joinStringSlice(proj.Variables, "\n"),
-		WatcherEnabled: proj.WatcherEnabled,
+		IsEdit:          true,
+		ProjectID:       proj.ID.String(),
+		Name:            proj.Name,
+		GitURL:          proj.GitURL,
+		GitBranch:       proj.GitBranch,
+		AuthMethod:      getAuthMethodFromProject(proj),
+		Username:        getUsernameFromProject(proj),
+		Password:        getPasswordFromProject(proj),
+		PrivateKey:      getPrivateKeyFromProject(proj),
+		ComposeFiles:    joinStringSlice(proj.ComposeFiles, "\n"),
+		ComposeOverride: getComposeOverrideFromProject(proj),
+		Variables:       joinStringSlice(proj.Variables, "\n"),
+		WatcherEnabled:  proj.WatcherEnabled,
 	})
 }
 
@@ -70,6 +71,13 @@ func getPrivateKeyFromProject(proj project.ProjectView) string {
 		return ""
 	}
 	return proj.GitAuth.SSHAuth.PrivateKey
+}
+
+func getComposeOverrideFromProject(proj project.ProjectView) string {
+	if proj.ComposeOverride == nil {
+		return ""
+	}
+	return *proj.ComposeOverride
 }
 
 func joinStringSlice(slice []string, separator string) string {

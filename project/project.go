@@ -401,7 +401,10 @@ func (s *ProjectService) prepareDeployment(
 		"compose_files", project.ComposeFiles,
 		"pull", pull)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return nil, "", domain.Deployment{}, nil, fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	return project, commitHash, deployment, composeProject, nil
 }
@@ -493,7 +496,10 @@ func (s *ProjectService) Stop(projectID uuid.UUID, removeVolumes bool) error {
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	stdout, stderr, err := composeProject.Down(removeVolumes)
 	if err != nil {
@@ -540,7 +546,10 @@ func (s *ProjectService) StopStreaming(projectID uuid.UUID, outputChan chan<- do
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	// Helper function to send StreamMessage
 	sendMessage := func(msg, msgType string) {
@@ -613,7 +622,10 @@ func (s *ProjectService) StopPiping(projectID uuid.UUID) error {
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	err = composeProject.DownPiping()
 	if err != nil {
@@ -696,7 +708,10 @@ func (s *ProjectService) GetLogs(projectID uuid.UUID) (string, string, error) {
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create compose project: %w", err)
+	}
 	stdout, stderr, err := composeProject.Logs()
 	if err != nil {
 		slog.Error(
@@ -739,7 +754,10 @@ func (s *ProjectService) GetLogsPiping(projectID uuid.UUID) error {
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	err = composeProject.LogsPiping()
 	if err != nil {
@@ -778,7 +796,10 @@ func (s *ProjectService) GetConfig(projectID uuid.UUID) (string, string, error) 
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	stdout, stderr, err := composeProject.GetConfig()
 	if err != nil {
@@ -823,7 +844,10 @@ func (s *ProjectService) GetStatus(projectID uuid.UUID) (*docker.ComposeStatus, 
 		project.Name,
 	)
 
-	composeProject := docker.NewComposeProject(project, s.config)
+	composeProject, err := docker.NewComposeProject(project, s.config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compose project: %w", err)
+	}
 
 	status, err := composeProject.Status()
 	if err != nil {

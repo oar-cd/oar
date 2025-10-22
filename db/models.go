@@ -22,6 +22,7 @@ type ProjectModel struct {
 	GitAuthCredentials *string `gorm:"type:text"`                          // Encrypted JSON blob containing all auth data
 	WorkingDir         string  `gorm:"not null;check:working_dir <> ''"`   // directory where the project is cloned
 	ComposeFiles       string  `gorm:"not null;check:compose_files <> ''"` // list of compose file paths separated by null character (\0)
+	ComposeOverride    *string `gorm:"type:text"`                          // Optional Docker Compose override content
 	Variables          string  `gorm:"not null"`                           // Variables separated by null character (\0)
 	Status             string  `gorm:"not null;check:status <> ''"`        // running, stopped, error
 	LastCommit         *string

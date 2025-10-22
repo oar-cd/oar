@@ -6,18 +6,19 @@ import (
 
 // ProjectFormData holds the form data for project forms
 type ProjectFormData struct {
-	IsEdit         bool
-	ProjectID      string // Only used for edit mode
-	Name           string
-	GitURL         string
-	GitBranch      string
-	AuthMethod     string // "none", "http", "ssh"
-	Username       string
-	Password       string
-	PrivateKey     string
-	ComposeFiles   string
-	Variables      string
-	WatcherEnabled bool
+	IsEdit          bool
+	ProjectID       string // Only used for edit mode
+	Name            string
+	GitURL          string
+	GitBranch       string
+	AuthMethod      string // "none", "http", "ssh"
+	Username        string
+	Password        string
+	PrivateKey      string
+	ComposeFiles    string
+	ComposeOverride string
+	Variables       string
+	WatcherEnabled  bool
 }
 
 // ProjectForm renders the project form with all required fields
@@ -142,6 +143,17 @@ templ ProjectForm(data ProjectFormData) {
 				placeholder="compose.yaml&#10;compose.override.yaml"
 				required
 			>{ data.ComposeFiles }</textarea>
+		</div>
+		<!-- Compose override (optional) -->
+		<div class="form-group">
+			<label for="compose_override" class="form-label">Compose override file</label>
+			<textarea
+				id="compose_override"
+				name="compose_override"
+				class="form-textarea"
+				rows="5"
+				placeholder="services:&#10;  app:&#10;    logging:&#10;      driver: json-file"
+			>{ data.ComposeOverride }</textarea>
 		</div>
 		<!-- Variables (optional) -->
 		<div class="form-group">

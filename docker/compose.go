@@ -85,13 +85,15 @@ type ComposeProject struct {
 	WorkingDir string
 	// ComposeFiles is a list of Docker Compose files for the project.
 	ComposeFiles []string
+	// ComposeOverride is optional Docker Compose override content
+	ComposeOverride *string
 	// Variables contains variables in KEY=value format
 	Variables []string
 	// Config holds configuration for docker commands and timeouts
 	Config *config.Config
 }
 
-func NewComposeProject(p *domain.Project, cfg *config.Config) *ComposeProject {
+func NewComposeProject(p *domain.Project, cfg *config.Config) (*ComposeProject, error) {
 	gitDir, err := p.GitDir()
 	if err != nil {
 		slog.Error("Service operation failed",
@@ -99,16 +101,36 @@ func NewComposeProject(p *domain.Project, cfg *config.Config) *ComposeProject {
 			"operation", "create_compose_project",
 			"project_name", p.Name,
 			"error", err)
-		return nil
+		return nil, err
+	}
+
+	// Write override file if present
+	// Use .oar-compose-override.yaml to avoid colliding with any compose.override.yaml in the repo
+	if p.ComposeOverride != nil && *p.ComposeOverride != "" {
+		overridePath := filepath.Join(gitDir, ".oar-compose-override.yaml")
+		if err := os.WriteFile(overridePath, []byte(*p.ComposeOverride), 0644); err != nil {
+			err = fmt.Errorf("failed to write override file: %w", err)
+			slog.Error("Service operation failed",
+				"layer", "docker_compose",
+				"operation", "create_compose_project",
+				"project_name", p.Name,
+				"error", err)
+			return nil, err
+		}
+
+		slog.Debug("Wrote compose override file",
+			"project_name", p.Name,
+			"override_path", overridePath)
 	}
 
 	return &ComposeProject{
-		Name:         p.Name,
-		WorkingDir:   gitDir,
-		ComposeFiles: p.ComposeFiles,
-		Variables:    p.Variables,
-		Config:       cfg,
-	}
+		Name:            p.Name,
+		WorkingDir:      gitDir,
+		ComposeFiles:    p.ComposeFiles,
+		ComposeOverride: p.ComposeOverride,
+		Variables:       p.Variables,
+		Config:          cfg,
+	}, nil
 }
 
 func (p *ComposeProject) Up(startServices bool) (string, string, error) {
@@ -201,6 +223,12 @@ func (p *ComposeProject) prepareCommand(command string, args []string) *exec.Cmd
 	// Add compose files to the command
 	for _, file := range p.ComposeFiles {
 		commandArgs = append(commandArgs, "--file", filepath.Join(p.WorkingDir, file))
+	}
+
+	// Add override file if we have override content
+	if p.ComposeOverride != nil && *p.ComposeOverride != "" {
+		overridePath := filepath.Join(p.WorkingDir, ".oar-compose-override.yaml")
+		commandArgs = append(commandArgs, "--file", overridePath)
 	}
 
 	// Add the specific command and its arguments

@@ -10,23 +10,25 @@ import (
 
 // ProjectCreateRequest represents the data needed to create a project
 type ProjectCreateRequest struct {
-	Name           string
-	GitURL         string
-	GitBranch      string
-	ComposeFiles   string
-	Variables      string
-	GitAuth        *domain.GitAuthConfig
-	WatcherEnabled bool
+	Name            string
+	GitURL          string
+	GitBranch       string
+	ComposeFiles    string
+	ComposeOverride string
+	Variables       string
+	GitAuth         *domain.GitAuthConfig
+	WatcherEnabled  bool
 }
 
 // ProjectUpdateRequest represents the data needed to update a project
 type ProjectUpdateRequest struct {
-	ID             uuid.UUID
-	Name           string
-	ComposeFiles   string
-	Variables      string
-	GitAuth        *domain.GitAuthConfig
-	WatcherEnabled bool
+	ID              uuid.UUID
+	Name            string
+	ComposeFiles    string
+	ComposeOverride string
+	Variables       string
+	GitAuth         *domain.GitAuthConfig
+	WatcherEnabled  bool
 }
 
 // validateProjectCreateRequest validates a project creation request
@@ -72,24 +74,38 @@ func parseVariables(variables string) []string {
 
 // buildProjectFromCreateRequest converts create request to Project struct
 func buildProjectFromCreateRequest(req *ProjectCreateRequest) *domain.Project {
+	var composeOverride *string
+	if strings.TrimSpace(req.ComposeOverride) != "" {
+		trimmed := strings.TrimSpace(req.ComposeOverride)
+		composeOverride = &trimmed
+	}
+
 	return &domain.Project{
-		ID:             uuid.New(),
-		Name:           req.Name,
-		GitURL:         req.GitURL,
-		GitBranch:      req.GitBranch,
-		GitAuth:        req.GitAuth,
-		ComposeFiles:   parseComposeFiles(req.ComposeFiles),
-		Variables:      parseVariables(req.Variables),
-		Status:         domain.ProjectStatusStopped,
-		WatcherEnabled: req.WatcherEnabled,
+		ID:              uuid.New(),
+		Name:            req.Name,
+		GitURL:          req.GitURL,
+		GitBranch:       req.GitBranch,
+		GitAuth:         req.GitAuth,
+		ComposeFiles:    parseComposeFiles(req.ComposeFiles),
+		ComposeOverride: composeOverride,
+		Variables:       parseVariables(req.Variables),
+		Status:          domain.ProjectStatusStopped,
+		WatcherEnabled:  req.WatcherEnabled,
 	}
 }
 
 // applyProjectUpdateRequest applies update request to existing project
 func applyProjectUpdateRequest(project *domain.Project, req *ProjectUpdateRequest) {
+	var composeOverride *string
+	if strings.TrimSpace(req.ComposeOverride) != "" {
+		trimmed := strings.TrimSpace(req.ComposeOverride)
+		composeOverride = &trimmed
+	}
+
 	project.Name = req.Name
 	project.GitAuth = req.GitAuth
 	project.ComposeFiles = parseComposeFiles(req.ComposeFiles)
+	project.ComposeOverride = composeOverride
 	project.Variables = parseVariables(req.Variables)
 	project.WatcherEnabled = req.WatcherEnabled
 }
