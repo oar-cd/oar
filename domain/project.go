@@ -65,19 +65,20 @@ func ParseGitAuthType(s string) (GitAuthType, error) {
 }
 
 type Project struct {
-	ID             uuid.UUID
-	Name           string
-	GitURL         string
-	GitBranch      string         // Git branch to use (never empty, always set to default branch if not specified)
-	GitAuth        *GitAuthConfig // Git authentication configuration
-	WorkingDir     string
-	ComposeFiles   []string
-	Variables      []string // Variables in .env format, one per string
-	Status         ProjectStatus
-	LastCommit     *string
-	WatcherEnabled bool // Enable automatic deployments on git changes
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID              uuid.UUID
+	Name            string
+	GitURL          string
+	GitBranch       string         // Git branch to use (never empty, always set to default branch if not specified)
+	GitAuth         *GitAuthConfig // Git authentication configuration
+	WorkingDir      string
+	ComposeFiles    []string
+	ComposeOverride *string  // Optional Docker Compose override content
+	Variables       []string // Variables in .env format, one per string
+	Status          ProjectStatus
+	LastCommit      *string
+	WatcherEnabled  bool // Enable automatic deployments on git changes
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (p *Project) GitDir() (string, error) {

@@ -14,18 +14,19 @@ import (
 
 // ProjectFormData holds the form data for project forms
 type ProjectFormData struct {
-	IsEdit         bool
-	ProjectID      string // Only used for edit mode
-	Name           string
-	GitURL         string
-	GitBranch      string
-	AuthMethod     string // "none", "http", "ssh"
-	Username       string
-	Password       string
-	PrivateKey     string
-	ComposeFiles   string
-	Variables      string
-	WatcherEnabled bool
+	IsEdit          bool
+	ProjectID       string // Only used for edit mode
+	Name            string
+	GitURL          string
+	GitBranch       string
+	AuthMethod      string // "none", "http", "ssh"
+	Username        string
+	Password        string
+	PrivateKey      string
+	ComposeFiles    string
+	ComposeOverride string
+	Variables       string
+	WatcherEnabled  bool
 }
 
 // ProjectForm renders the project form with all required fields
@@ -57,7 +58,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(getFormAction(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 27, Col: 31}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 28, Col: 31}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -70,7 +71,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 39, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 40, Col: 21}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -88,7 +89,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.GitURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 53, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 54, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -106,7 +107,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.GitURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 63, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 64, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -129,7 +130,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.GitBranch)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 78, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 79, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -147,7 +148,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.GitBranch)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 89, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 90, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -211,36 +212,49 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.ComposeFiles)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 144, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 145, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</textarea></div><!-- Variables (optional) --><div class=\"form-group\"><label for=\"variables\" class=\"form-label\">Variables</label> <textarea id=\"variables\" name=\"variables\" class=\"form-textarea\" rows=\"3\" placeholder=\"KEY1=value1&#10;KEY2=value2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</textarea></div><!-- Compose override (optional) --><div class=\"form-group\"><label for=\"compose_override\" class=\"form-label\">Compose override file</label> <textarea id=\"compose_override\" name=\"compose_override\" class=\"form-textarea\" rows=\"5\" placeholder=\"services:&#10;  app:&#10;    logging:&#10;      driver: json-file\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Variables)
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.ComposeOverride)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 155, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 156, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea></div><!-- Watcher configuration --><div class=\"form-group\"><label class=\"flex items-center cursor-pointer\"><input type=\"checkbox\" id=\"watcher_enabled\" name=\"watcher_enabled\" class=\"mr-2\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea></div><!-- Variables (optional) --><div class=\"form-group\"><label for=\"variables\" class=\"form-label\">Variables</label> <textarea id=\"variables\" name=\"variables\" class=\"form-textarea\" rows=\"3\" placeholder=\"KEY1=value1&#10;KEY2=value2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Variables)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 167, Col: 20}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</textarea></div><!-- Watcher configuration --><div class=\"form-group\"><label class=\"flex items-center cursor-pointer\"><input type=\"checkbox\" id=\"watcher_enabled\" name=\"watcher_enabled\" class=\"mr-2\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.WatcherEnabled {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, " checked")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, " checked")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "> <span class=\"text-sm font-medium text-gray-700\">Automatic deployment</span></label></div></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "> <span class=\"text-sm font-medium text-gray-700\">Automatic deployment</span></label></div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -265,64 +279,64 @@ func AuthFields(data ProjectFormData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var10 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var10 == nil {
-			templ_7745c5c3_Var10 = templ.NopComponent
+		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var11 == nil {
+			templ_7745c5c3_Var11 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<!-- HTTP Auth Fields - shown when HTTP radio is checked --><div class=\"auth-fields auth-http\"><div class=\"form-group\"><label for=\"username\" class=\"form-label\">Username <span class=\"text-red-500\">*</span></label> <input type=\"text\" id=\"username\" name=\"username\" class=\"form-input\" value=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var11 string
-		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 184, Col: 25}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" placeholder=\"token\"></div><div class=\"form-group\"><label for=\"password\" class=\"form-label\">Password <span class=\"text-red-500\">*</span></label> <input type=\"password\" id=\"password\" name=\"password\" class=\"form-input\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<!-- HTTP Auth Fields - shown when HTTP radio is checked --><div class=\"auth-fields auth-http\"><div class=\"form-group\"><label for=\"username\" class=\"form-label\">Username <span class=\"text-red-500\">*</span></label> <input type=\"text\" id=\"username\" name=\"username\" class=\"form-input\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(data.Password)
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 195, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 196, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" placeholder=\"ghp_xxxxyyyzzzz\"></div></div><!-- SSH Auth Fields - shown when SSH radio is checked --><div class=\"auth-fields auth-ssh\"><div class=\"form-group\"><label for=\"ssh_username\" class=\"form-label\">Username <span class=\"text-red-500\">*</span></label> <input type=\"text\" id=\"ssh_username\" name=\"ssh_username\" class=\"form-input\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" placeholder=\"token\"></div><div class=\"form-group\"><label for=\"password\" class=\"form-label\">Password <span class=\"text-red-500\">*</span></label> <input type=\"password\" id=\"password\" name=\"password\" class=\"form-input\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var13 string
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.Password)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 209, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 207, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" placeholder=\"git\"></div><div class=\"form-group\"><label for=\"private_key\" class=\"form-label\">Private key <span class=\"text-red-500\">*</span></label> <textarea id=\"private_key\" name=\"private_key\" class=\"form-textarea\" rows=\"3\" placeholder=\"-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" placeholder=\"ghp_xxxxyyyzzzz\"></div></div><!-- SSH Auth Fields - shown when SSH radio is checked --><div class=\"auth-fields auth-ssh\"><div class=\"form-group\"><label for=\"ssh_username\" class=\"form-label\">Username <span class=\"text-red-500\">*</span></label> <input type=\"text\" id=\"ssh_username\" name=\"ssh_username\" class=\"form-input\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var14 string
-		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(data.PrivateKey)
+		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 221, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 221, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</textarea></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" placeholder=\"git\"></div><div class=\"form-group\"><label for=\"private_key\" class=\"form-label\">Private key <span class=\"text-red-500\">*</span></label> <textarea id=\"private_key\" name=\"private_key\" class=\"form-textarea\" rows=\"3\" placeholder=\"-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var15 string
+		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(data.PrivateKey)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 233, Col: 21}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</textarea></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

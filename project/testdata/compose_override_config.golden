@@ -1,0 +1,40 @@
+name: test-project-compose-override
+services:
+  db:
+    command:
+      - httpd
+      - -f
+      - -p
+      - "8080"
+    environment:
+      LISTEN_PORT: "24224"
+    image: busybox:uclibc
+    init: true
+    networks:
+      default: null
+  redis:
+    command:
+      - httpd
+      - -f
+      - -p
+      - "8080"
+    image: busybox:uclibc
+    init: true
+    networks:
+      default: null
+  web:
+    command:
+      - httpd
+      - -f
+      - -p
+      - "8080"
+    environment:
+      DEBUG: "true"
+      NGINX_ENV: development
+    image: busybox:uclibc
+    init: true
+    networks:
+      default: null
+networks:
+  default:
+    name: test-project-compose-override_default
