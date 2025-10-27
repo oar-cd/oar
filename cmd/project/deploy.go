@@ -93,8 +93,8 @@ func runProjectDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if updatedProject.LastCommit != nil {
-		shortCommit := *updatedProject.LastCommit
+	if updatedProject.LocalCommit != nil {
+		shortCommit := *updatedProject.LocalCommit
 		if len(shortCommit) > 8 {
 			shortCommit = shortCommit[:8]
 		}

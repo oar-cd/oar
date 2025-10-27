@@ -52,7 +52,7 @@ func (m *ProjectMapper) ToDomain(p *db.ProjectModel) *domain.Project {
 		ComposeOverride: p.ComposeOverride,
 		Variables:       parseFiles(p.Variables),
 		Status:          status,
-		LastCommit:      p.LastCommit,
+		LocalCommit:     p.LocalCommit,
 		WatcherEnabled:  p.WatcherEnabled,
 		CreatedAt:       p.CreatedAt,
 		UpdatedAt:       p.UpdatedAt,
@@ -74,7 +74,7 @@ func (m *ProjectMapper) ToModel(p *domain.Project) *db.ProjectModel {
 		ComposeOverride: p.ComposeOverride,
 		Variables:       serializeFiles(p.Variables),
 		Status:          p.Status.String(),
-		LastCommit:      p.LastCommit,
+		LocalCommit:     p.LocalCommit,
 		WatcherEnabled:  p.WatcherEnabled,
 	}
 

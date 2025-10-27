@@ -49,9 +49,9 @@ templ ProjectCard(project ProjectView) {
 				</div>
 
 				<!-- Git commit SHA (8 chars) positioned under the branch -->
-				if project.LastCommit != nil {
+				if project.LocalCommit != nil {
 					<div class="project-commit">
-						{ shortCommit(*project.LastCommit) }
+						{ shortCommit(*project.LocalCommit) }
 					</div>
 				}
 			</div>

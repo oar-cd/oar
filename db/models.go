@@ -13,6 +13,11 @@ type BaseModel struct {
 	UpdatedAt time.Time
 }
 
+type MigrationModel struct {
+	Name      string    `gorm:"primaryKey"`
+	AppliedAt time.Time `gorm:"not null"`
+}
+
 type ProjectModel struct {
 	BaseModel
 	Name               string  `gorm:"not null;unique;check:name <> ''"`
@@ -25,7 +30,7 @@ type ProjectModel struct {
 	ComposeOverride    *string `gorm:"type:text"`                          // Optional Docker Compose override content
 	Variables          string  `gorm:"not null"`                           // Variables separated by null character (\0)
 	Status             string  `gorm:"not null;check:status <> ''"`        // running, stopped, error
-	LastCommit         *string
+	LocalCommit        *string
 	WatcherEnabled     bool `gorm:"not null"` // Enable automatic deployments on git changes
 
 	Deployments []DeploymentModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
@@ -48,4 +53,8 @@ type DeploymentModel struct {
 
 func (DeploymentModel) TableName() string {
 	return "deployments"
+}
+
+func (MigrationModel) TableName() string {
+	return "migrations"
 }

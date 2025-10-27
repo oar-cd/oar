@@ -75,7 +75,7 @@ func TestCompleteLifecycle(t *testing.T) {
 	assert.Equal(t, []string{}, createdProject.Variables)
 	assert.Equal(t, domain.ProjectStatusStopped, createdProject.Status)
 	assert.Equal(t, localCommit, remoteCommit)
-	assert.Equal(t, remoteCommit, createdProject.LastCommitStr())
+	assert.Equal(t, remoteCommit, createdProject.LocalCommitStr())
 	assert.False(t, createdProject.WatcherEnabled)
 	assert.NotNil(t, createdProject.CreatedAt)
 	assert.NotNil(t, createdProject.UpdatedAt)

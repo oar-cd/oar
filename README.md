@@ -22,6 +22,7 @@ GitOps automation for Docker Compose on a single Docker host. Oar watches a Git 
 #### Prerequisites
 
 - Docker Engine with the Docker Compose plugin on a Linux host.
+- SQLite 3.25.0 or later.
 - Network access from the host to your Git remote.
 
 #### Installation, upgrade
