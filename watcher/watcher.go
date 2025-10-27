@@ -106,7 +106,7 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 }
 
 func (w *WatcherService) checkProject(ctx context.Context, project *domain.Project) error {
-	currentCommit := project.LastCommitStr()
+	currentCommit := project.LocalCommitStr()
 
 	gitDir, err := project.GitDir()
 	if err != nil {
@@ -171,10 +171,10 @@ func (w *WatcherService) checkProject(ctx context.Context, project *domain.Proje
 			return fmt.Errorf("failed to deploy project: %w", err)
 		}
 
-		// Update the project's LastCommit to the newly deployed commit
-		project.LastCommit = &remoteCommit
+		// Update the project's LocalCommit to the newly deployed commit
+		project.LocalCommit = &remoteCommit
 		if err := w.projectService.Update(project); err != nil {
-			slog.Error("Failed to update project LastCommit after successful deployment",
+			slog.Error("Failed to update project LocalCommit after successful deployment",
 				"project_id", project.ID,
 				"project_name", project.Name,
 				"deployed_commit", remoteCommit,
@@ -182,7 +182,7 @@ func (w *WatcherService) checkProject(ctx context.Context, project *domain.Proje
 			// Don't return error here as deployment was successful
 			// This is just a tracking issue that won't break functionality
 		} else {
-			slog.Debug("Updated project LastCommit after successful deployment",
+			slog.Debug("Updated project LocalCommit after successful deployment",
 				"project_id", project.ID,
 				"project_name", project.Name,
 				"deployed_commit", remoteCommit)

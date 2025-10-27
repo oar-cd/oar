@@ -81,7 +81,7 @@ func ConvertProjectToView(p *domain.Project) projectcomponent.ProjectView {
 		GitBranch:       p.GitBranch,
 		GitAuth:         ConvertGitAuthConfig(p.GitAuth),
 		Status:          p.Status.String(),
-		LastCommit:      p.LastCommit,
+		LocalCommit:     p.LocalCommit,
 		ComposeFiles:    p.ComposeFiles,
 		ComposeOverride: p.ComposeOverride,
 		Variables:       p.Variables,

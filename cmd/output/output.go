@@ -126,7 +126,7 @@ func PrintProjectDetails(project *domain.Project, short bool) (string, error) {
 			[][]string{
 				{"Working Directory", project.WorkingDir},
 				{"Git Directory", gitDir},
-				{"Last Commit", formatCommitDetails(project.LastCommitStr())},
+				{"Last Commit", formatCommitDetails(project.LocalCommitStr())},
 			}...,
 		)
 
@@ -279,7 +279,7 @@ func PrintProjectList(projects []*domain.Project) (string, error) {
 		gitURL := truncateString(project.GitURL, 50)
 
 		// Format commit as short hash (8 chars like web UI)
-		commit := formatCommitHash(project.LastCommitStr())
+		commit := formatCommitHash(project.LocalCommitStr())
 
 		// Format branch for display
 		branch := project.GitBranch

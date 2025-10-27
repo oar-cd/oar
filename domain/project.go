@@ -75,7 +75,7 @@ type Project struct {
 	ComposeOverride *string  // Optional Docker Compose override content
 	Variables       []string // Variables in .env format, one per string
 	Status          ProjectStatus
-	LastCommit      *string
+	LocalCommit     *string
 	WatcherEnabled  bool // Enable automatic deployments on git changes
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
@@ -88,11 +88,11 @@ func (p *Project) GitDir() (string, error) {
 	return filepath.Join(p.WorkingDir, GitDir), nil
 }
 
-func (p *Project) LastCommitStr() string {
-	if p.LastCommit == nil {
+func (p *Project) LocalCommitStr() string {
+	if p.LocalCommit == nil {
 		return ""
 	}
-	return *p.LastCommit
+	return *p.LocalCommit
 }
 
 // GetDeletedDirectoryPath calculates the path where a project directory will be moved when deleted

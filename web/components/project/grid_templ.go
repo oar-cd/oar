@@ -115,7 +115,7 @@ type ProjectView struct {
 	GitBranch       string
 	GitAuth         *GitAuthConfig // Git authentication configuration
 	Status          string         // "running", "stopped", "error" (string representation)
-	LastCommit      *string        // Git commit SHA (first 8 chars)
+	LocalCommit     *string        // Git commit SHA (first 8 chars)
 	ComposeFiles    []string
 	ComposeOverride *string
 	Variables       []string

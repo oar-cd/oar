@@ -123,7 +123,7 @@ func (s *ProjectService) Create(project *domain.Project) (*domain.Project, error
 
 	// Get commit info
 	commit, _ := s.gitService.GetLatestCommit(gitDir)
-	project.LastCommit = &commit
+	project.LocalCommit = &commit
 
 	// Set initial status to stopped
 	project.Status = domain.ProjectStatusStopped
@@ -466,7 +466,7 @@ func (s *ProjectService) completeDeployment(
 
 	// Update project
 	project.Status = domain.ProjectStatusRunning
-	project.LastCommit = &commitHash
+	project.LocalCommit = &commitHash
 
 	// TODO: Transaction
 	if err := s.deploymentRepository.Update(&deployment); err != nil {
