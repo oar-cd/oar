@@ -219,6 +219,10 @@ func (s *ProjectService) DeployStreaming(
 			afterCommit = "unknown"
 		}
 
+		// Update commitHash to the new commit after pull
+		// This ensures we save the correct commit to the database
+		commitHash = afterCommit
+
 		// Format commit hashes (use first 8 characters, or full string if "unknown")
 		beforeHash := beforeCommit
 		if beforeCommit != "unknown" {
