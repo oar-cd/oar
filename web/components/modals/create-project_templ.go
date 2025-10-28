@@ -63,8 +63,8 @@ func createProjectBody() templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = forms.ProjectForm(forms.ProjectFormData{
-			IsEdit:         false,
-			WatcherEnabled: true, // Default to enabled for new projects
+			IsEdit:            false,
+			AutoDeployEnabled: true, // Default to enabled for new projects
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

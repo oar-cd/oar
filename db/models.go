@@ -31,7 +31,8 @@ type ProjectModel struct {
 	Variables          string  `gorm:"not null"`                           // Variables separated by null character (\0)
 	Status             string  `gorm:"not null;check:status <> ''"`        // running, stopped, error
 	LocalCommit        *string
-	WatcherEnabled     bool `gorm:"not null"` // Enable automatic deployments on git changes
+	RemoteCommit       *string
+	AutoDeployEnabled  bool `gorm:"not null"` // Enable automatic deployments on git changes
 
 	Deployments []DeploymentModel `gorm:"foreignKey:ProjectID;constraint:OnDelete:CASCADE"`
 }

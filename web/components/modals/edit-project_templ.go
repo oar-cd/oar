@@ -64,19 +64,19 @@ func editProjectBody(proj project.ProjectView) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = forms.ProjectForm(forms.ProjectFormData{
-			IsEdit:          true,
-			ProjectID:       proj.ID.String(),
-			Name:            proj.Name,
-			GitURL:          proj.GitURL,
-			GitBranch:       proj.GitBranch,
-			AuthMethod:      getAuthMethodFromProject(proj),
-			Username:        getUsernameFromProject(proj),
-			Password:        getPasswordFromProject(proj),
-			PrivateKey:      getPrivateKeyFromProject(proj),
-			ComposeFiles:    joinStringSlice(proj.ComposeFiles, "\n"),
-			ComposeOverride: getComposeOverrideFromProject(proj),
-			Variables:       joinStringSlice(proj.Variables, "\n"),
-			WatcherEnabled:  proj.WatcherEnabled,
+			IsEdit:            true,
+			ProjectID:         proj.ID.String(),
+			Name:              proj.Name,
+			GitURL:            proj.GitURL,
+			GitBranch:         proj.GitBranch,
+			AuthMethod:        getAuthMethodFromProject(proj),
+			Username:          getUsernameFromProject(proj),
+			Password:          getPasswordFromProject(proj),
+			PrivateKey:        getPrivateKeyFromProject(proj),
+			ComposeFiles:      joinStringSlice(proj.ComposeFiles, "\n"),
+			ComposeOverride:   getComposeOverrideFromProject(proj),
+			Variables:         joinStringSlice(proj.Variables, "\n"),
+			AutoDeployEnabled: proj.AutoDeployEnabled,
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

@@ -73,28 +73,19 @@ func (w *WatcherService) checkAllProjects(ctx context.Context) error {
 				"error", err)
 		}
 
-		// Only check git changes for watcher-enabled projects
-		if project.WatcherEnabled {
-			if project.Status == domain.ProjectStatusStopped {
-				slog.Info("Project is stopped - skipping git check",
-					"project_id", project.ID,
-					"project_name", project.Name,
-					"status", project.Status.String())
-				continue
-			}
+		// Check git changes for all projects to keep RemoteCommit updated
+		slog.Debug("Checking project",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"status", project.Status.String(),
+			"auto_deploy_enabled", project.AutoDeployEnabled)
 
-			slog.Info("Checking project",
+		projectsChecked++
+		if err := w.checkProject(ctx, project); err != nil {
+			slog.Error("Failed to check project",
 				"project_id", project.ID,
 				"project_name", project.Name,
-				"status", project.Status.String())
-
-			projectsChecked++
-			if err := w.checkProject(ctx, project); err != nil {
-				slog.Error("Failed to check project",
-					"project_id", project.ID,
-					"project_name", project.Name,
-					"error", err)
-			}
+				"error", err)
 		}
 	}
 
@@ -124,18 +115,33 @@ func (w *WatcherService) checkProject(ctx context.Context, project *domain.Proje
 		return fmt.Errorf("failed to get remote commit: %w", err)
 	}
 
+	// Update RemoteCommit for all projects (informational, independent of auto-deploy)
+	project.RemoteCommit = &remoteCommit
+	if err := w.projectService.Update(project); err != nil {
+		slog.Error("Failed to update project RemoteCommit",
+			"project_id", project.ID,
+			"project_name", project.Name,
+			"remote_commit", remoteCommit,
+			"error", err)
+		// Don't return error here - RemoteCommit update is informational
+		// Continue to check if we should auto-deploy
+	}
+
 	// Log git check results
 	slog.Info("Git check completed",
 		"project_id", project.ID,
 		"project_name", project.Name,
-		"current_commit", currentCommit,
+		"local_commit", currentCommit,
 		"remote_commit", remoteCommit,
-		"has_updates", currentCommit != remoteCommit)
+		"has_updates", currentCommit != remoteCommit,
+		"auto_deploy_enabled", project.AutoDeployEnabled)
 
-	// Deploy if there are git changes OR if project is not in running/stopped state
+	// Only deploy if auto-deploy is enabled AND project is not stopped AND (there are git changes OR project is in error state)
+	// We don't auto-deploy stopped projects even if they have updates - user explicitly stopped them
 	hasGitChanges := currentCommit != remoteCommit
 	isInErrorState := project.Status != domain.ProjectStatusRunning && project.Status != domain.ProjectStatusStopped
-	shouldDeploy := hasGitChanges || isInErrorState
+	shouldDeploy := project.AutoDeployEnabled && project.Status != domain.ProjectStatusStopped &&
+		(hasGitChanges || isInErrorState)
 
 	if shouldDeploy {
 		var reason string

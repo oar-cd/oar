@@ -23,7 +23,7 @@ templ editProjectBody(proj project.ProjectView) {
 		ComposeFiles:    joinStringSlice(proj.ComposeFiles, "\n"),
 		ComposeOverride: getComposeOverrideFromProject(proj),
 		Variables:       joinStringSlice(proj.Variables, "\n"),
-		WatcherEnabled:  proj.WatcherEnabled,
+		AutoDeployEnabled:  proj.AutoDeployEnabled,
 	})
 }
 

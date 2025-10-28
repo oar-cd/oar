@@ -18,7 +18,7 @@ type ProjectFormData struct {
 	ComposeFiles    string
 	ComposeOverride string
 	Variables       string
-	WatcherEnabled  bool
+	AutoDeployEnabled  bool
 }
 
 // ProjectForm renders the project form with all required fields
@@ -174,7 +174,7 @@ templ ProjectForm(data ProjectFormData) {
 					id="watcher_enabled"
 					name="watcher_enabled"
 					class="mr-2"
-					checked?={ data.WatcherEnabled }
+					checked?={ data.AutoDeployEnabled }
 				/>
 				<span class="text-sm font-medium text-gray-700">Automatic deployment</span>
 			</label>
