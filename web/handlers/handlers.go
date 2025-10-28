@@ -75,19 +75,20 @@ func BuildGitAuthConfig(r *http.Request) *domain.GitAuthConfig {
 // ConvertProjectToView converts a backend Project to frontend ProjectView
 func ConvertProjectToView(p *domain.Project) projectcomponent.ProjectView {
 	return projectcomponent.ProjectView{
-		ID:              p.ID,
-		Name:            p.Name,
-		GitURL:          p.GitURL,
-		GitBranch:       p.GitBranch,
-		GitAuth:         ConvertGitAuthConfig(p.GitAuth),
-		Status:          p.Status.String(),
-		LocalCommit:     p.LocalCommit,
-		ComposeFiles:    p.ComposeFiles,
-		ComposeOverride: p.ComposeOverride,
-		Variables:       p.Variables,
-		WatcherEnabled:  p.WatcherEnabled,
-		CreatedAt:       p.CreatedAt,
-		UpdatedAt:       p.UpdatedAt,
+		ID:                p.ID,
+		Name:              p.Name,
+		GitURL:            p.GitURL,
+		GitBranch:         p.GitBranch,
+		GitAuth:           ConvertGitAuthConfig(p.GitAuth),
+		Status:            p.Status.String(),
+		LocalCommit:       p.LocalCommit,
+		ComposeFiles:      p.ComposeFiles,
+		ComposeOverride:   p.ComposeOverride,
+		Variables:         p.Variables,
+		AutoDeployEnabled: p.AutoDeployEnabled,
+		IsOutdated:        p.IsOutdated(),
+		CreatedAt:         p.CreatedAt,
+		UpdatedAt:         p.UpdatedAt,
 	}
 }
 

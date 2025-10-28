@@ -65,20 +65,21 @@ func ParseGitAuthType(s string) (GitAuthType, error) {
 }
 
 type Project struct {
-	ID              uuid.UUID
-	Name            string
-	GitURL          string
-	GitBranch       string         // Git branch to use (never empty, always set to default branch if not specified)
-	GitAuth         *GitAuthConfig // Git authentication configuration
-	WorkingDir      string
-	ComposeFiles    []string
-	ComposeOverride *string  // Optional Docker Compose override content
-	Variables       []string // Variables in .env format, one per string
-	Status          ProjectStatus
-	LocalCommit     *string
-	WatcherEnabled  bool // Enable automatic deployments on git changes
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                uuid.UUID
+	Name              string
+	GitURL            string
+	GitBranch         string         // Git branch to use (never empty, always set to default branch if not specified)
+	GitAuth           *GitAuthConfig // Git authentication configuration
+	WorkingDir        string
+	ComposeFiles      []string
+	ComposeOverride   *string  // Optional Docker Compose override content
+	Variables         []string // Variables in .env format, one per string
+	Status            ProjectStatus
+	LocalCommit       *string
+	RemoteCommit      *string
+	AutoDeployEnabled bool // Enable automatic deployments on git changes
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 func (p *Project) GitDir() (string, error) {
@@ -95,6 +96,21 @@ func (p *Project) LocalCommitStr() string {
 	return *p.LocalCommit
 }
 
+func (p *Project) RemoteCommitStr() string {
+	if p.RemoteCommit == nil {
+		return ""
+	}
+	return *p.RemoteCommit
+}
+
+// IsOutdated returns true if the remote has commits that are not yet deployed locally
+func (p *Project) IsOutdated() bool {
+	if p.RemoteCommit == nil || p.LocalCommit == nil {
+		return false
+	}
+	return *p.RemoteCommit != *p.LocalCommit
+}
+
 // GetDeletedDirectoryPath calculates the path where a project directory will be moved when deleted
 func GetDeletedDirectoryPath(workingDir string) string {
 	deletedDirName := fmt.Sprintf("deleted-%s", filepath.Base(workingDir))
@@ -103,13 +119,13 @@ func GetDeletedDirectoryPath(workingDir string) string {
 
 func NewProject(name, gitURL string, composeFiles []string, variables []string) Project {
 	return Project{
-		ID:             uuid.New(),
-		Name:           name,
-		GitURL:         gitURL,
-		GitBranch:      "", // Default to repository's default branch
-		ComposeFiles:   composeFiles,
-		Variables:      variables,
-		Status:         ProjectStatusStopped,
-		WatcherEnabled: true, // Default to enabled
+		ID:                uuid.New(),
+		Name:              name,
+		GitURL:            gitURL,
+		GitBranch:         "", // Default to repository's default branch
+		ComposeFiles:      composeFiles,
+		Variables:         variables,
+		Status:            ProjectStatusStopped,
+		AutoDeployEnabled: true, // Default to enabled
 	}
 }

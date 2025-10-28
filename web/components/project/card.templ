@@ -13,14 +13,14 @@ templ ProjectCard(project ProjectView) {
 		<div class="project-status">
 			<div class="flex items-center gap-1">
 				@StatusPill(project.ID.String(), project.Status)
-				<div class="watcher-indicator flex items-center">
-					if project.WatcherEnabled {
+				<div class="auto-deploy-indicator flex items-center">
+					if project.AutoDeployEnabled {
 						<div title="Automatic deployment enabled" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-							@icons.Eye("icon-sm")
+							@icons.Rocket("icon-sm")
 						</div>
 					} else {
 						<div title="Automatic deployment disabled" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-							@icons.EyeOff("icon-sm")
+							@icons.Rocket("icon-sm")
 						</div>
 					}
 				</div>
@@ -59,7 +59,11 @@ templ ProjectCard(project ProjectView) {
 
 		<!-- Action buttons in link-style with proper spacing -->
 		<div class="project-actions">
-			@ActionButton("deploy", "Deploy", "rocket", "btn-link-primary", fmt.Sprintf("/projects/%s/deploy", project.ID.String()))
+			if project.IsOutdated {
+				@ActionButtonWithIconClass("deploy", "Deploy", "Deploy (updates available)", "rocket", "text-green-600", "btn-link-primary", fmt.Sprintf("/projects/%s/deploy", project.ID.String()))
+			} else {
+				@ActionButton("deploy", "Deploy", "rocket", "btn-link-primary", fmt.Sprintf("/projects/%s/deploy", project.ID.String()))
+			}
 			@ActionButton("stop", "Stop", "circle-stop", "btn-link-warning", fmt.Sprintf("/projects/%s/stop", project.ID.String()))
 			@ActionButton("edit", "Edit", "square-pen", "btn-link", fmt.Sprintf("/projects/%s/edit", project.ID.String()))
 			@ActionButton("deployments", "Deployments", "list-checks", "btn-link", fmt.Sprintf("/projects/%s/deployments", project.ID.String()))
@@ -91,6 +95,21 @@ templ ActionButton(action, label, iconName, buttonClass, url string) {
 		title={ label }
 	>
 		@icons.Icon(iconName, "icon-sm")
+		<span>{ label }</span>
+	</button>
+}
+
+// ActionButtonWithIconClass renders a clickable action button with custom icon styling
+templ ActionButtonWithIconClass(action, label, tooltip, iconName, iconClass, buttonClass, url string) {
+	<button
+		type="button"
+		class={ fmt.Sprintf("action-button %s", buttonClass) }
+		hx-get={ url }
+		hx-target="#modal-container"
+		hx-swap="outerHTML"
+		title={ tooltip }
+	>
+		@icons.Icon(iconName, fmt.Sprintf("icon-sm %s", iconClass))
 		<span>{ label }</span>
 	</button>
 }

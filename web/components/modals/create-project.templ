@@ -11,7 +11,7 @@ templ CreateProjectModal() {
 templ createProjectBody() {
 	@forms.ProjectForm(forms.ProjectFormData{
 		IsEdit:         false,
-		WatcherEnabled: true, // Default to enabled for new projects
+		AutoDeployEnabled: true, // Default to enabled for new projects
 	})
 }
 

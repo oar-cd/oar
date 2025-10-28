@@ -14,19 +14,19 @@ import (
 
 // ProjectFormData holds the form data for project forms
 type ProjectFormData struct {
-	IsEdit          bool
-	ProjectID       string // Only used for edit mode
-	Name            string
-	GitURL          string
-	GitBranch       string
-	AuthMethod      string // "none", "http", "ssh"
-	Username        string
-	Password        string
-	PrivateKey      string
-	ComposeFiles    string
-	ComposeOverride string
-	Variables       string
-	WatcherEnabled  bool
+	IsEdit            bool
+	ProjectID         string // Only used for edit mode
+	Name              string
+	GitURL            string
+	GitBranch         string
+	AuthMethod        string // "none", "http", "ssh"
+	Username          string
+	Password          string
+	PrivateKey        string
+	ComposeFiles      string
+	ComposeOverride   string
+	Variables         string
+	AutoDeployEnabled bool
 }
 
 // ProjectForm renders the project form with all required fields
@@ -248,7 +248,7 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if data.WatcherEnabled {
+		if data.AutoDeployEnabled {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, " checked")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

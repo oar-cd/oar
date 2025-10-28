@@ -10,25 +10,25 @@ import (
 
 // ProjectCreateRequest represents the data needed to create a project
 type ProjectCreateRequest struct {
-	Name            string
-	GitURL          string
-	GitBranch       string
-	ComposeFiles    string
-	ComposeOverride string
-	Variables       string
-	GitAuth         *domain.GitAuthConfig
-	WatcherEnabled  bool
+	Name              string
+	GitURL            string
+	GitBranch         string
+	ComposeFiles      string
+	ComposeOverride   string
+	Variables         string
+	GitAuth           *domain.GitAuthConfig
+	AutoDeployEnabled bool
 }
 
 // ProjectUpdateRequest represents the data needed to update a project
 type ProjectUpdateRequest struct {
-	ID              uuid.UUID
-	Name            string
-	ComposeFiles    string
-	ComposeOverride string
-	Variables       string
-	GitAuth         *domain.GitAuthConfig
-	WatcherEnabled  bool
+	ID                uuid.UUID
+	Name              string
+	ComposeFiles      string
+	ComposeOverride   string
+	Variables         string
+	GitAuth           *domain.GitAuthConfig
+	AutoDeployEnabled bool
 }
 
 // validateProjectCreateRequest validates a project creation request
@@ -81,16 +81,16 @@ func buildProjectFromCreateRequest(req *ProjectCreateRequest) *domain.Project {
 	}
 
 	return &domain.Project{
-		ID:              uuid.New(),
-		Name:            req.Name,
-		GitURL:          req.GitURL,
-		GitBranch:       req.GitBranch,
-		GitAuth:         req.GitAuth,
-		ComposeFiles:    parseComposeFiles(req.ComposeFiles),
-		ComposeOverride: composeOverride,
-		Variables:       parseVariables(req.Variables),
-		Status:          domain.ProjectStatusStopped,
-		WatcherEnabled:  req.WatcherEnabled,
+		ID:                uuid.New(),
+		Name:              req.Name,
+		GitURL:            req.GitURL,
+		GitBranch:         req.GitBranch,
+		GitAuth:           req.GitAuth,
+		ComposeFiles:      parseComposeFiles(req.ComposeFiles),
+		ComposeOverride:   composeOverride,
+		Variables:         parseVariables(req.Variables),
+		Status:            domain.ProjectStatusStopped,
+		AutoDeployEnabled: req.AutoDeployEnabled,
 	}
 }
 
@@ -107,5 +107,5 @@ func applyProjectUpdateRequest(project *domain.Project, req *ProjectUpdateReques
 	project.ComposeFiles = parseComposeFiles(req.ComposeFiles)
 	project.ComposeOverride = composeOverride
 	project.Variables = parseVariables(req.Variables)
-	project.WatcherEnabled = req.WatcherEnabled
+	project.AutoDeployEnabled = req.AutoDeployEnabled
 }

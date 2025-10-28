@@ -109,19 +109,20 @@ func EmptyState() templ.Component {
 
 // ProjectView represents the frontend view data for a project (simplified from backend Project)
 type ProjectView struct {
-	ID              uuid.UUID
-	Name            string
-	GitURL          string
-	GitBranch       string
-	GitAuth         *GitAuthConfig // Git authentication configuration
-	Status          string         // "running", "stopped", "error" (string representation)
-	LocalCommit     *string        // Git commit SHA (first 8 chars)
-	ComposeFiles    []string
-	ComposeOverride *string
-	Variables       []string
-	WatcherEnabled  bool
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                uuid.UUID
+	Name              string
+	GitURL            string
+	GitBranch         string
+	GitAuth           *GitAuthConfig // Git authentication configuration
+	Status            string         // "running", "stopped", "error" (string representation)
+	LocalCommit       *string        // Git commit SHA (first 8 chars)
+	ComposeFiles      []string
+	ComposeOverride   *string
+	Variables         []string
+	AutoDeployEnabled bool
+	IsOutdated        bool // Whether remote has new commits not yet deployed locally
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // GitAuthConfig holds Git authentication configuration for a project
