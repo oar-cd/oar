@@ -141,6 +141,7 @@ templ ProjectForm(data ProjectFormData) {
 				class="form-textarea"
 				rows="3"
 				placeholder="compose.yaml&#10;compose.override.yaml"
+				wrap="off"
 				required
 			>{ data.ComposeFiles }</textarea>
 		</div>
@@ -153,6 +154,7 @@ templ ProjectForm(data ProjectFormData) {
 				class="form-textarea"
 				rows="5"
 				placeholder="services:&#10;  app:&#10;    logging:&#10;      driver: json-file"
+				wrap="off"
 			>{ data.ComposeOverride }</textarea>
 		</div>
 		<!-- Variables (optional) -->
@@ -164,6 +166,7 @@ templ ProjectForm(data ProjectFormData) {
 				class="form-textarea"
 				rows="3"
 				placeholder="KEY1=value1&#10;KEY2=value2"
+				wrap="off"
 			>{ data.Variables }</textarea>
 		</div>
 		<!-- Watcher configuration -->
@@ -230,6 +233,7 @@ templ AuthFields(data ProjectFormData) {
 				class="form-textarea"
 				rows="3"
 				placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
+				wrap="off"
 			>{ data.PrivateKey }</textarea>
 		</div>
 	</div>

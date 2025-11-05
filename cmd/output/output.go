@@ -354,13 +354,13 @@ func formatProjectStatus(status string) string {
 
 	switch strings.ToLower(status) {
 	case "running":
-		return maybeColorize(Success, status)
+		return maybeColorize(Success, "%s", status)
 	case "stopped":
-		return maybeColorize(Warning, status)
+		return maybeColorize(Warning, "%s", status)
 	case "error":
-		return maybeColorize(Error, status)
+		return maybeColorize(Error, "%s", status)
 	default:
-		return maybeColorize(Plain, status)
+		return maybeColorize(Plain, "%s", status)
 	}
 }
 
@@ -373,13 +373,13 @@ func formatDeploymentStatus(status string) string {
 
 	switch strings.ToLower(status) {
 	case "completed":
-		return maybeColorize(Success, status)
+		return maybeColorize(Success, "%s", status)
 	case "started":
-		return maybeColorize(Warning, status)
+		return maybeColorize(Warning, "%s", status)
 	case "failed":
-		return maybeColorize(Error, status)
+		return maybeColorize(Error, "%s", status)
 	default:
-		return maybeColorize(Plain, status)
+		return maybeColorize(Plain, "%s", status)
 	}
 }
 

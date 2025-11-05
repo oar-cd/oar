@@ -410,20 +410,11 @@
   .flex-1 {
     flex: 1;
   }
-  .flex-shrink {
-    flex-shrink: 1;
-  }
   .shrink {
     flex-shrink: 1;
   }
-  .flex-grow {
-    flex-grow: 1;
-  }
   .grow {
     flex-grow: 1;
-  }
-  .border-collapse {
-    border-collapse: collapse;
   }
   .translate-x-full {
     --tw-translate-x: 100%;
@@ -443,9 +434,6 @@
   }
   .flex-col {
     flex-direction: column;
-  }
-  .flex-wrap {
-    flex-wrap: wrap;
   }
   .items-center {
     align-items: center;
@@ -1139,6 +1127,7 @@ body {
   display: block;
   width: 100%;
   resize: vertical;
+  overflow-x: auto;
   border-radius: var(--radius-md);
   border-style: var(--tw-border-style);
   border-width: 1px;
@@ -1148,6 +1137,7 @@ body {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: var(--tw-leading, var(--text-xs--line-height));
+  white-space: pre;
   &::placeholder {
     color: var(--color-gray-400);
   }
