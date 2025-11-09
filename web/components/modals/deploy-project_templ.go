@@ -62,20 +62,7 @@ func deployProjectBody(proj project.ProjectView) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"mb-4\"><p class=\"text-sm text-gray-600 mb-4\">Deploy project \"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(proj.Name)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/deploy-project.templ`, Line: 14, Col: 30}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" using Docker Compose. The output will be shown in real-time below.</p></div><div class=\"deploy-output-container\"><div id=\"deploy-output\" class=\"deploy-code-block\"><pre id=\"deploy-content\" class=\"streaming-output\"><span class=\"deploy-text-info\">Ready to deploy...</span></pre></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"deploy-output-container\"><div id=\"deploy-output\" class=\"deploy-code-block\"><pre id=\"deploy-content\" class=\"streaming-output\"><span class=\"deploy-text-info\">Ready to deploy...</span></pre></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

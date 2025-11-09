@@ -4,17 +4,11 @@ import "github.com/oar-cd/oar/web/components/project"
 
 // StopProjectModal renders the project stop modal
 templ StopProjectModal(proj project.ProjectView) {
-	@LargeModal("Stop " + proj.Name, stopProjectBody(proj), StreamingActionFooter("Stop", "stop-btn", proj.ID.String()))
+	@LargeModal("Stop "+proj.Name, stopProjectBody(proj), StreamingActionFooter("Stop", "stop-btn", proj.ID.String()))
 }
 
 // stopProjectBody renders the modal body content
 templ stopProjectBody(proj project.ProjectView) {
-	<div class="mb-4">
-		<p class="text-sm text-gray-600 mb-4">
-			Stop project "{ proj.Name }" using Docker Compose. The output will be shown in real-time below.
-		</p>
-	</div>
-
 	<div class="stop-output-container">
 		<div id="stop-output" class="stop-code-block">
 			<pre id="stop-content" class="streaming-output"><span class="deploy-text-info">Ready to stop...</span></pre>
