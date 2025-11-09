@@ -205,40 +205,40 @@ func ProjectForm(data ProjectFormData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><!-- Compose file paths --><div class=\"form-group\"><label for=\"compose_files\" class=\"form-label\">Compose file paths <span class=\"text-red-500\">*</span></label> <textarea id=\"compose_files\" name=\"compose_files\" class=\"form-textarea\" rows=\"3\" placeholder=\"compose.yaml&#10;compose.override.yaml\" required>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><!-- Compose file paths --><div class=\"form-group\"><label for=\"compose_files\" class=\"form-label\">Compose file paths <span class=\"text-red-500\">*</span></label> <textarea id=\"compose_files\" name=\"compose_files\" class=\"form-textarea\" rows=\"3\" placeholder=\"compose.yaml&#10;compose.override.yaml\" wrap=\"off\" required>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.ComposeFiles)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 145, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 146, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</textarea></div><!-- Compose override (optional) --><div class=\"form-group\"><label for=\"compose_override\" class=\"form-label\">Compose override file</label> <textarea id=\"compose_override\" name=\"compose_override\" class=\"form-textarea\" rows=\"5\" placeholder=\"services:&#10;  app:&#10;    logging:&#10;      driver: json-file\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</textarea></div><!-- Compose override (optional) --><div class=\"form-group\"><label for=\"compose_override\" class=\"form-label\">Compose override file</label> <textarea id=\"compose_override\" name=\"compose_override\" class=\"form-textarea\" rows=\"5\" placeholder=\"services:&#10;  app:&#10;    logging:&#10;      driver: json-file\" wrap=\"off\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.ComposeOverride)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 156, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 158, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea></div><!-- Variables (optional) --><div class=\"form-group\"><label for=\"variables\" class=\"form-label\">Variables</label> <textarea id=\"variables\" name=\"variables\" class=\"form-textarea\" rows=\"3\" placeholder=\"KEY1=value1&#10;KEY2=value2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea></div><!-- Variables (optional) --><div class=\"form-group\"><label for=\"variables\" class=\"form-label\">Variables</label> <textarea id=\"variables\" name=\"variables\" class=\"form-textarea\" rows=\"3\" placeholder=\"KEY1=value1&#10;KEY2=value2\" wrap=\"off\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Variables)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 167, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 170, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -291,7 +291,7 @@ func AuthFields(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 196, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 199, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -304,7 +304,7 @@ func AuthFields(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(data.Password)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 207, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 210, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -317,20 +317,20 @@ func AuthFields(data ProjectFormData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(data.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 221, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 224, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" placeholder=\"git\"></div><div class=\"form-group\"><label for=\"private_key\" class=\"form-label\">Private key <span class=\"text-red-500\">*</span></label> <textarea id=\"private_key\" name=\"private_key\" class=\"form-textarea\" rows=\"3\" placeholder=\"-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" placeholder=\"git\"></div><div class=\"form-group\"><label for=\"private_key\" class=\"form-label\">Private key <span class=\"text-red-500\">*</span></label> <textarea id=\"private_key\" name=\"private_key\" class=\"form-textarea\" rows=\"3\" placeholder=\"-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----\" wrap=\"off\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(data.PrivateKey)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 233, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/forms/project-form.templ`, Line: 237, Col: 21}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
