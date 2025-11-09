@@ -52,7 +52,7 @@ assets:
 
 build-release: build assets
 
-dev:
+run:
 	make -j4 tailwind-watch templ-watch air
 
 release:

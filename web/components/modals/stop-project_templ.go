@@ -62,20 +62,7 @@ func stopProjectBody(proj project.ProjectView) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"mb-4\"><p class=\"text-sm text-gray-600 mb-4\">Stop project \"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(proj.Name)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/components/modals/stop-project.templ`, Line: 14, Col: 28}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" using Docker Compose. The output will be shown in real-time below.</p></div><div class=\"stop-output-container\"><div id=\"stop-output\" class=\"stop-code-block\"><pre id=\"stop-content\" class=\"streaming-output\"><span class=\"deploy-text-info\">Ready to stop...</span></pre></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"stop-output-container\"><div id=\"stop-output\" class=\"stop-code-block\"><pre id=\"stop-content\" class=\"streaming-output\"><span class=\"deploy-text-info\">Ready to stop...</span></pre></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
