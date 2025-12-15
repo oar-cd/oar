@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/config"
+	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
+	"github.com/go-git/go-git/v6/plumbing/transport"
+	"github.com/go-git/go-git/v6/plumbing/transport/http"
+	"github.com/go-git/go-git/v6/plumbing/transport/ssh"
 	oarconfig "github.com/oar-cd/oar/config"
 	"github.com/oar-cd/oar/domain"
 )
@@ -96,7 +97,7 @@ func (s *GitService) Clone(gitURL string, gitBranch string, gitAuth *domain.GitA
 		cloneOptions.ReferenceName = plumbing.NewBranchReferenceName(gitBranch)
 	}
 
-	_, err = git.PlainCloneContext(ctx, workingDir, false, cloneOptions)
+	_, err = git.PlainCloneContext(ctx, workingDir, cloneOptions)
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
@@ -183,47 +184,61 @@ func (s *GitService) Pull(gitBranch string, gitAuth *domain.GitAuthConfig, worki
 		return fmt.Errorf("failed to get remote reference %s: %w", remoteBranchName, err)
 	}
 
-	// Check if we're already up to date
-	if currentCommit == ref.Hash().String() {
-		slog.Debug("Repository already up to date", "git_branch", branchName, "working_dir", workingDir)
-		return nil
+	// Check if we're already up to date with the remote commit
+	upToDate := currentCommit == ref.Hash().String()
+
+	// Check for modified tracked files first (before checking untracked conflicts)
+	err = s.checkModifiedTrackedFiles(worktree)
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull_check_modified_files",
+			"git_branch", branchName,
+			"working_dir", workingDir,
+			"error", err)
+		return err
 	}
 
-	// Checkout to the new commit while preserving untracked files (like Docker bind mounts)
-	err = worktree.Checkout(&git.CheckoutOptions{
-		Hash: ref.Hash(),
-		Keep: true, // Keep untracked files
+	// Check for conflicts between untracked files and incoming tracked files
+	err = s.checkUntrackedConflicts(repo, worktree, ref.Hash())
+	if err != nil {
+		slog.Error("Service operation failed",
+			"layer", "git",
+			"operation", "git_pull_check_conflicts",
+			"git_branch", branchName,
+			"working_dir", workingDir,
+			"target_commit", ref.Hash().String(),
+			"error", err)
+		return err
+	}
+
+	// Reset worktree to match remote commit exactly
+	// At this point we've verified there are no modified tracked files and no conflicting untracked files
+	// We use MergeReset which, with the fix in PR #1540, preserves untracked files
+	err = worktree.Reset(&git.ResetOptions{
+		Mode:   git.MergeReset,
+		Commit: ref.Hash(),
 	})
 	if err != nil {
 		slog.Error("Service operation failed",
 			"layer", "git",
-			"operation", "git_pull_checkout",
+			"operation", "git_pull_reset",
 			"git_branch", branchName,
 			"working_dir", workingDir,
 			"target_commit", ref.Hash().String(),
 			"error", err)
-		return fmt.Errorf("failed to checkout files from %s: %w", ref.Hash().String(), err)
+		return fmt.Errorf("failed to reset to %s: %w", ref.Hash().String(), err)
 	}
 
-	// Reset only tracked files to match the remote commit exactly
-	// This ensures local changes to tracked files are discarded while preserving untracked files
-	err = s.resetTrackedFiles(worktree)
-	if err != nil {
-		slog.Error("Service operation failed",
-			"layer", "git",
-			"operation", "git_pull_reset_tracked",
+	if upToDate {
+		slog.Debug("Working directory synchronized with remote", "git_branch", branchName, "working_dir", workingDir)
+	} else {
+		slog.Info("Repository updated successfully",
 			"git_branch", branchName,
 			"working_dir", workingDir,
-			"target_commit", ref.Hash().String(),
-			"error", err)
-		return fmt.Errorf("failed to reset tracked files: %w", err)
+			"from_commit", currentCommit,
+			"to_commit", ref.Hash().String())
 	}
-
-	slog.Info("Repository updated successfully",
-		"git_branch", branchName,
-		"working_dir", workingDir,
-		"from_commit", currentCommit,
-		"to_commit", ref.Hash().String())
 
 	return nil
 }
@@ -467,29 +482,87 @@ func (s *GitService) GetDefaultBranch(gitURL string, gitAuth *domain.GitAuthConf
 	return "", fmt.Errorf("could not determine default branch for repository %s", gitURL)
 }
 
-// resetTrackedFiles resets all tracked files in the worktree to their last committed state
-// while leaving untracked files intact.
-func (s *GitService) resetTrackedFiles(worktree *git.Worktree) error {
-	changedFiles, err := worktree.Status()
+// checkUntrackedConflicts checks if any untracked files would conflict with incoming tracked files
+func (s *GitService) checkUntrackedConflicts(
+	repo *git.Repository,
+	worktree *git.Worktree,
+	targetHash plumbing.Hash,
+) error {
+	// Get current worktree status to find untracked files
+	status, err := worktree.Status()
 	if err != nil {
 		return fmt.Errorf("failed to get worktree status: %w", err)
 	}
 
-	resetFiles := make([]string, 0, len(changedFiles))
-	for file, status := range changedFiles {
-		if status.Staging != git.Untracked {
-			resetFiles = append(resetFiles, file)
+	// Collect untracked files
+	untrackedFiles := make(map[string]bool)
+	for file, fileStatus := range status {
+		if fileStatus.Worktree == git.Untracked {
+			untrackedFiles[file] = true
 		}
 	}
 
-	if len(resetFiles) > 0 {
-		err = worktree.Reset(&git.ResetOptions{
-			Mode:  git.HardReset,
-			Files: resetFiles,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to reset tracked files: %w", err)
+	// If no untracked files, no conflicts possible
+	if len(untrackedFiles) == 0 {
+		return nil
+	}
+
+	// Get target commit to check which files it contains
+	targetCommit, err := repo.CommitObject(targetHash)
+	if err != nil {
+		return fmt.Errorf("failed to get target commit: %w", err)
+	}
+
+	targetTree, err := targetCommit.Tree()
+	if err != nil {
+		return fmt.Errorf("failed to get target tree: %w", err)
+	}
+
+	// Check if any untracked files exist in the target commit
+	var conflictingFiles []string
+	err = targetTree.Files().ForEach(func(f *object.File) error {
+		if untrackedFiles[f.Name] {
+			conflictingFiles = append(conflictingFiles, f.Name)
 		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to iterate target tree files: %w", err)
+	}
+
+	// If there are conflicts, return an error
+	if len(conflictingFiles) > 0 {
+		return fmt.Errorf("untracked files would be overwritten by checkout: %v", conflictingFiles)
+	}
+
+	return nil
+}
+
+// checkModifiedTrackedFiles checks if any tracked files have been modified (staged or unstaged)
+func (s *GitService) checkModifiedTrackedFiles(worktree *git.Worktree) error {
+	// Get current worktree status
+	status, err := worktree.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	// Collect modified tracked files
+	var modifiedFiles []string
+	for file, fileStatus := range status {
+		// Skip untracked files
+		if fileStatus.Worktree == git.Untracked {
+			continue
+		}
+
+		// Check if file is modified (either in worktree or staging area)
+		if fileStatus.Worktree != git.Unmodified || fileStatus.Staging != git.Unmodified {
+			modifiedFiles = append(modifiedFiles, file)
+		}
+	}
+
+	// If there are modified tracked files, return an error
+	if len(modifiedFiles) > 0 {
+		return fmt.Errorf("cannot pull with modified tracked files: %v", modifiedFiles)
 	}
 
 	return nil
