@@ -11,6 +11,7 @@ import (
 
 	"github.com/fernet/fernet-go"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -197,6 +198,32 @@ func (ctx *testContext) waitForProjectStatus(
 			ctx.t.Logf("Waiting for status %s, current status: %s", expectedStatus, status.Status)
 		}
 	}
+}
+
+// refreshProject fetches the latest project data from the database
+func (ctx *testContext) refreshProject(projectID uuid.UUID) (*domain.Project, error) {
+	return ctx.projectManager.Get(projectID)
+}
+
+// verifyProjectStatus verifies both Docker Compose status and database status
+// Returns the status and refreshed project for additional assertions
+func (ctx *testContext) verifyProjectStatus(
+	projectID uuid.UUID,
+	expectedDockerStatus docker.ComposeProjectStatus,
+	expectedDBStatus domain.ProjectStatus,
+) *docker.ComposeStatus {
+	// Check Docker Compose status
+	status, err := ctx.projectManager.GetStatus(projectID)
+	require.NoError(ctx.t, err, "Getting status should succeed")
+	require.NotNil(ctx.t, status, "Status should not be nil")
+	assert.Equal(ctx.t, expectedDockerStatus, status.Status, "Docker Compose status should match expected")
+
+	// Check database status
+	refreshedProject, err := ctx.refreshProject(projectID)
+	require.NoError(ctx.t, err, "Getting project from database should succeed")
+	assert.Equal(ctx.t, expectedDBStatus, refreshedProject.Status, "Database status should match expected")
+
+	return status
 }
 
 // setupCleanup registers cleanup for a project including Docker volumes
