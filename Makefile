@@ -1,4 +1,4 @@
-.PHONY: lint test test-verbose test-one test-ci templ templ-watch tailwind tailwind-watch generate air build dev release release-patch release-minor release-major build-release
+.PHONY: lint lint-fix test test-verbose test-one test-ci templ templ-watch tailwind tailwind-watch generate air build dev release release-patch release-minor release-major build-release
 
 .EXPORT_ALL_VARIABLES:
 
@@ -8,8 +8,33 @@ OAR_EXECUTABLE_FILENAME ?= oar
 OAR_WEB_ASSETS_FILENAME ?= web-assets.tar.gz
 OAR_BUILD_ARTIFACTS_DIR ?= dist
 
-lint:
-	golangci-lint run --fix
+# Bump this to upgrade the linter. To re-install, delete ./bin/golangci-lint.
+# The upstream install script has a checksum-matching bug when the release
+# ships an SBOM sidecar, so we download the tarball directly and verify the
+# SHA-256 against the published checksums file.
+GOLANGCI_LINT_VERSION ?= 2.12.2
+GOLANGCI_LINT := ./bin/golangci-lint
+
+$(GOLANGCI_LINT):
+	@mkdir -p ./bin
+	@tmp=$$(mktemp -d) && \
+		os=$$(uname -s | tr A-Z a-z) && \
+		arch=$$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/') && \
+		name="golangci-lint-$(GOLANGCI_LINT_VERSION)-$${os}-$${arch}" && \
+		base="https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)" && \
+		echo "Downloading $${name}.tar.gz" && \
+		curl -fsSL -o "$${tmp}/archive.tar.gz" "$${base}/$${name}.tar.gz" && \
+		curl -fsSL -o "$${tmp}/sums.txt" "$${base}/golangci-lint-$(GOLANGCI_LINT_VERSION)-checksums.txt" && \
+		(cd $${tmp} && awk -v n="$${name}.tar.gz" '$$2==n {print $$1"  archive.tar.gz"}' sums.txt | sha256sum -c -) && \
+		tar -xzf "$${tmp}/archive.tar.gz" -C "$${tmp}" "$${name}/golangci-lint" && \
+		mv "$${tmp}/$${name}/golangci-lint" $(GOLANGCI_LINT) && \
+		rm -rf "$${tmp}"
+
+lint: $(GOLANGCI_LINT)
+	CGO_ENABLED=0 $(GOLANGCI_LINT) run
+
+lint-fix: $(GOLANGCI_LINT)
+	CGO_ENABLED=0 $(GOLANGCI_LINT) run --fix
 
 test:
 	gotestsum --format testname ./...

@@ -250,7 +250,7 @@ func formatStringList(items []string) string {
 		if i > 0 {
 			result.WriteString("\n")
 		}
-		result.WriteString(fmt.Sprintf("%d. %s", i+1, item))
+		fmt.Fprintf(&result, "%d. %s", i+1, item)
 	}
 	return result.String()
 }

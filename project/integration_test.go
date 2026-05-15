@@ -842,7 +842,10 @@ func setupProjectCleanup(
 
 				cleanupBindMountFiles(t, tempProject)
 			} else {
-				t.Logf("No deleted directory found at %s, project may have been fully cleaned up already", deletedDirPath)
+				t.Logf(
+					"No deleted directory found at %s, project may have been fully cleaned up already",
+					deletedDirPath,
+				)
 			}
 		}
 

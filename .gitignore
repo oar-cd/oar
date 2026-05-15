@@ -1,6 +1,7 @@
 CLAUDE.md
 PLAN_*.md
 coverage.*
+bin/
 dist/
 data/
 dev_oar_data_dir/

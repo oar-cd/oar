@@ -469,7 +469,9 @@ func (s *GitService) GetDefaultBranch(gitURL string, gitAuth *domain.GitAuthConf
 				for _, otherRef := range refs {
 					if otherRef.Hash() == ref.Hash() && otherRef.Name().IsBranch() {
 						branchName := otherRef.Name().Short()
-						slog.Info("Found default branch via commit hash", "git_url", gitURL, "default_branch", branchName)
+						slog.Info("Found default branch via commit hash",
+							"git_url", gitURL,
+							"default_branch", branchName)
 						return branchName, nil
 					}
 				}

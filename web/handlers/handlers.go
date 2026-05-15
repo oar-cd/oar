@@ -178,7 +178,11 @@ func StreamOutput(w http.ResponseWriter, outputChan <-chan docker.StreamMessage,
 	}
 
 	// Send initial connection message
-	if _, err := fmt.Fprintf(w, "data: {\"type\":\"info\",\"content\":\"Connected to %s stream\"}\n\n", streamType); err != nil {
+	if _, err := fmt.Fprintf(
+		w,
+		"data: {\"type\":\"info\",\"content\":\"Connected to %s stream\"}\n\n",
+		streamType,
+	); err != nil {
 		return err
 	}
 	flusher.Flush()
@@ -197,7 +201,11 @@ func StreamOutput(w http.ResponseWriter, outputChan <-chan docker.StreamMessage,
 	}
 
 	// Send completion message
-	if _, err := fmt.Fprintf(w, "data: {\"type\":\"success\",\"content\":\"%s finished\"}\n\n", strings.ToUpper(streamType[:1])+streamType[1:]); err != nil {
+	if _, err := fmt.Fprintf(
+		w,
+		"data: {\"type\":\"success\",\"content\":\"%s finished\"}\n\n",
+		strings.ToUpper(streamType[:1])+streamType[1:],
+	); err != nil {
 		return err
 	}
 	flusher.Flush()
