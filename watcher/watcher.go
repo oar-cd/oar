@@ -115,16 +115,20 @@ func (w *WatcherService) checkProject(ctx context.Context, project *domain.Proje
 		return fmt.Errorf("failed to get remote commit: %w", err)
 	}
 
-	// Update RemoteCommit for all projects (informational, independent of auto-deploy)
-	project.RemoteCommit = &remoteCommit
-	if err := w.projectService.Update(project); err != nil {
-		slog.Error("Failed to update project RemoteCommit",
-			"project_id", project.ID,
-			"project_name", project.Name,
-			"remote_commit", remoteCommit,
-			"error", err)
-		// Don't return error here - RemoteCommit update is informational
-		// Continue to check if we should auto-deploy
+	// Update RemoteCommit for all projects (informational, independent of auto-deploy).
+	// Skip the database write when the remote commit is unchanged - otherwise every
+	// poll cycle rewrites the entire row for every project.
+	if project.RemoteCommit == nil || *project.RemoteCommit != remoteCommit {
+		project.RemoteCommit = &remoteCommit
+		if err := w.projectService.Update(project); err != nil {
+			slog.Error("Failed to update project RemoteCommit",
+				"project_id", project.ID,
+				"project_name", project.Name,
+				"remote_commit", remoteCommit,
+				"error", err)
+			// Don't return error here - RemoteCommit update is informational
+			// Continue to check if we should auto-deploy
+		}
 	}
 
 	// Log git check results
